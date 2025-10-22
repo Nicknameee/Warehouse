@@ -3,18 +3,25 @@ package io.store.ua.service;
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.ProductPhoto;
+import io.store.ua.entity.RegularUser;
 import io.store.ua.entity.Tag;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ProductDTO;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -76,6 +83,19 @@ class ProductServiceIT extends AbstractIT {
                 .photoUrl(RandomStringUtils.secure().nextAlphanumeric(333))
                 .externalReference(RandomStringUtils.secure().nextAlphanumeric(333))
                 .build());
+    }
+
+    @BeforeEach
+    void setUp() {
+        var user = RegularUser.builder()
+                .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                .role(Role.OWNER)
+                .status(Status.ACTIVE)
+                .build();
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(securityContext);
     }
 
     @Nested
@@ -369,6 +389,7 @@ class ProductServiceIT extends AbstractIT {
 
             assertThat(result).extracting(Product::getId).contains(product.getId());
         }
+
         @Test
         @DisplayName("findBy_success: filters by all criteria and includes photos for matching products")
         void findBy_success_allFilters_withPhotos() {
@@ -399,12 +420,6 @@ class ProductServiceIT extends AbstractIT {
             var productOther = saveProduct(dtoOther);
             productOther.setTags(List.of(tagX));
             productRepository.save(productOther);
-            productPhotoRepository.save(ProductPhoto.builder()
-                    .productId(productOther.getId())
-                    .photoUrl("https://cdn." + RandomStringUtils.secure().nextAlphanumeric(6) + ".example/" +
-                            RandomStringUtils.secure().nextAlphanumeric(10) + ".png")
-                    .externalReference(RandomStringUtils.secure().nextAlphanumeric(18))
-                    .build());
 
             var createdFrom = ZonedDateTime.now().minusDays(1);
             var createdTo = ZonedDateTime.now().plusDays(1);
@@ -459,11 +474,14 @@ class ProductServiceIT extends AbstractIT {
         @DisplayName("findByCode_success: returns product by code")
         void findByCode_success() {
             ProductDTO productDTO = buildProductDTO();
-            Product persisted = saveProduct(productDTO);
+            Product product = saveProduct(productDTO);
+            saveProductPhoto(product.getId());
 
             Product found = productService.findByCode(productDTO.getCode());
 
-            assertThat(found.getId()).isEqualTo(persisted.getId());
+            assertThat(found.getId()).isEqualTo(product.getId());
+            assertThat(found.getPhotos()).isNotEmpty();
+            assertThat(found.getPhotos()).extracting(ProductPhoto::getProductId).contains(product.getId());
         }
 
         @Test

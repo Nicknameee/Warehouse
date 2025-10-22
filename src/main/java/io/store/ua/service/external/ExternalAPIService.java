@@ -1,7 +1,11 @@
 package io.store.ua.service.external;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public interface ExternalAPIService {
+    AtomicBoolean IS_HEALTHY = new AtomicBoolean(true);
+
     default boolean isHealthy() {
-        return true;
+        return IS_HEALTHY.get();
     }
 }

@@ -54,6 +54,7 @@ class WarehouseServiceIT extends AbstractIT {
                 .status(Status.ACTIVE)
                 .timezone("UTC")
                 .build());
+
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
         SecurityContextHolder.setContext(context);

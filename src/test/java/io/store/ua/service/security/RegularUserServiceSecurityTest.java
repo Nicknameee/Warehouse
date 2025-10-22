@@ -110,7 +110,7 @@ class RegularUserServiceSecurityTest {
         void assertAuthenticatedUserRoles_fail_whenRoleNotAllowed() {
             var user = RegularUser.builder()
                     .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                    .role(Role.VENDOR)
+                    .role(Role.OPERATOR)
                     .status(Status.ACTIVE)
                     .build();
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();

@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,13 +23,16 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("isAuthenticated()")
 public class TagService {
     private final TagRepository tagRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public List<Tag> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                              @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return tagRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
+        List<Long> tagIDs = tagRepository.findAllIDs(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
+
+        return tagRepository.findDistinctByIdIn(new HashSet<>(tagIDs));
     }
 
     public List<Tag> findAllByIDs(@NotEmpty(message = "Tag ID list can't be empty")
@@ -36,7 +40,7 @@ public class TagService {
                                           @NotNull(message = "Tag ID can't be null")
                                           @Min(value = 1, message = "Tag ID can't be less than 1")
                                                   Long> tagIDs) {
-        return tagRepository.findAllById(tagIDs);
+        return tagRepository.findDistinctByIdIn(tagIDs);
     }
 
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'OPERATOR')")

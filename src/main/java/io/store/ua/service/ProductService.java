@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -28,6 +29,7 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("isAuthenticated()")
 public class ProductService {
     private final ProductRepository productRepository;
     private final EntityManager entityManager;

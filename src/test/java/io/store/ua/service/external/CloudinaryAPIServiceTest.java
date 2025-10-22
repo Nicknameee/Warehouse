@@ -2,6 +2,9 @@ package io.store.ua.service.external;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import io.store.ua.entity.RegularUser;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
 import jakarta.validation.ValidationException;
@@ -12,6 +15,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.ReflectionUtils;
 
 import java.io.IOException;
@@ -53,6 +59,16 @@ class CloudinaryAPIServiceTest {
         cloudinaryField.setAccessible(true);
         ReflectionUtils.setField(cloudinaryField, service, cloudinary);
         cloudinaryField.setAccessible(false);
+
+        var user = RegularUser.builder()
+                .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                .role(Role.OWNER)
+                .status(Status.ACTIVE)
+                .build();
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(securityContext);
     }
 
     private void setHealth(boolean healthy) {

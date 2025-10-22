@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 
 /**
@@ -36,9 +36,9 @@ public class StockItem {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
     @Column(name = "available_quantity", nullable = false)
-    private BigDecimal availableQuantity;
+    private BigInteger availableQuantity;
     @Column(name = "reserved_quantity", nullable = false)
-    private BigDecimal reservedQuantity;
+    private BigInteger reservedQuantity;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;

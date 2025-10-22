@@ -34,7 +34,6 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Profile("external")
@@ -44,7 +43,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DataTransAPIService implements ExternalAPIService {
     private final HttpRequestService httpRequestService;
     private final CurrencyRateService currencyRateService;
-    private final AtomicBoolean isHealthy = new AtomicBoolean(false);
     @Value("${transaction.provider:DataTrans}")
     private String provider;
     @Value("${transaction.merchantId}")
@@ -57,11 +55,6 @@ public class DataTransAPIService implements ExternalAPIService {
     private String healthCheckUrl;
     @Value("${transaction.reference.length}")
     private int referenceLength;
-
-    @Override
-    public boolean isHealthy() {
-        return isHealthy.get();
-    }
 
     @Retryable(
             maxAttempts = 10,
@@ -78,11 +71,11 @@ public class DataTransAPIService implements ExternalAPIService {
                                 .build()
                 ).orTimeout(10, TimeUnit.SECONDS)
                 .thenApply(ignore -> {
-                    isHealthy.set(true);
+                    IS_HEALTHY.set(true);
                     return null;
                 })
                 .exceptionally(ignore -> {
-                    isHealthy.set(false);
+                    IS_HEALTHY.set(false);
                     return null;
                 });
     }

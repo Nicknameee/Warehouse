@@ -8,6 +8,7 @@ import io.store.ua.enums.Status;
 import io.store.ua.exceptions.NotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,6 +23,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -40,6 +42,7 @@ class TagServiceIT extends AbstractIT {
                 .role(Role.MANAGER)
                 .status(Status.ACTIVE)
                 .build();
+
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
         SecurityContextHolder.setContext(securityContext);
@@ -176,6 +179,51 @@ class TagServiceIT extends AbstractIT {
             tagRepository.saveAll(generateTags(1));
             tagService.emptyTags();
             assertEquals(0, tagRepository.count());
+        }
+    }
+
+    @Nested
+    @DisplayName("isAttached (computed)")
+    class IsAttachedTests {
+        @Test
+        @DisplayName("isAttached reflects whether a tag has a product_tags link")
+        @Transactional
+        void isAttached_computed_fromJoinTable() {
+            Tag attachedTag = tagRepository.save(Tag.builder()
+                    .name(RandomStringUtils.secure().nextAlphanumeric(12))
+                    .isActive(true)
+                    .build());
+
+            Tag detachedTag = tagRepository.save(Tag.builder()
+                    .name(RandomStringUtils.secure().nextAlphanumeric(12))
+                    .isActive(true)
+                    .build());
+
+            var product = productRepository.save(io.store.ua.entity.Product.builder()
+                    .code(RandomStringUtils.secure().nextAlphanumeric(24))
+                    .title(RandomStringUtils.secure().nextAlphabetic(10))
+                    .description(RandomStringUtils.secure().nextAlphanumeric(40))
+                    .price(BigInteger.valueOf(RandomUtils.secure().randomInt(10, 500)))
+                    .weight(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
+                    .length(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
+                    .width(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
+                    .height(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
+                    .build());
+
+            entityManager.createNativeQuery(
+                            "INSERT INTO product_tags (product_id, tag_id) VALUES (:p, :t)")
+                    .setParameter("p", product.getId())
+                    .setParameter("t", attachedTag.getId())
+                    .executeUpdate();
+
+            entityManager.flush();
+            entityManager.clear();
+
+            Tag reloadedAttached = tagRepository.findById(attachedTag.getId()).orElseThrow();
+            Tag reloadedDetached = tagRepository.findById(detachedTag.getId()).orElseThrow();
+
+            assertThat(reloadedAttached.getLinks()).isNotEmpty();
+            assertThat(reloadedDetached.getLinks()).isEmpty();
         }
     }
 }

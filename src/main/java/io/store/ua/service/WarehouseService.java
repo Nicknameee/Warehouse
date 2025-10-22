@@ -23,11 +23,12 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("isAuthenticated()")
 public class WarehouseService {
     private final WarehouseRepository warehouseRepository;
     private final FieldValidator fieldValidator;
 
-    @PreAuthorize("hasAnyAuthority('OWNER')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public List<Warehouse> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                    @Min(value = 1, message = "A page number can't be less than 1") int page) {
         return warehouseRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
@@ -91,14 +92,18 @@ public class WarehouseService {
             warehouse.setIsActive(warehouseDTO.getIsActive());
         }
 
-        if (warehouseDTO.getManagerId() != null && regularUser.getRole().equals(Role.OWNER)) {
-            warehouse.setManagerId(warehouseDTO.getManagerId());
+        if (warehouseDTO.getManagerId() != null) {
+            if (regularUser.getRole().equals(Role.OWNER)) {
+                warehouse.setManagerId(warehouseDTO.getManagerId());
+            } else {
+                throw new BusinessException("Updating manager for warehouse is allowed for %s only".formatted(Role.OWNER.name()));
+            }
         }
 
         return warehouseRepository.save(warehouse);
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public Warehouse toggleState(@NotBlank(message = "Warehouse code can't be blank") String code) {
         Warehouse warehouse = warehouseRepository.findByCode(code)
                 .orElseThrow(() -> new NotFoundException(("Warehouse with code: %s was not found").formatted(code)));

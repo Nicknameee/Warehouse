@@ -3,6 +3,7 @@ package io.store.ua;
 import io.store.ua.repository.*;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
 import io.store.ua.repository.cache.CurrencyRateRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
@@ -44,6 +45,8 @@ public abstract class AbstractIT {
             new GenericContainer<>("redis:7-alpine")
                     .withExposedPorts(6379);
     @Autowired
+    protected EntityManager entityManager;
+    @Autowired
     protected JdbcTemplate jdbcTemplate;
     @Autowired
     protected BlacklistedTokenRepository blacklistedTokenRepository;
@@ -78,7 +81,6 @@ public abstract class AbstractIT {
 
     @BeforeEach
     void clearTables() {
-
         stockItemLogRepository.flush();
         shipmentRepository.flush();
         productPhotoRepository.flush();

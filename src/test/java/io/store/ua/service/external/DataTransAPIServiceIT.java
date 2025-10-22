@@ -1,15 +1,22 @@
 package io.store.ua.service.external;
 
 import io.store.ua.AbstractIT;
+import io.store.ua.entity.RegularUser;
 import io.store.ua.entity.cache.CurrencyRate;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.data.DataTransTransaction;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -59,6 +66,16 @@ class DataTransAPIServiceIT extends AbstractIT {
                         .expiryTime(TimeUnit.DAYS.toSeconds(1))
                         .build()
         ));
+
+        var user = RegularUser.builder()
+                .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                .role(Role.OWNER)
+                .status(Status.ACTIVE)
+                .build();
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(securityContext);
     }
 
     @Test

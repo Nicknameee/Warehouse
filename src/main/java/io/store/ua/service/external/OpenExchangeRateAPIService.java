@@ -3,6 +3,7 @@ package io.store.ua.service.external;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.store.ua.entity.cache.CurrencyRate;
+import io.store.ua.exceptions.ExternalException;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.utility.HttpRequestService;
 import io.store.ua.utility.RegularObjectMapper;
@@ -11,6 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import okhttp3.Request;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
@@ -53,19 +55,23 @@ public class OpenExchangeRateAPIService implements ExternalAPIService {
         try (response) {
             var exchangeRates = RegularObjectMapper.read(response.peekBody(Long.MAX_VALUE).string(), OpenExchangeResponse.class);
 
-            return
-                    exchangeRates.getRates()
-                            .entrySet()
-                            .stream()
-                            .map(
+            if (ObjectUtils.anyNull(exchangeRates, exchangeRates.getBaseCurrency(), exchangeRates.getRates())
+                    || ObjectUtils.notEqual(exchangeRates.getBaseCurrency(), "USD")
+                    || exchangeRates.getRates().isEmpty()) {
+                throw new ExternalException("Invalid response from OpenExchangeRate API");
+            }
 
-                                    rate -> CurrencyRate.builder()
-                                            .currencyCode(rate.getKey())
-                                            .baseCurrencyCode(exchangeRates.getBaseCurrency())
-                                            .rate(rate.getValue())
-                                            .expiryTime(TimeUnit.DAYS.toSeconds(1))
-                                            .build())
-                            .toList();
+            return exchangeRates.getRates()
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> entry.getValue() != null && entry.getValue().compareTo(BigDecimal.ZERO) > 0)
+                    .map(rate -> CurrencyRate.builder()
+                            .currencyCode(rate.getKey())
+                            .baseCurrencyCode(exchangeRates.getBaseCurrency())
+                            .rate(rate.getValue())
+                            .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                            .build())
+                    .toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

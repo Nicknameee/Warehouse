@@ -5,6 +5,7 @@ import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,6 +16,7 @@ import org.springframework.validation.annotation.Validated;
 @RequiredArgsConstructor
 @Profile("users")
 @Validated
+@PreAuthorize("permitAll()")
 public class RegularUserDetailsService implements UserDetailsService {
     private final RegularUserService regularUserService;
 

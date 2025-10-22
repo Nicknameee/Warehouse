@@ -42,6 +42,7 @@ import java.util.TimeZone;
 @Profile("users")
 @Validated
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class RegularUserService {
     private final RegularUserRepository regularUserRepository;
     private final RegularUserMapper regularUserMapper;
@@ -157,6 +158,7 @@ public class RegularUserService {
         return Optional.ofNullable(regularUserRepository.findRegularUserByEmail(email));
     }
 
+    @PreAuthorize("permitAll()")
     public Optional<RegularUser> findByUsername(@NotBlank(message = "Username can't be blank") String username) {
         return Optional.ofNullable(regularUserRepository.findRegularUserByUsername(username));
     }

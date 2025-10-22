@@ -30,7 +30,7 @@ public class RegularUserDTO {
     )
     private String timezone;
     @NotNull
-    @Pattern(regexp = Role.ROLE_PATTERN, flags = Pattern.Flag.CASE_INSENSITIVE, message = "Role must be one of: OPERATOR, SHIPPER, VENDOR, MANAGER, DEV_OPS")
+    @Pattern(regexp = Role.ROLE_PATTERN, flags = Pattern.Flag.CASE_INSENSITIVE, message = "Role must be one of: OPERATOR, MANAGER")
     private String role;
     @NotNull
     @Pattern(regexp = Status.STATUS_PATTERN, flags = Pattern.Flag.CASE_INSENSITIVE, message = "Status must be one of: ACTIVE, INACTIVE")

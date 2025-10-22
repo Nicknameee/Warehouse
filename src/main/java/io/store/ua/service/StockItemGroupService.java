@@ -21,6 +21,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("isAuthenticated()")
 public class StockItemGroupService {
     private final StockItemGroupRepository stockItemGroupRepository;
     private final FieldValidator fieldValidator;
@@ -39,7 +40,6 @@ public class StockItemGroupService {
                         () -> new NotFoundException("Stock group with code: %s was not found".formatted(code)));
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'OPERATOR')")
     public StockItemGroup save(StockItemGroupDTO stockItemGroupDTO) {
         if (stockItemGroupDTO.getCode() == null) {
             if (stockItemGroupDTO.getName() == null) {
@@ -80,7 +80,6 @@ public class StockItemGroupService {
         }
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'OPERATOR')")
     public StockItemGroup toggleState(@NotBlank(message = "Group code can not be blank") String code) {
         StockItemGroup stockItemGroup =
                 stockItemGroupRepository

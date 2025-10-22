@@ -3,6 +3,9 @@ package io.store.ua.service;
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.ProductPhoto;
+import io.store.ua.entity.RegularUser;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
 import io.store.ua.service.external.CloudinaryAPIService;
@@ -18,6 +21,9 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,6 +48,16 @@ class ProductPhotoServiceIT extends AbstractIT {
 
     @BeforeEach
     void setUp() {
+        var user = RegularUser.builder()
+                .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                .role(Role.OWNER)
+                .status(Status.ACTIVE)
+                .build();
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(securityContext);
+
         generateProduct();
     }
 
