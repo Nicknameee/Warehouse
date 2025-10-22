@@ -1,0 +1,9 @@
+spring:
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      database: ${SPRING_REDIS_DATABASE:0}
+      password: ${SPRING_REDIS_PASSWORD:1904}
+      connect-timeout: 30s
+      timeout: 30s

@@ -1,0 +1,20 @@
+cloudinary:
+  cloud: ${CLOUDINARY_CLOUD_NAME}
+  credentials:
+    apiKey: ${CLOUDINARY_API_KEY}
+    apiSecret: ${CLOUDINARY_API_SECRET}
+  limit: 10
+  folder: warehouse
+
+transaction:
+  provider: DataTrans
+  merchantId: ${DATA_TRANS_MERCHANT_ID}
+  merchantPassword: ${DATA_TRANS_MERCHANT_PASSWORD}
+  url: ${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}
+  healthCheckUrl: ${DATA_TRANS_HEALTH_CHECK_URL:https://api.sandbox.datatrans.com/upp/check}
+  reference:
+    length: 39
+
+exchange:
+  appId: ${EXCHANGE_APP_ID}
+  url: ${EXCHANGE_URL}

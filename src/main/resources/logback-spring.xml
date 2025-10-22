@@ -1,0 +1,26 @@
+<configuration>
+    <springProperty scope="context" name="application" source="spring.application.name"/>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%highlight(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%green(${application})] %highlight(%level) [%cyan(%thread)] %blue(%logger{36}) - %magenta(%msg) %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOGBACK_LOGSTASH_HOST:-localhost:5000}</destination>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} ${application} %level [%thread] %logger{36} - %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="stdout"/>
+    </root>
+
+    <springProfile name="elk">
+        <root level="DEBUG">
+            <appender-ref ref="logstash"/>
+        </root>
+    </springProfile>
+</configuration>

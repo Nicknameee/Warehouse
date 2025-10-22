@@ -1,0 +1,138 @@
+package io.store.ua.service.security;
+
+import io.store.ua.entity.RegularUser;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
+import io.store.ua.exceptions.BusinessException;
+import io.store.ua.service.RegularUserService;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+
+class RegularUserServiceSecurityTest {
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Nested
+    @DisplayName("getCurrentlyAuthenticatedUser()")
+    class GetCurrentlyAuthenticatedUserTests {
+        @Test
+        @DisplayName("getCurrentlyAuthenticatedUser_success: returns user when principal is RegularUser and authentication is authenticated")
+        void getCurrentlyAuthenticatedUser_success() {
+            var user = RegularUser.builder()
+                    .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                    .role(Role.MANAGER)
+                    .status(Status.ACTIVE)
+                    .build();
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+            SecurityContextHolder.setContext(securityContext);
+
+            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+
+            assertThat(result).isPresent();
+            assertThat(result.get().getUsername()).isEqualTo(user.getUsername());
+            assertThat(result.get().getRole()).isEqualTo(user.getRole());
+            assertThat(result.get().getStatus()).isEqualTo(user.getStatus());
+        }
+
+        @Test
+        @DisplayName("getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenUnauthenticated: returns empty when authentication is unauthenticated")
+        void getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenUnauthenticated() {
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(null, null, null));
+            SecurityContextHolder.setContext(securityContext);
+
+            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenPrincipalIsNotRegularUser: returns empty when principal is not RegularUser")
+        void getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenPrincipalIsNotRegularUser() {
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(RandomStringUtils.secure().nextAlphanumeric(3), null, List.of());
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+
+            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenNoAuthentication: returns empty when SecurityContext has no authentication")
+        void getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenNoAuthentication() {
+            SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
+
+            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("assertAuthenticatedUserRoles(roles: List<Role>)")
+    class AssertAuthenticatedUserRolesTests {
+        @Test
+        @DisplayName("assertAuthenticatedUserRoles: does not throw when user's role is in the allowed list")
+        void assertAuthenticatedUserRoles_success() {
+            var user = RegularUser.builder()
+                    .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                    .role(Role.MANAGER)
+                    .status(Status.ACTIVE)
+                    .build();
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+            SecurityContextHolder.setContext(securityContext);
+
+            assertThatCode(() -> RegularUserService.assertAuthenticatedUserRoles(List.of(Role.OPERATOR, Role.MANAGER)))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("assertAuthenticatedUserRoles: throws BusinessException when user's role is not in the allowed list")
+        void assertAuthenticatedUserRoles_fail_whenRoleNotAllowed() {
+            var user = RegularUser.builder()
+                    .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                    .role(Role.VENDOR)
+                    .status(Status.ACTIVE)
+                    .build();
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+
+            SecurityContextHolder.setContext(securityContext);
+
+            assertThatThrownBy(() ->
+                    RegularUserService.assertAuthenticatedUserRoles(List.of(Role.MANAGER, Role.OWNER))
+            ).isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("User role has to be one of");
+        }
+
+        @Test
+        @DisplayName("assertAuthenticatedUserRoles: throws BusinessException when there is no authenticated RegularUser")
+        void assertAuthenticatedUserRoles_fail_whenNoAuthenticatedUser() {
+            SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
+
+            assertThatThrownBy(() ->
+                    RegularUserService.assertAuthenticatedUserRoles(List.of(Role.MANAGER))
+            ).isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("User role has to be one of");
+        }
+    }
+}

@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/warehouse}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:1904}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: warehouse-pool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+  flyway:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/warehouse}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:1904}
+    locations: ${SPRING_FLYWAY_LOCATIONS:classpath:migrations}
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    driver-class-name: org.postgresql.Driver
+    output-query-results: true
+    validate-on-migrate: true
+    out-of-order: true
+    validate-migration-naming: true
+    baseline-on-migrate: true
+    table: flyway_history
+    placeholders:
+      owner: ${OWNER:'owner'}
