@@ -1,24 +1,16 @@
 package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
-import io.store.ua.entity.RegularUser;
 import io.store.ua.entity.cache.CurrencyRate;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.service.external.OpenExchangeRateAPIService;
 import jakarta.validation.ValidationException;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
@@ -37,19 +29,6 @@ class CurrencyRateServiceIT extends AbstractIT {
     private CurrencyRateService currencyRateService;
     @MockitoBean
     private OpenExchangeRateAPIService openExchangeRateAPIService;
-
-    @BeforeEach
-    void setUp() {
-        var user = RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                .role(Role.OWNER)
-                .status(Status.ACTIVE)
-                .build();
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
-    }
 
     @Nested
     @DisplayName("refreshCurrencyRates()")
@@ -196,7 +175,7 @@ class CurrencyRateServiceIT extends AbstractIT {
                     .rate(new BigDecimal("0.90"))
                     .expiryTime(TimeUnit.DAYS.toSeconds(1))
                     .build());
-            CurrencyRate chf = currencyRateRepository.save(CurrencyRate.builder()
+            currencyRateRepository.save(CurrencyRate.builder()
                     .currencyCode(Constants.Currency.CHF)
                     .baseCurrencyCode(Constants.Currency.USD)
                     .rate(new BigDecimal("1.25"))

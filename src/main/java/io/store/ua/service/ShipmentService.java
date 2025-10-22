@@ -49,9 +49,7 @@ public class ShipmentService {
 
         Shipment.ShipmentBuilder shipmentBuilder = Shipment.builder();
 
-        var user = RegularUserService.getCurrentlyAuthenticatedUser()
-                .orElseThrow(() -> new BusinessException("User is not authenticated"));
-        shipmentBuilder.initiatorId(user.getId());
+        shipmentBuilder.initiatorId(RegularUserService.getCurrentlyAuthenticatedUserID());
 
         fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
 

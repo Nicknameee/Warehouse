@@ -4,7 +4,7 @@ import io.store.ua.entity.RegularUser;
 import io.store.ua.enums.Role;
 import io.store.ua.enums.Status;
 import io.store.ua.exceptions.ApplicationException;
-import io.store.ua.exceptions.BusinessException;
+import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.mappers.RegularUserMapper;
 import io.store.ua.models.dto.RegularUserDTO;
 import io.store.ua.models.dto.UserActionResultDTO;
@@ -52,7 +52,7 @@ public class RegularUserService {
 
     public static void assertAuthenticatedUserRoles(List<Role> roles) {
         getCurrentlyAuthenticatedUser().filter(user -> roles.contains(user.getRole()))
-                .orElseThrow(() -> new BusinessException(("User role has to be one of [%s]").formatted(roles)));
+                .orElseThrow(() -> new RegularAuthenticationException(("User role has to be one of [%s]").formatted(roles)));
     }
 
     public static Optional<RegularUser> getCurrentlyAuthenticatedUser() {
@@ -70,6 +70,10 @@ public class RegularUserService {
         }
 
         return Optional.empty();
+    }
+
+    public static Long getCurrentlyAuthenticatedUserID() {
+        return getCurrentlyAuthenticatedUser().map(RegularUser::getId).orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
     }
 
     public List<RegularUser> findByRole(@NotNull(message = "User role can't be null") Role role,

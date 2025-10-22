@@ -8,4 +8,8 @@ public interface ExternalAPIService {
     default boolean isHealthy() {
         return IS_HEALTHY.get();
     }
+
+    default void setHealth(boolean flag) {
+        IS_HEALTHY.set(flag);
+    }
 }

@@ -6,11 +6,13 @@ import io.store.ua.enums.Role;
 import io.store.ua.enums.Status;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -20,6 +22,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class RegularUserDetailsServiceIT extends AbstractIT {
     @Autowired
     private RegularUserDetailsService regularUserDetailsService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     @DisplayName("loads user by username when user exists")

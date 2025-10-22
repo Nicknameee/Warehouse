@@ -17,9 +17,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -56,10 +53,6 @@ class StockItemServiceIT extends AbstractIT {
                 .status(Status.ACTIVE)
                 .timezone("UTC")
                 .build());
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
 
         stockItemGroupA = stockItemGroupRepository.save(StockItemGroup.builder()
                 .code(RandomStringUtils.secure().nextAlphanumeric(16))

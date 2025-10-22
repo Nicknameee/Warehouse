@@ -82,7 +82,7 @@ public class DTPaymentInitiationRequest {
      * }
      */
     @Data
-    public static class Card {
+    public static class  Card {
         private final String alias = "AAABcH0Bq92s3kgAESIAAbGj5NIsAHWC";
         private final String expiryMonth = "06";
         private String expiryYear = "28";

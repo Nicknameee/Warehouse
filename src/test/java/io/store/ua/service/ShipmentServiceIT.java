@@ -5,6 +5,7 @@ import io.store.ua.entity.*;
 import io.store.ua.enums.Role;
 import io.store.ua.enums.Status;
 import io.store.ua.exceptions.BusinessException;
+import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.data.WorkingHours;
 import io.store.ua.models.dto.ShipmentDTO;
@@ -21,7 +22,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
@@ -86,10 +87,6 @@ class ShipmentServiceIT extends AbstractIT {
                 .reservedQuantity(BigInteger.valueOf(RandomUtils.secure().randomInt(0, 100)))
                 .status(StockItem.Status.AVAILABLE)
                 .build());
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
     }
 
     private Warehouse generateWarehouse() {
@@ -351,23 +348,19 @@ class ShipmentServiceIT extends AbstractIT {
         @Test
         @DisplayName("save_fail_unauthenticated: throws BusinessException when user not authenticated")
         void save_fail_unauthenticated() {
-            var previousAuthentication = SecurityContextHolder.getContext().getAuthentication();
-            try {
-                SecurityContextHolder.clearContext();
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(null,
+                    null,
+                    AuthorityUtils.createAuthorityList()));
 
-                Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
-                ShipmentDTO shipmentDTO = new ShipmentDTO();
-                shipmentDTO.setSenderCode(warehouse.getCode());
-                shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
-                shipmentDTO.setStockItemId(stockItem.getId());
-                shipmentDTO.setStockItemAmount(1L);
+            Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
+            ShipmentDTO shipmentDTO = new ShipmentDTO();
+            shipmentDTO.setSenderCode(warehouse.getCode());
+            shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
+            shipmentDTO.setStockItemId(stockItem.getId());
+            shipmentDTO.setStockItemAmount(1L);
 
-                assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                        .isInstanceOf(BusinessException.class)
-                        .hasMessageContaining("User is not authenticated");
-            } finally {
-                SecurityContextHolder.getContext().setAuthentication(previousAuthentication);
-            }
+            assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
+                    .isInstanceOf(RegularAuthenticationException.class);
         }
 
         @ParameterizedTest(name = "save_fail_invalidStatus: status=''{0}'' is invalid")
@@ -415,7 +408,7 @@ class ShipmentServiceIT extends AbstractIT {
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(newRecipientWarehouse.getId());
             assertThat(updatedShipment.getStockItemAmount()).isEqualTo(7L);
             assertThat(updatedShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.SENT);
-            assertThat(updatedShipment.getInitiatorId()).isEqualTo(user.getId());
+            assertThat(updatedShipment.getInitiatorId()).isEqualTo(RegularUserService.getCurrentlyAuthenticatedUserID());
         }
 
         @Test

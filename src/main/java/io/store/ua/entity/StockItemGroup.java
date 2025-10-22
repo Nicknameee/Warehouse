@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
 /**
- * Entity represent stock item category The category structure is not hierarchical, but 1-level
+ * Entity represents the stock item category
+ * The category structure is not hierarchical, but 1-level
  */
 @Entity
 @Table(name = "stock_item_groups")

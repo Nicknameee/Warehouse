@@ -7,13 +7,23 @@ cloudinary:
   folder: warehouse
 
 transaction:
-  provider: DataTrans
-  merchantId: ${DATA_TRANS_MERCHANT_ID}
-  merchantPassword: ${DATA_TRANS_MERCHANT_PASSWORD}
-  url: ${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}
-  healthCheckUrl: ${DATA_TRANS_HEALTH_CHECK_URL:https://api.sandbox.datatrans.com/upp/check}
-  reference:
-    length: 39
+  incoming:
+    provider: DataTrans
+    merchantId: ${DATA_TRANS_MERCHANT_ID:any}
+    merchantPassword: ${DATA_TRANS_MERCHANT_PASSWORD:any}
+    url: ${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}
+    healthCheckUrl: ${DATA_TRANS_HEALTH_CHECK_URL:https://api.sandbox.datatrans.com/upp/check}
+    reference:
+      length: 39
+  outcoming:
+    provider: LiqPay
+    publicKey: ${LIQPAY_PUBLIC_KEY:any}
+    privateKey: ${LIQPAY_PRIVATE_KEY:any}
+    url: ${LIQPAY_URL:https://www.liqpay.ua/api/request}
+    checkoutUrl: ${LIQPAY_CHECKOUT_URL:https://www.liqpay.ua/api/3/checkout}
+    version: 3
+    sandbox: true
+
 
 exchange:
   appId: ${EXCHANGE_APP_ID}

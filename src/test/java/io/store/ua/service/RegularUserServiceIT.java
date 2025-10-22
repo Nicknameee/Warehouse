@@ -9,7 +9,6 @@ import io.store.ua.models.dto.UserActionResultDTO;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,9 +16,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,19 +79,6 @@ class RegularUserServiceIT extends AbstractIT {
         return regularUserDTO;
     }
 
-    @BeforeEach
-    void setUp() {
-        var user = RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                .role(Role.MANAGER)
-                .status(Status.ACTIVE)
-                .build();
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
-    }
-
     @Nested
     @DisplayName("save(user: RegularUserDTO)")
     class SaveTests {
@@ -103,6 +86,8 @@ class RegularUserServiceIT extends AbstractIT {
         @DisplayName("save_success: save a new user")
         void save_success() {
             RegularUserDTO regularUserDTO = buildRegularUserDTO();
+
+            var userCount = userRepository.count();
 
             RegularUser savedUser = userService.save(regularUserDTO);
 
@@ -119,7 +104,7 @@ class RegularUserServiceIT extends AbstractIT {
                 assertThat(savedUser.getTimezone()).isEqualTo("UTC");
             }
 
-            assertThat(userRepository.count()).isEqualTo(1);
+            assertThat(userRepository.count()).isEqualTo(userCount + 1);
         }
 
         @ParameterizedTest(name = "save_fail_whenUsernameInvalid: username=''{0}''")
@@ -186,10 +171,12 @@ class RegularUserServiceIT extends AbstractIT {
         void saveAll_success() {
             List<RegularUserDTO> regularUserDTOS = buildRegularUserDTOs(10);
 
+            var userCount = userRepository.count();
+
             List<RegularUser> savedUsers = userService.saveAll(regularUserDTOS);
 
             assertThat(savedUsers).hasSize(10);
-            assertThat(userRepository.count()).isEqualTo(10);
+            assertThat(userRepository.count()).isEqualTo(userCount + savedUsers.size());
             assertThat(savedUsers)
                     .extracting(RegularUser::getUsername)
                     .containsExactlyInAnyOrderElementsOf(
@@ -203,9 +190,11 @@ class RegularUserServiceIT extends AbstractIT {
             RegularUserDTO invalidRegularUserDTO = buildRegularUserDTO();
             invalidRegularUserDTO.setEmail("not-an-email");
 
+            var userCount = userRepository.count();
+
             assertThatThrownBy(() -> userService.saveAll(List.of(validRegularUserDTO, invalidRegularUserDTO)))
                     .isInstanceOf(ValidationException.class);
-            assertThat(userRepository.count()).isEqualTo(0);
+            assertThat(userRepository.count()).isEqualTo(userCount);
         }
     }
 
@@ -346,7 +335,7 @@ class RegularUserServiceIT extends AbstractIT {
 
     @Nested
     @DisplayName("findByStatus(status: Status)")
-    class FindByStatusTests {
+    class FindByTransactionStatusTests {
         @Test
         @DisplayName("findByStatus_success: returns page")
         @Transactional

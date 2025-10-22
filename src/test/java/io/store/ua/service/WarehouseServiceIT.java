@@ -22,9 +22,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +51,6 @@ class WarehouseServiceIT extends AbstractIT {
                 .status(Status.ACTIVE)
                 .timezone("UTC")
                 .build());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(context);
     }
 
     private WarehouseDTO buildWarehouseDTO() {

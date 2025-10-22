@@ -1,15 +1,11 @@
 package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
-import io.store.ua.entity.RegularUser;
 import io.store.ua.entity.Tag;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
 import io.store.ua.exceptions.NotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,9 +14,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
@@ -34,19 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TagServiceIT extends AbstractIT {
     @Autowired
     private TagService tagService;
-
-    @BeforeEach
-    void setUp() {
-        var user = RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                .role(Role.MANAGER)
-                .status(Status.ACTIVE)
-                .build();
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
-    }
 
     private List<Tag> generateTags(int count) {
         return IntStream.rangeClosed(1, count)

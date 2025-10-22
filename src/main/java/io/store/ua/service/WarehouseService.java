@@ -41,11 +41,6 @@ public class WarehouseService {
 
     @PreAuthorize("hasAnyAuthority('OWNER')")
     public Warehouse save(WarehouseDTO warehouseDTO) {
-        RegularUser regularUser =
-                RegularUserService.getCurrentlyAuthenticatedUser()
-                        .filter(user -> user.getRole().equals(Role.OWNER))
-                        .orElseThrow(() -> new BusinessException("Action is allowed for %s only".formatted(Role.OWNER.name())));
-
         String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
 
         Optional<Warehouse> warehouseOptional = warehouseRepository.findByCode(code);
@@ -55,7 +50,7 @@ public class WarehouseService {
                 .address(warehouseDTO.getAddress())
                 .workingHours(warehouseDTO.getWorkingHours())
                 .phones(warehouseDTO.getPhones())
-                .managerId(regularUser.getId())
+                .managerId(RegularUserService.getCurrentlyAuthenticatedUserID())
                 .isActive(warehouseDTO.getIsActive()).build()));
     }
 

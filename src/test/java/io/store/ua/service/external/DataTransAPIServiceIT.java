@@ -19,12 +19,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,16 +30,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("external")
 @TestPropertySource(properties = {
-        "transaction.merchantId=${DATA_TRANS_MERCHANT_ID}",
-        "transaction.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD}",
-        "transaction.url=${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}",
-        "transaction.reference.length=39"
+        "transaction.incoming.merchantId=${DATA_TRANS_MERCHANT_ID}",
+        "transaction.incoming.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD}",
+        "transaction.incoming.url=${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}",
+        "transaction.incoming.reference.length=39"
 })
 @Disabled("IT for real DataTrans API invocation for testing service setup flow")
 class DataTransAPIServiceIT extends AbstractIT {
     @Autowired
     private DataTransAPIService dataTransAPIService;
-    @Value("${transaction.reference.length}")
+    @Value("${transaction.incoming.reference.length}")
     private int referenceLength;
 
     @BeforeEach
@@ -80,7 +78,7 @@ class DataTransAPIServiceIT extends AbstractIT {
 
     @Test
     void initialisePayment_realApi_invokesSuccessfully() {
-        setHealth(true);
+        dataTransAPIService.setHealth(true);
         BigDecimal amount = BigDecimal.valueOf(1000);
 
         DataTransTransaction transaction = dataTransAPIService.initialisePayment(DataTransAPIService.Constants.Currency.CHF, amount, false);
@@ -94,14 +92,14 @@ class DataTransAPIServiceIT extends AbstractIT {
 
     @Test
     void initialisePayment_realApi_failsWithFalseHealth() {
-        setHealth(false);
+        dataTransAPIService.setHealth(false);
         assertThatThrownBy(() -> dataTransAPIService.initialisePayment(DataTransAPIService.Constants.Currency.CHF, BigDecimal.valueOf(1000), false))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
     void authorizePayment_realApi_invokesSuccessfully() {
-        setHealth(true);
+        dataTransAPIService.setHealth(true);
         BigDecimal amount = BigDecimal.valueOf(1000);
 
         DataTransTransaction transaction = dataTransAPIService.authorizePayment(DataTransAPIService.Constants.Currency.CHF, amount);
@@ -118,14 +116,14 @@ class DataTransAPIServiceIT extends AbstractIT {
 
     @Test
     void authorizePayment_realApi_failsWithFalseHealth() {
-        setHealth(false);
+        dataTransAPIService.setHealth(false);
         assertThatThrownBy(() -> dataTransAPIService.authorizePayment(DataTransAPIService.Constants.Currency.CHF, BigDecimal.valueOf(1000)))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
     void settlePayment_realApi_invokesSuccessfully() {
-        setHealth(true);
+        dataTransAPIService.setHealth(true);
         BigDecimal amount = BigDecimal.valueOf(1000);
 
         DataTransTransaction authorized =
@@ -154,24 +152,15 @@ class DataTransAPIServiceIT extends AbstractIT {
 
     @Test
     void settlePayment_realApi_failsWithFalseHealth() {
-        setHealth(false);
+        dataTransAPIService.setHealth(false);
         assertThatThrownBy(() ->
                 dataTransAPIService.settlePayment(
                         DataTransAPIService.Constants.Currency.CHF,
                         BigDecimal.valueOf(1000),
                         "any-tx-id",
                         "any-ref"
-                )
-        ).isInstanceOf(HealthCheckException.class);
-    }
-
-    private void setHealth(boolean flag) {
-        AtomicBoolean isHealthy = new AtomicBoolean(flag);
-        ReflectionTestUtils.setField(
-                dataTransAPIService,
-                DataTransAPIService.Fields.isHealthy,
-                isHealthy
-        );
+                ))
+                .isInstanceOf(HealthCheckException.class);
     }
 }
 

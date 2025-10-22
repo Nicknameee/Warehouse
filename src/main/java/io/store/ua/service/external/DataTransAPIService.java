@@ -43,17 +43,17 @@ import java.util.concurrent.TimeUnit;
 public class DataTransAPIService implements ExternalAPIService {
     private final HttpRequestService httpRequestService;
     private final CurrencyRateService currencyRateService;
-    @Value("${transaction.provider:DataTrans}")
+    @Value("${transaction.incoming.provider:DataTrans}")
     private String provider;
-    @Value("${transaction.merchantId}")
+    @Value("${transaction.incoming.merchantId}")
     private String merchantId;
-    @Value("${transaction.merchantPassword}")
+    @Value("${transaction.incoming.merchantPassword}")
     private String merchantPassword;
-    @Value("${transaction.url:https://api.sandbox.datatrans.com/v1}")
+    @Value("${transaction.incoming.url:https://api.sandbox.datatrans.com/v1}")
     private String url;
-    @Value("${transaction.healthCheckUrl:https://api.sandbox.datatrans.com/upp/check}")
+    @Value("${transaction.incoming.healthCheckUrl:https://api.sandbox.datatrans.com/upp/check}")
     private String healthCheckUrl;
-    @Value("${transaction.reference.length}")
+    @Value("${transaction.incoming.reference.length}")
     private int referenceLength;
 
     @Retryable(

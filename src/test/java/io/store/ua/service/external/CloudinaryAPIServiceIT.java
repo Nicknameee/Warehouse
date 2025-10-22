@@ -1,19 +1,12 @@
 package io.store.ua.service.external;
 
-import io.store.ua.entity.RegularUser;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -36,19 +29,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class CloudinaryAPIServiceIT {
     @Autowired
     private CloudinaryAPIService cloudinaryAPIService;
-
-    @BeforeEach
-    void setUp() {
-        var user = RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                .role(Role.OWNER)
-                .status(Status.ACTIVE)
-                .build();
-
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
-        SecurityContextHolder.setContext(securityContext);
-    }
 
     @Test
     void uploadAndDeleteRealImage() throws Exception {

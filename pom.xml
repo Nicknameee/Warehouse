@@ -21,6 +21,14 @@
             <id>commons</id>
             <url>https://maven.pkg.github.com/Nicknameee/commons</url>
         </repository>
+        <repository>
+            <id>repository</id>
+            <url>https://github.com/liqpay/sdk-java/raw/repository</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
     </repositories>
 
     <dependencyManagement>
@@ -133,6 +141,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -301,6 +314,11 @@
             <groupId>com.cloudinary</groupId>
             <artifactId>cloudinary-http44</artifactId>
             <version>1.39.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.liqpay</groupId>
+            <artifactId>liqpay-sdk</artifactId>
+            <version>0.8-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
