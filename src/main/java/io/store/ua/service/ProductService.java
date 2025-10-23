@@ -5,6 +5,7 @@ import io.store.ua.entity.Tag;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ProductDTO;
 import io.store.ua.repository.ProductRepository;
+import io.store.ua.repository.TagRepository;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
@@ -34,7 +35,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final EntityManager entityManager;
     private final FieldValidator fieldValidator;
-    private final TagService tagService;
+    private final TagRepository tagRepository;
 
     public List<Product> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                  @Min(value = 1, message = "A page number can't be less than 1") int page) {
@@ -159,7 +160,7 @@ public class ProductService {
                 .build();
 
         if (productDTO.getTags() != null && !productDTO.getTags().isEmpty()) {
-            var foundTags = tagService.findAllByIDs(productDTO.getTags());
+            var foundTags = tagRepository.findDistinctByIdIn(productDTO.getTags());
             if (foundTags.size() != productDTO.getTags().size()) {
                 throw new NotFoundException("Certain tags were not found, IDs: [%s], found IDs: [%s]"
                         .formatted(productDTO.getTags(), foundTags.stream().map(Tag::getId).toList()));
@@ -216,7 +217,7 @@ public class ProductService {
             if (productDTO.getTags().isEmpty()) {
                 product.setTags(new ArrayList<>());
             } else {
-                var foundTags = tagService.findAllByIDs(productDTO.getTags());
+                var foundTags = tagRepository.findDistinctByIdIn(productDTO.getTags());
                 if (foundTags.size() != productDTO.getTags().size()) {
                     throw new NotFoundException("Certain tags were not found, IDs: [%s], found IDs: [%s]"
                             .formatted(productDTO.getTags(), foundTags.stream().map(Tag::getId).toList()));

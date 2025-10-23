@@ -2,12 +2,15 @@ package io.store.ua.service.external;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.store.ua.exceptions.HealthCheckException;
-import io.store.ua.models.api.external.request.LPCheckoutPayload;
-import io.store.ua.models.api.external.request.LPCheckoutRequest;
+import io.store.ua.models.api.external.request.LPInitiatePaymentRequest;
+import io.store.ua.models.api.external.request.LPInitiatePaymentRequestDTO;
 import io.store.ua.models.api.external.request.LPStatusPayload;
+import io.store.ua.models.api.external.response.LPInitiatePaymentResponse;
 import io.store.ua.models.api.external.response.LPResponse;
+import io.store.ua.repository.BeneficiaryRepository;
 import io.store.ua.utility.HttpRequestService;
 import io.store.ua.utility.RegularObjectMapper;
+import io.store.ua.validations.FieldValidator;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,9 @@ import java.util.Base64;
 @Validated
 public class LiqPayAPIService implements ExternalAPIService {
     private final HttpRequestService httpRequestService;
+    private final BeneficiaryRepository beneficiaryRepository;
+    private final FieldValidator fieldValidator;
+
     @Value("${transaction.outcoming.provider}")
     private String provider;
     @Value("${transaction.outcoming.url}")
@@ -50,51 +56,90 @@ public class LiqPayAPIService implements ExternalAPIService {
 
     private static String sign(String privateKey, String data) {
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-1");
-            md.update((privateKey + data + privateKey).getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(md.digest());
+            MessageDigest instance = MessageDigest.getInstance("SHA-1");
+            instance.update((privateKey + data + privateKey).getBytes(StandardCharsets.UTF_8));
+
+            return Base64.getEncoder().encodeToString(instance.digest());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to sign LiqPay payload", e);
+            throw new RuntimeException("LiqPay signature fail", e);
         }
     }
 
-    private static String htmlEscape(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;")
-                .replace("'", "&#39;");
-    }
-
-    public String initiatePayment(@NotNull LPCheckoutRequest LPCheckoutRequest) {
+    public LPInitiatePaymentResponse initiateIncomingPayment(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
         if (!isHealthy()) {
             throw new HealthCheckException();
         }
 
         try {
-            LPCheckoutPayload payload = LPCheckoutPayload.builder()
+            String encodedRequest = base64(RegularObjectMapper.writeToString(LPInitiatePaymentRequest.builder()
                     .version(version)
                     .publicKey(publicKey)
                     .action(Constants.ACTION_PAY)
-                    .amount(LPCheckoutRequest.getAmount())
-                    .currency(LPCheckoutRequest.getCurrency())
-                    .description(LPCheckoutRequest.getDescription())
-                    .orderId(LPCheckoutRequest.getOrderId())
+                    .amount(requestDTO.getAmount().toEngineeringString())
+                    .currency(requestDTO.getCurrency())
+                    .description("Incoming payment for #%s".formatted(requestDTO.getOrderId()))
+                    .orderId(requestDTO.getOrderId())
                     .sandbox(String.valueOf(sandbox ? BigInteger.ONE : BigInteger.ZERO))
+                    .build()));
+
+            return LPInitiatePaymentResponse.builder()
+                    .checkoutUrl(checkoutUrl)
+                    .signature(sign(privateKey, encodedRequest))
+                    .encodedContent(encodedRequest)
                     .build();
-
-            String json = RegularObjectMapper.writeToString(payload);
-            String data = base64(json);
-            String signature = sign(privateKey, data);
-
-            return """
-                    <form method="POST" action="%s">
-                      <input type="hidden" name="data" value="%s"/>
-                      <input type="hidden" name="signature" value="%s"/>
-                      <button type="submit">Pay</button>
-                    </form>
-                    """.formatted(checkoutUrl, htmlEscape(data), htmlEscape(signature));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public LPResponse initiateOutcomingPayment(@NotNull LPInitiatePaymentRequestDTO request) {
+        if (!isHealthy()) {
+            throw new HealthCheckException();
+        }
+
+        fieldValidator.validate(request, true,
+                LPInitiatePaymentRequestDTO.Fields.orderId,
+                LPInitiatePaymentRequestDTO.Fields.currency,
+                LPInitiatePaymentRequestDTO.Fields.amount,
+                LPInitiatePaymentRequestDTO.Fields.beneficiaryCode);
+
+        try {
+            var beneficiary = beneficiaryRepository.findByCode(request.getBeneficiaryCode())
+                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found".formatted(request.getBeneficiaryCode())));
+
+            String encoded = base64(RegularObjectMapper.writeToString(
+                    LPInitiatePaymentRequest.builder()
+                            .version(version)
+                            .publicKey(publicKey)
+                            .action(Constants.ACTION_P2P_CREDIT)
+                            .amount(request.getAmount().toEngineeringString())
+                            .currency(request.getCurrency())
+                            .description("Payout for beneficiary #" + request.getBeneficiaryCode())
+                            .orderId(request.getOrderId())
+                            .receiverCard(beneficiary.getCard())
+                            .sandbox(String.valueOf(sandbox ? java.math.BigInteger.ONE : java.math.BigInteger.ZERO))
+                            .build()
+            ));
+
+            try (var response = httpRequestService.fetchAsync(new Request.Builder()
+                    .url(apiUrl)
+                    .post(new FormBody.Builder()
+                            .add(Constants.CONTENT, encoded)
+                            .add(Constants.SIGNATURE, sign(privateKey, encoded))
+                            .build())
+                    .build()).join()) {
+                var body = response.peekBody(Long.MAX_VALUE).string();
+
+                var result = RegularObjectMapper.read(body, LPResponse.class);
+
+                if (sandbox) {
+                    result.setStatus(LPResponse.Status.SUCCESS.name());
+                }
+
+                return result;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initiate outgoing LiqPay payment", e);
         }
     }
 
@@ -104,26 +149,20 @@ public class LiqPayAPIService implements ExternalAPIService {
         }
 
         try {
-            LPStatusPayload payload = LPStatusPayload.builder()
+            String data = base64(RegularObjectMapper.writeToString(LPStatusPayload.builder()
                     .publicKey(publicKey)
                     .version(version)
                     .action(Constants.ACTION_STATUS)
                     .orderId(orderId)
-                    .build();
+                    .build()));
 
-            String json = RegularObjectMapper.writeToString(payload);
-            String data = base64(json);
-            String signature = sign(privateKey, data);
-
-            Request request = new Request.Builder()
+            try (var response = httpRequestService.fetchAsync(new Request.Builder()
                     .url(apiUrl)
                     .post(new FormBody.Builder()
                             .add(Constants.CONTENT, data)
-                            .add(Constants.SIGNATURE, signature)
+                            .add(Constants.SIGNATURE, sign(privateKey, data))
                             .build())
-                    .build();
-
-            try (var response = httpRequestService.fetchAsync(request).join()) {
+                    .build()).join()) {
                 return RegularObjectMapper.read(response.peekBody(Long.MAX_VALUE).string(), LPResponse.class);
             }
         } catch (Exception e) {
@@ -136,5 +175,6 @@ public class LiqPayAPIService implements ExternalAPIService {
         public static final String ACTION_STATUS = "status";
         public static final String CONTENT = "data";
         public static final String SIGNATURE = "signature";
+        public static final String ACTION_P2P_CREDIT = "p2pcredit";
     }
 }

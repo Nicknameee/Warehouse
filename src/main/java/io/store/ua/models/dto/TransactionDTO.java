@@ -1,8 +1,10 @@
 package io.store.ua.models.dto;
 
 import io.store.ua.enums.PaymentProvider;
-import io.store.ua.models.data.PaymentCredentials;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +12,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
 import java.math.BigInteger;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -34,11 +35,7 @@ public class TransactionDTO {
     @NotNull(message = "Currency can't be null")
     @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter uppercase code")
     private String currency;
-    private PaymentCredentials payer;
-    private PaymentCredentials receiver;
-    @Size(max = 50, message = "Meta can contain at most 100 entries")
-    private Map<@NotBlank String, @NotBlank String> metadata;
-    @Size(max = 10, message = "Fee can contain at most 10 entries")
-    private Map<@NotBlank String, @NotBlank String> fee;
+    private Long senderFinancialAccountId;
+    private Long receiverFinancialAccountId;
     private PaymentProvider paymentProvider;
 }

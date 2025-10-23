@@ -9,18 +9,27 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.StringJoiner;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CodeGenerator {
+    private static final RandomStringUtils randomStringUtils = RandomStringUtils.secure();
+
     public static String generate(int length) {
-        return RandomStringUtils.secure().nextAlphanumeric(length);
+        return randomStringUtils.nextAlphanumeric(length);
+    }
+
+    public static class TransactionCodeGenerator {
+        public static class LiqPay {
+            public static String generate() {
+                return "LiqPay-%s-%s".formatted(LocalDate.now().toString(), randomStringUtils.nextAlphanumeric(10).toUpperCase());
+            }
+        }
     }
 
     public static class StockCodeGenerator {
-        private static final RandomStringUtils randomStringUtils = RandomStringUtils.secure();
-
         public static String generate() {
             final int length = 5;
             return ("%s-%s-%s-%s").formatted(randomStringUtils.nextAlphanumeric(length),

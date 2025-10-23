@@ -5,7 +5,6 @@ import io.store.ua.enums.TransactionFlowType;
 import io.store.ua.enums.TransactionPurpose;
 import io.store.ua.enums.TransactionStatus;
 import io.store.ua.models.data.ExternalReferences;
-import io.store.ua.models.data.PaymentCredentials;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +18,6 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
-import java.util.Map;
 
 @Entity
 @Table(name = "transactions")
@@ -49,18 +47,8 @@ public class Transaction {
     private BigInteger amount;
     @Column(nullable = false)
     private String currency;
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private PaymentCredentials payer;
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private PaymentCredentials receiver;
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private Map<String, String> metadata;
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private Map<String, String> fee;
+    @Column(name = "beneficiary_id", updatable = false)
+    private Long beneficiary;
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "external_references", columnDefinition = "json")
     private ExternalReferences externalReferences;

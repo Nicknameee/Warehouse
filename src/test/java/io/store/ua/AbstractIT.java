@@ -81,6 +81,8 @@ public abstract class AbstractIT {
     protected ShipmentRepository shipmentRepository;
     @Autowired
     protected TransactionRepository transactionRepository;
+    @Autowired
+    protected BeneficiaryRepository beneficiaryRepository;
 
     @BeforeAll
     void setUp() {
@@ -94,6 +96,7 @@ public abstract class AbstractIT {
         shipmentRepository.flush();
         productPhotoRepository.flush();
         stockItemRepository.flush();
+        beneficiaryRepository.flush();
         transactionRepository.flush();
         warehouseRepository.flush();
         productRepository.flush();
@@ -107,6 +110,7 @@ public abstract class AbstractIT {
         shipmentRepository.deleteAll();
         productPhotoRepository.deleteAll();
         stockItemRepository.deleteAll();
+        beneficiaryRepository.deleteAll();
         transactionRepository.deleteAll();
         warehouseRepository.deleteAll();
         productRepository.deleteAll();

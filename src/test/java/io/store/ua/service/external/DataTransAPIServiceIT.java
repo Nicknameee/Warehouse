@@ -31,9 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("external")
 @TestPropertySource(properties = {
         "transaction.incoming.merchantId=${DATA_TRANS_MERCHANT_ID}",
-        "transaction.incoming.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD}",
-        "transaction.incoming.url=${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}",
-        "transaction.incoming.reference.length=39"
+        "transaction.incoming.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD}"
 })
 @Disabled("IT for real DataTrans API invocation for testing service setup flow")
 class DataTransAPIServiceIT extends AbstractIT {
