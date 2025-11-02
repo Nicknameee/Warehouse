@@ -86,6 +86,7 @@ class ShipmentServiceIT extends AbstractIT {
                 .availableQuantity(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 500)))
                 .reservedQuantity(BigInteger.valueOf(RandomUtils.secure().randomInt(0, 100)))
                 .status(StockItem.Status.AVAILABLE)
+                .isActive(true)
                 .build());
     }
 
