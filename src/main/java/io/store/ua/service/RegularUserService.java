@@ -20,7 +20,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,7 +38,6 @@ import java.util.TimeZone;
 
 @Service
 @Slf4j
-@Profile("users")
 @Validated
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
@@ -79,15 +77,13 @@ public class RegularUserService {
     public List<RegularUser> findByRole(@NotNull(message = "User role can't be null") Role role,
                                         @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                         @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
-        return regularUserRepository.findRegularUsersByRole(
-                role, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
+        return regularUserRepository.findRegularUsersByRole(role, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
     public List<RegularUser> findByStatus(@NotNull(message = "User status can't be null") Status status,
                                           @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                           @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
-        return regularUserRepository.findRegularUsersByStatus(
-                status, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
+        return regularUserRepository.findRegularUsersByStatus(status, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
     public List<RegularUser> findBy(String usernamePrefix,
@@ -125,12 +121,9 @@ public class RegularUserService {
             if (isOnline) {
                 Predicate loginNotNull = criteriaBuilder.isNotNull(root.get(RegularUser.Fields.loginTime));
                 Predicate logoutNull = criteriaBuilder.isNull(root.get(RegularUser.Fields.logoutTime));
-                Predicate logoutBeforeLogin =
-                        criteriaBuilder.lessThan(
-                                root.get(RegularUser.Fields.logoutTime), root.get(RegularUser.Fields.loginTime));
+                Predicate logoutBeforeLogin = criteriaBuilder.lessThan(root.get(RegularUser.Fields.logoutTime), root.get(RegularUser.Fields.loginTime));
 
-                predicates.add(
-                        criteriaBuilder.and(loginNotNull, criteriaBuilder.or(logoutNull, logoutBeforeLogin)));
+                predicates.add(criteriaBuilder.and(loginNotNull, criteriaBuilder.or(logoutNull, logoutBeforeLogin)));
             } else {
                 Predicate loginNull = criteriaBuilder.isNull(root.get(RegularUser.Fields.loginTime));
                 Predicate logoutNotNull =
@@ -139,9 +132,7 @@ public class RegularUserService {
                         criteriaBuilder.greaterThanOrEqualTo(
                                 root.get(RegularUser.Fields.logoutTime), root.get(RegularUser.Fields.loginTime));
 
-                predicates.add(
-                        criteriaBuilder.or(
-                                loginNull, criteriaBuilder.and(logoutNotNull, logoutAfterOrEqualLogin)));
+                predicates.add(criteriaBuilder.or(loginNull, criteriaBuilder.and(logoutNotNull, logoutAfterOrEqualLogin)));
             }
         }
 
@@ -198,7 +189,12 @@ public class RegularUserService {
 
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public RegularUser save(RegularUserDTO regularUser) {
-        fieldValidator.validate(regularUser, true, RegularUserDTO.Fields.email, RegularUserDTO.Fields.username, RegularUserDTO.Fields.role, RegularUserDTO.Fields.status);
+        fieldValidator.validate(regularUser, true,
+                RegularUserDTO.Fields.email,
+                RegularUserDTO.Fields.username,
+                RegularUserDTO.Fields.role,
+                RegularUserDTO.Fields.status);
+
         RegularUser user = regularUserMapper.toRegularUser(regularUser);
 
         if (regularUser.getTimezone() != null) {
@@ -224,12 +220,11 @@ public class RegularUserService {
             Optional<RegularUser> userOptional = findByUsername(regularUser.getUsername());
 
             if (userOptional.isEmpty()) {
-                results.add(
-                        UserActionResultDTO.builder()
-                                .regularUser(RegularUser.builder().username(regularUser.getUsername()).build())
-                                .success(false)
-                                .error(new UsernameNotFoundException(regularUser.getUsername()))
-                                .build());
+                results.add(UserActionResultDTO.builder()
+                        .regularUser(RegularUser.builder().username(regularUser.getUsername()).build())
+                        .success(false)
+                        .error(new UsernameNotFoundException(regularUser.getUsername()))
+                        .build());
             } else {
                 RegularUser user = userOptional.get();
 
@@ -270,8 +265,8 @@ public class RegularUserService {
         Optional<RegularUser> userOptional = findByUsername(regularUser.getUsername());
 
         if (userOptional.isEmpty()) {
-            throw new ApplicationException("User with username %s was not found".formatted(regularUser.getUsername()),
-                    HttpStatus.NOT_FOUND);
+            throw new ApplicationException("User with username %s was not found"
+                    .formatted(regularUser.getUsername()), HttpStatus.NOT_FOUND);
         }
 
         RegularUser user = userOptional.get();

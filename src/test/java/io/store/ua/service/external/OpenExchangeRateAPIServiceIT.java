@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 })
 @ActiveProfiles("external")
 @TestPropertySource(properties = {
-        "exchange.url=${EXCHANGE_URL:https://openexchangerates.org/api/latest.json}",
         "exchange.appId=${EXCHANGE_APP_ID}"
 })
 @Disabled("IT for real OpenExchangeRates API invocation for testing service setup flow")
@@ -57,13 +56,12 @@ class OpenExchangeRateAPIServiceIT {
 
         assertFalse(rates.isEmpty());
 
-        assertTrue(rates.stream().allMatch(r ->
-                r.getCurrencyCode() != null &&
-                        !r.getCurrencyCode().isBlank() &&
-                        r.getBaseCurrencyCode() != null &&
-                        !r.getBaseCurrencyCode().isBlank() &&
-                        r.getRate() != null &&
-                        r.getRate().signum() > 0
+        assertTrue(rates.stream().allMatch(currencyRate -> currencyRate.getCurrencyCode() != null
+                && !currencyRate.getCurrencyCode().isBlank()
+                && currencyRate.getBaseCurrencyCode() != null
+                && !currencyRate.getBaseCurrencyCode().isBlank()
+                && currencyRate.getRate() != null
+                && currencyRate.getRate().signum() > 0
         ));
     }
 }

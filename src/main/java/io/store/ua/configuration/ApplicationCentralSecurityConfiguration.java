@@ -21,7 +21,7 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 import java.util.List;
 
 @Configuration
-public class ApplicationCentralSecurityConfiguration {
+public class                                                                                                                                                                                                       ApplicationCentralSecurityConfiguration {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -69,9 +70,13 @@ public class CurrencyRateService {
         currencyRateRepository.deleteAll();
     }
 
-    public BigDecimal convert(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
+    public BigInteger convert(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
                               @NotBlank(message = "Target currency can't be blank") String targetCurrency,
-                              @NotNull(message = "Amount can't be null") @Min(value = 1, message = "Amount can't be less than 1") BigDecimal amount) {
+                              @NotNull(message = "Amount can't be null") @Min(value = 1, message = "Amount can't be less than 1") BigInteger amount) {
+        if (baseCurrency.equals(targetCurrency)) {
+            return amount;
+        }
+
         BigDecimal targetRate = currencyRateRepository.findById(targetCurrency)
                 .map(CurrencyRate::getRate)
                 .orElseThrow(() -> new NotFoundException("Unknown target currency: %s".formatted(targetCurrency)));
@@ -80,6 +85,18 @@ public class CurrencyRateService {
                 .map(CurrencyRate::getRate)
                 .orElseThrow(() -> new NotFoundException("Unknown base currency: %s".formatted(baseCurrency)));
 
-        return amount.multiply(baseRate).divide(targetRate, 2, RoundingMode.HALF_EVEN);
+        return new BigDecimal(amount)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                .multiply(baseRate)
+                .divide(targetRate, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.HALF_UP)
+                .toBigIntegerExact();
+    }
+
+    public BigDecimal convertFromCentsToCurrencyUnit(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
+                                                     @NotBlank(message = "Target currency can't be blank") String targetCurrency,
+                                                     @NotNull(message = "Amount can't be null") @Min(value = 1, message = "Amount can't be less than 1") BigInteger amount) {
+        return new BigDecimal(convert(baseCurrency, targetCurrency, amount)).movePointLeft(2);
     }
 }

@@ -7,5 +7,6 @@ CREATE TABLE stock_items
     expiry_date        DATE,
     available_quantity BIGINT                NOT NULL DEFAULT 0 CHECK ( available_quantity >= 0 ),
     reserved_quantity  BIGINT                NOT NULL DEFAULT 0 CHECK ( reserved_quantity >= 0 ),
-    status             VARCHAR               NOT NULL
+    status             VARCHAR               NOT NULL,
+    is_active          BOOLEAN               NOT NULL
 )

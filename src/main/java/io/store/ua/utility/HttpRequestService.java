@@ -33,8 +33,7 @@ public class HttpRequestService {
     private Response querySync(Request request) {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new HttpException(
-                        "Unsuccessful response for request %s %s".formatted(request.method(), request.url()),
+                throw new HttpException("Unsuccessful response for request %s %s".formatted(request.method(), request.url()),
                         HttpStatus.resolve(response.code()),
                         response.body() != null ? response.body().string() : null);
             }

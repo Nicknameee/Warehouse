@@ -70,8 +70,8 @@ class ProductServiceIT extends AbstractIT {
                 .build());
     }
 
-    private ProductPhoto saveProductPhoto(Long productId) {
-        return productPhotoRepository.save(ProductPhoto.builder()
+    private void saveProductPhoto(Long productId) {
+        productPhotoRepository.save(ProductPhoto.builder()
                 .productId(productId)
                 .photoUrl(RandomStringUtils.secure().nextAlphanumeric(333))
                 .externalReference(RandomStringUtils.secure().nextAlphanumeric(333))

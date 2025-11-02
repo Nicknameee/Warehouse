@@ -1,16 +1,14 @@
 package io.store.ua.service;
 
 import io.store.ua.entity.StockItem;
+import io.store.ua.entity.StockItemGroup;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.StockItemDTO;
 import io.store.ua.repository.StockItemRepository;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +38,8 @@ public class StockItemService {
                                   List<@NotNull(message = "Product ID can't be null") Long> productIDs,
                                   List<@NotNull(message = "Stock item group ID can't be null") Long> stockItemGroupIDs,
                                   List<@NotNull(message = "Status can't be null") String> statuses,
+                                  Boolean isItemActive,
+                                  Boolean isItemGroupActive,
                                   @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                   @Min(value = 1, message = "A page number can't be less than 1") int page) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -64,6 +64,15 @@ public class StockItemService {
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Invalid stock item status");
             }
+        }
+
+        if (isItemActive != null) {
+            predicates.add(criteriaBuilder.equal(root.get(StockItem.Fields.isActive), isItemActive));
+        }
+
+        if (isItemGroupActive != null) {
+            Join<StockItem, StockItemGroup> groupJoin = root.join(StockItem.Fields.stockItemGroup, JoinType.INNER);
+            predicates.add(criteriaBuilder.equal(groupJoin.get(StockItemGroup.Fields.isActive), isItemGroupActive));
         }
 
         criteriaQuery.select(root);
@@ -101,6 +110,7 @@ public class StockItemService {
                 .availableQuantity(stockItemDTO.getAvailableQuantity())
                 .reservedQuantity(stockItemDTO.getReservedQuantity())
                 .status(determineStatus(stockItemDTO.getAvailableQuantity().longValue(), stockItemDTO.getReservedQuantity().longValue()))
+                .isActive(stockItemDTO.getIsActive() == null || stockItemDTO.getIsActive())
                 .build());
     }
 
@@ -144,6 +154,10 @@ public class StockItemService {
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Invalid stock item status");
             }
+        }
+
+        if (stockItemDTO.getIsActive() != null) {
+            current.setIsActive(stockItemDTO.getIsActive());
         }
 
         if (requestedStatus == StockItem.Status.OUT_OF_SERVICE) {

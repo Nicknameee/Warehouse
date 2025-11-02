@@ -128,7 +128,7 @@ public class CloudinaryAPIService implements ExternalAPIService {
                 .toList();
 
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> futures.stream()
+                .thenApply(ignore -> futures.stream()
                         .map(CompletableFuture::join)
                         .toList());
     }

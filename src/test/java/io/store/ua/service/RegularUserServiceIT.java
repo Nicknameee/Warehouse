@@ -313,7 +313,7 @@ class RegularUserServiceIT extends AbstractIT {
         @DisplayName("findByRole_success: returns page")
         @Transactional
         void findByRole_success() {
-            IntStream.range(0, 5).forEach(i -> {
+            IntStream.range(0, 5).forEach(ignore -> {
                 RegularUserDTO dto = buildRegularUserDTO();
                 dto.setRole(Role.MANAGER.name());
                 userRepository.save(buildRegularUser(dto));
@@ -340,7 +340,7 @@ class RegularUserServiceIT extends AbstractIT {
         @DisplayName("findByStatus_success: returns page")
         @Transactional
         void findByStatus_success() {
-            IntStream.range(0, 5).forEach(i -> {
+            IntStream.range(0, 5).forEach(ignore -> {
                 RegularUserDTO dto = buildRegularUserDTO();
                 dto.setStatus(Status.ACTIVE.name());
                 userRepository.save(buildRegularUser(dto));

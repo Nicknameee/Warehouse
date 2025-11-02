@@ -18,14 +18,14 @@ public class Beneficiary {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(unique = true, nullable = false)
-    private String code;
-    @Column
+    @Column(unique = true)
     private String IBAN;
     @Column
     private String SWIFT;
     @Column(nullable = false)
     private String name;
-    @Column
+    @Column(unique = true)
     private String card;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
 }

@@ -13,11 +13,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigInteger;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
@@ -48,18 +47,15 @@ public class Transaction {
     @Column(nullable = false)
     private String currency;
     @Column(name = "beneficiary_id", updatable = false)
-    private Long beneficiary;
+    private Long beneficiaryId;
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "external_references", columnDefinition = "json")
     private ExternalReferences externalReferences;
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private OffsetDateTime updatedAt;
+    private LocalDateTime createdAt;
     @Column(name = "paid_at")
-    private OffsetDateTime paidAt;
+    private LocalDateTime paidAt;
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_provider")
     private PaymentProvider paymentProvider;

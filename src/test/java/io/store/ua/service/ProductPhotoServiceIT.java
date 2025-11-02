@@ -5,7 +5,6 @@ import io.store.ua.entity.Product;
 import io.store.ua.entity.ProductPhoto;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
-import io.store.ua.service.external.CloudinaryAPIService;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -18,7 +17,6 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigInteger;
@@ -36,8 +34,6 @@ import static org.mockito.Mockito.when;
 class ProductPhotoServiceIT extends AbstractIT {
     @Autowired
     private ProductPhotoService productPhotoService;
-    @MockitoBean
-    private CloudinaryAPIService cloudinaryAPIService;
     private Product product;
 
     @BeforeEach

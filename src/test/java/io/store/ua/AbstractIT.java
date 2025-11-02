@@ -6,6 +6,8 @@ import io.store.ua.enums.Status;
 import io.store.ua.repository.*;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
 import io.store.ua.repository.cache.CurrencyRateRepository;
+import io.store.ua.service.external.CloudinaryAPIService;
+import io.store.ua.service.external.OpenExchangeRateAPIService;
 import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,7 +21,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.security.test.context.support.TestExecutionEvent;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,16 +31,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnableRetry
-@TestPropertySource(properties = {
-        "exchange.url=${EXCHANGE_URL:https://openexchangerates.org/api/latest.json}",
-        "exchange.appId=${EXCHANGE_APP_ID:any}",
-        "cloudinary.cloud=${CLOUDINARY_CLOUD_NAME:any}",
-        "cloudinary.credentials.apiKey=${CLOUDINARY_API_KEY:any}",
-        "cloudinary.credentials.apiSecret=${CLOUDINARY_API_SECRET:any}",
-        "transaction.merchantId=${DATA_TRANS_MERCHANT_ID:any}",
-        "transaction.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD:any}",
-        "transaction.url=${DATA_TRANS_URL:https://api.sandbox.datatrans.com/v1}"
-})
 @WithUserDetails(value = AbstractIT.OWNER, userDetailsServiceBeanName = "regularUserDetailsService", setupBefore = TestExecutionEvent.TEST_EXECUTION)
 public abstract class AbstractIT {
     public static final String OWNER = "owner";
@@ -83,6 +75,10 @@ public abstract class AbstractIT {
     protected TransactionRepository transactionRepository;
     @Autowired
     protected BeneficiaryRepository beneficiaryRepository;
+    @MockitoBean
+    protected OpenExchangeRateAPIService openExchangeRateAPIService;
+    @MockitoBean
+    protected CloudinaryAPIService cloudinaryAPIService;
 
     @BeforeAll
     void setUp() {
@@ -96,8 +92,8 @@ public abstract class AbstractIT {
         shipmentRepository.flush();
         productPhotoRepository.flush();
         stockItemRepository.flush();
-        beneficiaryRepository.flush();
         transactionRepository.flush();
+        beneficiaryRepository.flush();
         warehouseRepository.flush();
         productRepository.flush();
         tagRepository.flush();
@@ -110,8 +106,8 @@ public abstract class AbstractIT {
         shipmentRepository.deleteAll();
         productPhotoRepository.deleteAll();
         stockItemRepository.deleteAll();
-        beneficiaryRepository.deleteAll();
         transactionRepository.deleteAll();
+        beneficiaryRepository.deleteAll();
         warehouseRepository.deleteAll();
         productRepository.deleteAll();
         tagRepository.deleteAll();

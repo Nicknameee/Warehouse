@@ -27,4 +27,4 @@ transaction:
 
 exchange:
   appId: ${EXCHANGE_APP_ID}
-  url: ${EXCHANGE_URL}
+  url: ${EXCHANGE_URL:https://openexchangerates.org/api/latest.json}

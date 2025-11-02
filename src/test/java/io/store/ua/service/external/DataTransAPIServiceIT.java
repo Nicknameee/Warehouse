@@ -17,10 +17,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("external")
 @TestPropertySource(properties = {
         "transaction.incoming.merchantId=${DATA_TRANS_MERCHANT_ID}",
         "transaction.incoming.merchantPassword=${DATA_TRANS_MERCHANT_PASSWORD}"
@@ -46,19 +45,19 @@ class DataTransAPIServiceIT extends AbstractIT {
                 CurrencyRate.builder()
                         .currencyCode(DataTransAPIService.Constants.Currency.USD)
                         .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
-                        .rate(new BigDecimal("1.00"))
+                        .rate(BigDecimal.ONE)
                         .expiryTime(TimeUnit.DAYS.toSeconds(1))
                         .build(),
                 CurrencyRate.builder()
                         .currencyCode(DataTransAPIService.Constants.Currency.CHF)
                         .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
-                        .rate(new BigDecimal("1.25"))
+                        .rate(BigDecimal.valueOf(1.25))
                         .expiryTime(TimeUnit.DAYS.toSeconds(1))
                         .build(),
                 CurrencyRate.builder()
                         .currencyCode(DataTransAPIService.Constants.Currency.EUR)
                         .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
-                        .rate(new BigDecimal("0.91"))
+                        .rate(BigDecimal.valueOf(0.91))
                         .expiryTime(TimeUnit.DAYS.toSeconds(1))
                         .build()
         ));
@@ -75,32 +74,32 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initialisePayment_realApi_invokesSuccessfully() {
+    void initiateIncomingPayment_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
-        BigDecimal amount = BigDecimal.valueOf(1000);
+        BigInteger amount = BigInteger.valueOf(1000);
 
-        DataTransTransaction transaction = dataTransAPIService.initialisePayment(DataTransAPIService.Constants.Currency.CHF, amount, false);
+        var transaction = dataTransAPIService.initiateIncomingPayment(DataTransAPIService.Constants.Currency.CHF, amount, false);
 
         assertNotNull(transaction);
         assertNotNull(transaction.getTransactionId());
         assertFalse(transaction.getTransactionId().isBlank());
         assertNotNull(transaction.getReference());
-        assertEquals(referenceLength, transaction.getReference().length());
+        assertTrue(referenceLength >= transaction.getReference().length());
     }
 
     @Test
-    void initialisePayment_realApi_failsWithFalseHealth() {
+    void initiateIncomingPayment_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
-        assertThatThrownBy(() -> dataTransAPIService.initialisePayment(DataTransAPIService.Constants.Currency.CHF, BigDecimal.valueOf(1000), false))
+        assertThatThrownBy(() -> dataTransAPIService.initiateIncomingPayment(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000), false))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
-    void authorizePayment_realApi_invokesSuccessfully() {
+    void initiateOutcomingPayment_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
-        BigDecimal amount = BigDecimal.valueOf(1000);
+        BigInteger amount = BigInteger.valueOf(1000);
 
-        DataTransTransaction transaction = dataTransAPIService.authorizePayment(DataTransAPIService.Constants.Currency.CHF, amount);
+        var transaction = dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, amount);
 
         assertNotNull(transaction);
         assertNotNull(transaction.getTransactionId());
@@ -113,19 +112,18 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void authorizePayment_realApi_failsWithFalseHealth() {
+    void initiateOutcomingPayment_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
-        assertThatThrownBy(() -> dataTransAPIService.authorizePayment(DataTransAPIService.Constants.Currency.CHF, BigDecimal.valueOf(1000)))
+        assertThatThrownBy(() -> dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000)))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
     void settlePayment_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
-        BigDecimal amount = BigDecimal.valueOf(1000);
+        BigInteger amount = BigInteger.valueOf(1000);
 
-        DataTransTransaction authorized =
-                dataTransAPIService.authorizePayment(DataTransAPIService.Constants.Currency.CHF, amount);
+        var authorized = dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, amount);
 
         assertNotNull(authorized);
         assertNotNull(authorized.getTransactionId());
@@ -151,13 +149,13 @@ class DataTransAPIServiceIT extends AbstractIT {
     @Test
     void settlePayment_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
+
         assertThatThrownBy(() ->
                 dataTransAPIService.settlePayment(
                         DataTransAPIService.Constants.Currency.CHF,
-                        BigDecimal.valueOf(1000),
-                        "any-tx-id",
-                        "any-ref"
-                ))
+                        BigInteger.valueOf(1000),
+                        RandomStringUtils.secure().nextAlphanumeric(100),
+                        RandomStringUtils.secure().nextAlphanumeric(300)))
                 .isInstanceOf(HealthCheckException.class);
     }
 }

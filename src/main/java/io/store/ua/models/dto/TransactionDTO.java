@@ -23,8 +23,6 @@ public class TransactionDTO {
     private String transactionId;
     @NotBlank(message = "Reference can't be blank")
     private String reference;
-    @NotNull(message = "Flow type can't be null")
-    private String flowType;
     @NotNull(message = "Purpose can't be null")
     private String purpose;
     @NotNull(message = "Status can't be null")
@@ -35,7 +33,6 @@ public class TransactionDTO {
     @NotNull(message = "Currency can't be null")
     @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter uppercase code")
     private String currency;
-    private Long senderFinancialAccountId;
     private Long receiverFinancialAccountId;
     private PaymentProvider paymentProvider;
 }

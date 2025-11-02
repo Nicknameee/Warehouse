@@ -4,7 +4,6 @@ import io.store.ua.entity.RegularUser;
 import io.store.ua.enums.Role;
 import io.store.ua.enums.Status;
 import jakarta.transaction.Transactional;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,7 +12,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-@Profile("users")
 public interface RegularUserRepository extends JpaRepository<RegularUser, Long> {
     RegularUser findRegularUserByUsername(String username);
 

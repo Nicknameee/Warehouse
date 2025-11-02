@@ -39,6 +39,7 @@ class WarehouseServiceIT extends AbstractIT {
     private WarehouseService warehouseService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+
     private RegularUser user;
 
     @BeforeEach

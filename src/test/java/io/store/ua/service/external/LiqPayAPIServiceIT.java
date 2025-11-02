@@ -2,6 +2,7 @@ package io.store.ua.service.external;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Beneficiary;
+import io.store.ua.enums.Currency;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequestDTO;
 import io.store.ua.models.api.external.response.LPResponse;
@@ -13,17 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-@ActiveProfiles("external")
 @TestPropertySource(properties = {
         "transaction.outcoming.publicKey=${LIQPAY_PUBLIC_KEY}",
         "transaction.outcoming.privateKey=${LIQPAY_PRIVATE_KEY}"
@@ -42,8 +41,8 @@ class LiqPayAPIServiceIT extends AbstractIT {
         assertNotNull(liqPayAPIService.initiateIncomingPayment(
                 LPInitiatePaymentRequestDTO.builder()
                         .orderId(String.valueOf(System.currentTimeMillis()))
-                        .currency("UAH")
-                        .amount(BigDecimal.valueOf(RandomUtils.secure().randomDouble(1, 1_000)))
+                        .currency(Currency.UAH.name())
+                        .amount(BigInteger.valueOf(RandomUtils.secure().randomInt(1_000, 1_000_000)))
                         .build()
         ));
     }
@@ -51,6 +50,7 @@ class LiqPayAPIServiceIT extends AbstractIT {
     @Test
     void initiateIncomingPayment_failsWithFalseHealth() {
         liqPayAPIService.setHealth(false);
+
         assertThatThrownBy(() -> liqPayAPIService.initiateIncomingPayment(new LPInitiatePaymentRequestDTO()))
                 .isInstanceOf(HealthCheckException.class);
     }
@@ -78,15 +78,15 @@ class LiqPayAPIServiceIT extends AbstractIT {
                 LPInitiatePaymentRequestDTO.builder()
                         .orderId(RandomStringUtils.secure().nextAlphanumeric(33))
                         .currency("UAH")
-                        .amount(BigDecimal.valueOf(RandomUtils.secure().randomDouble(10, 500)))
-                        .beneficiaryCode(beneficiaryRepository.save(Beneficiary.builder()
-                                        .code(RandomStringUtils.secure().nextAlphanumeric(33))
+                        .amount(BigInteger.valueOf(RandomUtils.secure().randomInt(1_000, 500_000_000)))
+                        .beneficiaryID(beneficiaryRepository.save(Beneficiary.builder()
                                         .IBAN("UA123456789000000000000000000")
                                         .SWIFT("SWIFT9999")
                                         .name("Test Recipient")
                                         .card("4731195301524633")
+                                        .isActive(true)
                                         .build())
-                                .getCode())
+                                .getId())
                         .build());
         assertNotNull(result);
 
@@ -96,8 +96,9 @@ class LiqPayAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateOutcomingPayment_failsWithFalseHealth() {
+    void initiateOutcomingPayment_fails_whenFalseHealth() {
         liqPayAPIService.setHealth(false);
+
         assertThatThrownBy(() -> liqPayAPIService.initiateOutcomingPayment(new LPInitiatePaymentRequestDTO()))
                 .isInstanceOf(HealthCheckException.class);
     }

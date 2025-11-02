@@ -10,7 +10,6 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 
 @Component
 @RequiredArgsConstructor
-@Profile("users")
 public class PreLogoutTokenBasedFilter extends GenericFilterBean {
     private final AuthenticationService authenticationService;
 

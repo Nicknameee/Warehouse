@@ -37,6 +37,7 @@ class StockItemServiceIT extends AbstractIT {
     private Product productB;
     private StockItemGroup stockItemGroupA;
     private StockItemGroup stockItemGroupB;
+    private StockItemGroup stockItemGroupC;
 
     @BeforeEach
     void setUp() {
@@ -64,6 +65,12 @@ class StockItemServiceIT extends AbstractIT {
                 .code(RandomStringUtils.secure().nextAlphanumeric(16))
                 .name(RandomStringUtils.secure().nextAlphabetic(12))
                 .isActive(true)
+                .build());
+
+        stockItemGroupC = stockItemGroupRepository.save(StockItemGroup.builder()
+                .code(RandomStringUtils.secure().nextAlphanumeric(16))
+                .name(RandomStringUtils.secure().nextAlphabetic(12))
+                .isActive(false)
                 .build());
 
         productA = productRepository.save(Product.builder()
@@ -109,11 +116,12 @@ class StockItemServiceIT extends AbstractIT {
                 .build());
     }
 
-    private StockItem createPersistedItem(Product product,
-                                          StockItemGroup group,
-                                          Warehouse warehouse,
-                                          int available,
-                                          int reserved) {
+    private StockItem createStockItem(Product product,
+                                      StockItemGroup group,
+                                      Warehouse warehouse,
+                                      boolean isActive,
+                                      int available,
+                                      int reserved) {
         StockItemDTO stockItemDTO = new StockItemDTO();
         stockItemDTO.setProductId(product.getId());
         stockItemDTO.setStockItemGroupId(group.getId());
@@ -121,6 +129,7 @@ class StockItemServiceIT extends AbstractIT {
         stockItemDTO.setExpiryDate(LocalDate.now().plusDays(RandomUtils.secure().randomInt(15, 120)));
         stockItemDTO.setAvailableQuantity(BigInteger.valueOf(available));
         stockItemDTO.setReservedQuantity(BigInteger.valueOf(reserved));
+        stockItemDTO.setIsActive(isActive);
 
         return stockItemService.create(stockItemDTO);
     }
@@ -151,19 +160,51 @@ class StockItemServiceIT extends AbstractIT {
         @Test
         @DisplayName("findAll_success: returns first page with created items")
         void findAll_success() {
-            StockItem firstCreated = createPersistedItem(productA, stockItemGroupA, warehouseA, 10, 2);
-            StockItem secondCreated = createPersistedItem(productB, stockItemGroupB, warehouseB, 5, 0);
+            StockItem availableStockItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    10,
+                    3);
 
-            List<StockItem> result = stockItemService.findAll(10, 1);
+            StockItem reservedStockItem = createStockItem(productB,
+                    stockItemGroupB,
+                    warehouseB,
+                    RandomUtils.secure().randomBoolean(),
+                    0,
+                    0);
 
-            assertThat(result).extracting(StockItem::getId)
-                    .contains(firstCreated.getId(), secondCreated.getId());
+            StockItem outOfStockItem = createStockItem(productB,
+                    stockItemGroupB,
+                    warehouseB,
+                    RandomUtils.secure().randomBoolean(),
+                    0,
+                    0);
+
+            createStockItem(productB,
+                    stockItemGroupB,
+                    warehouseB,
+                    RandomUtils.secure().randomBoolean(),
+                    0,
+                    0);
+
+            List<StockItem> result = stockItemService.findAll(3, 1);
+
+            assertThat(result).hasSize(3);
+            assertThat(result).extracting(StockItem::getId).contains(availableStockItem.getId(),
+                    reservedStockItem.getId(),
+                    outOfStockItem.getId());
         }
 
         @Test
-        @DisplayName("findAll_success_empty: empty page when out of range")
+        @DisplayName("findAll_success_empty: returns empty out of bounds page")
         void findAll_success_empty() {
-            createPersistedItem(productA, stockItemGroupA, warehouseA, 3, 1);
+            createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    3,
+                    1);
 
             List<StockItem> result = stockItemService.findAll(10, 99);
 
@@ -171,29 +212,83 @@ class StockItemServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("findAll_fail_invalidPageSize: @Min violation")
+        @DisplayName("findAll_fail_invalidPageSize: throws ValidationException when page size is invalid")
         void findAll_fail_invalidPageSize() {
             assertThatThrownBy(() -> stockItemService.findAll(0, 1))
                     .isInstanceOf(ValidationException.class);
         }
 
         @Test
-        @DisplayName("findAll_fail_invalidPage: @Min violation")
+        @DisplayName("findAll_fail_invalidPage: throws ValidationException when page is invalid")
         void findAll_fail_invalidPage() {
             assertThatThrownBy(() -> stockItemService.findAll(10, 0))
                     .isInstanceOf(ValidationException.class);
         }
+
+        @Test
+        @DisplayName("findBy_success_filtersByActivity")
+        void findBy_success_onlyActive() {
+            StockItem target = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    true,
+                    5,
+                    0);
+            StockItem inInactiveGroup = createStockItem(productA,
+                    stockItemGroupC,
+                    warehouseA,
+                    true,
+                    5,
+                    0);
+            StockItem inactiveItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    false,
+                    6,
+                    0);
+
+            List<StockItem> result = stockItemService.findBy(List.of(warehouseA.getId()),
+                    List.of(productA.getId()),
+                    List.of(stockItemGroupA.getId()),
+                    List.of(StockItem.Status.AVAILABLE.name()),
+                    true,
+                    true,
+                    50,
+                    1
+            );
+
+            assertThat(result).extracting(StockItem::getId)
+                    .containsExactly(target.getId());
+            assertThat(result).extracting(StockItem::getId)
+                    .doesNotContain(inInactiveGroup.getId(), inactiveItem.getId());
+        }
+
     }
 
     @Nested
-    @DisplayName("findBy(warehouseIDs: List<Long>, productIDs: List<Long>, stockItemGroupIDs: List<Long>, statuses: List<String>, pageSize: int, page: int)")
+    @DisplayName("findBy(...)")
     class FindByTests {
         @Test
         @DisplayName("findBy_success_filtersByWarehouseAndStatusLists")
         void findBy_success_filtersByWarehouseAndStatusLists() {
-            StockItem a1 = createPersistedItem(productA, stockItemGroupA, warehouseA, 10, 0);
-            StockItem a2 = createPersistedItem(productA, stockItemGroupA, warehouseA, 0, 5);
-            StockItem b1 = createPersistedItem(productB, stockItemGroupB, warehouseB, 2, 0);
+            StockItem avaialbleStockItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    true,
+                    10,
+                    0);
+            StockItem reservedStockItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    true,
+                    0,
+                    5);
+            StockItem anotherWarehouseStockitem = createStockItem(productB,
+                    stockItemGroupB,
+                    warehouseB,
+                    true,
+                    3,
+                    0);
 
             List<Long> warehouseIds = List.of(warehouseA.getId());
             List<String> statuses = List.of(StockItem.Status.AVAILABLE.name(), StockItem.Status.RESERVED.name());
@@ -202,26 +297,46 @@ class StockItemServiceIT extends AbstractIT {
                     null,
                     null,
                     statuses,
+                    null,
+                    null,
                     20,
                     1);
 
             assertThat(result).extracting(StockItem::getId)
-                    .contains(a1.getId(), a2.getId())
-                    .doesNotContain(b1.getId());
+                    .contains(avaialbleStockItem.getId(), reservedStockItem.getId())
+                    .doesNotContain(anotherWarehouseStockitem.getId());
         }
 
         @Test
         @DisplayName("findBy_success_allFiltersInLists")
         void findBy_success_allFiltersInLists() {
-            StockItem target = createPersistedItem(productA, stockItemGroupA, warehouseA, 7, 1);
-            createPersistedItem(productB, stockItemGroupA, warehouseA, 1, 0);
-            createPersistedItem(productA, stockItemGroupB, warehouseA, 1, 1);
-            createPersistedItem(productA, stockItemGroupA, warehouseB, 1, 0);
+            StockItem target = createStockItem(productA, stockItemGroupA, warehouseA, true, 7, 1);
+
+            createStockItem(productB,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    1,
+                    0);
+            createStockItem(productA,
+                    stockItemGroupB,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    1,
+                    1);
+            createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseB,
+                    RandomUtils.secure().randomBoolean(),
+                    1,
+                    0);
 
             List<StockItem> result = stockItemService.findBy(List.of(warehouseA.getId()),
                     List.of(productA.getId()),
                     List.of(stockItemGroupA.getId()),
                     List.of(StockItem.Status.AVAILABLE.name()),
+                    true,
+                    true,
                     10,
                     1);
 
@@ -229,12 +344,14 @@ class StockItemServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("findBy_fail_statusNullInList: triggers ValidationException")
+        @DisplayName("findBy_fail_statusNullInList: throws ValidationException when invalid status in filter list")
         void findBy_fail_statusNullInList() {
             assertThatThrownBy(() -> stockItemService.findBy(null,
                     null,
                     null,
                     Arrays.asList(StockItem.Status.AVAILABLE.name(), null),
+                    null,
+                    null,
                     10,
                     1))
                     .isInstanceOf(ValidationException.class);
@@ -242,12 +359,13 @@ class StockItemServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("findBy_fail_invalidStatusString: BusinessException on bad enum value")
-        void findBy_fail_invalidStatusString() {
-            createPersistedItem(productA, stockItemGroupA, warehouseA, 5, 0);
+        void findBy_fails_whenInvalidStatusString() {
             assertThatThrownBy(() -> stockItemService.findBy(null,
                     null,
                     null,
                     List.of("WRONG_STATUS"),
+                    null,
+                    null,
                     10,
                     1))
                     .isInstanceOf(BusinessException.class);
@@ -258,9 +376,14 @@ class StockItemServiceIT extends AbstractIT {
     @DisplayName("findById(id: Long)")
     class FindByIdTests {
         @Test
-        @DisplayName("findById_success: returns entity when exists")
+        @DisplayName("findById_success: returns all entities")
         void findById_success() {
-            StockItem created = createPersistedItem(productA, stockItemGroupA, warehouseA, 4, 0);
+            StockItem created = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    4,
+                    0);
 
             StockItem found = stockItemService.findById(created.getId());
 
@@ -268,14 +391,14 @@ class StockItemServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("findById_fail_null: @NotNull triggers ValidationException")
-        void findById_fail_null() {
+        @DisplayName("findById_fails_whenIdIsNull: throws ValidationException when item ID is invalid")
+        void findById_fails_whenIdIsNull() {
             assertThatThrownBy(() -> stockItemService.findById(null))
                     .isInstanceOf(ValidationException.class);
         }
 
         @Test
-        @DisplayName("findById_fail_notFound: throws NotFoundException")
+        @DisplayName("findById_fail_notFound: throws NotFoundException when item was not found by ID")
         void findById_fail_notFound() {
             assertThatThrownBy(() -> stockItemService.findById(Long.MAX_VALUE))
                     .isInstanceOf(NotFoundException.class);
@@ -286,58 +409,90 @@ class StockItemServiceIT extends AbstractIT {
     @DisplayName("create(stockItemDTO: StockItemDTO)")
     class CreateTests {
         @Test
-        @DisplayName("create_success_setsDerivedStatus_AVAILABLE_whenAvailableGreaterThanZero")
-        void create_success_setsDerivedStatus_AVAILABLE_whenAvailableGreaterThanZero() {
-            StockItemDTO stockItemDTO = new StockItemDTO();
-            stockItemDTO.setProductId(productA.getId());
-            stockItemDTO.setStockItemGroupId(stockItemGroupA.getId());
-            stockItemDTO.setWarehouseId(warehouseA.getId());
-            stockItemDTO.setExpiryDate(LocalDate.now().plusDays(60));
-            stockItemDTO.setAvailableQuantity(BigInteger.valueOf(10));
-            stockItemDTO.setReservedQuantity(BigInteger.ZERO);
+        @DisplayName("create_success_whenQuantitiesAvailable_thenStatusIsAvailable: automatically sets status to AVAILABLE if available quantity is greater than 0")
+        void create_success_whenQuantitiesAvailable_thenStatusIsAvailable() {
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(30))
+                    .availableQuantity(BigInteger.TEN)
+                    .reservedQuantity(BigInteger.ONE)
+                    .isActive(true)
+                    .build();
 
             StockItem created = stockItemService.create(stockItemDTO);
 
+            assertThat(created).isNotNull();
+            assertThat(created.getId()).isNotNull();
+            assertThat(created.getProductId()).isEqualTo(stockItemDTO.getProductId());
+            assertThat(created.getStockItemGroupId()).isEqualTo(stockItemDTO.getStockItemGroupId());
+            assertThat(created.getWarehouseId()).isEqualTo(stockItemDTO.getWarehouseId());
+            assertThat(created.getExpiryDate()).isEqualTo(stockItemDTO.getExpiryDate());
+            assertThat(created.getAvailableQuantity()).isEqualByComparingTo(stockItemDTO.getAvailableQuantity());
+            assertThat(created.getReservedQuantity()).isEqualByComparingTo(stockItemDTO.getReservedQuantity());
             assertThat(created.getStatus()).isEqualTo(StockItem.Status.AVAILABLE);
+            assertThat(created.getIsActive()).isEqualTo(stockItemDTO.getIsActive());
         }
 
         @Test
-        @DisplayName("create_success_setsDerivedStatus_RESERVED_whenAvailableZeroAndReservedPositive")
-        void create_success_setsDerivedStatus_RESERVED_whenAvailableZeroAndReservedPositive() {
-            StockItemDTO stockItemDTO = new StockItemDTO();
-            stockItemDTO.setProductId(productA.getId());
-            stockItemDTO.setStockItemGroupId(stockItemGroupA.getId());
-            stockItemDTO.setWarehouseId(warehouseA.getId());
-            stockItemDTO.setExpiryDate(LocalDate.now().plusDays(30));
-            stockItemDTO.setAvailableQuantity(BigInteger.ZERO);
-            stockItemDTO.setReservedQuantity(BigInteger.ONE);
+        @DisplayName("create_success_whenQuantitiesReservedOnly_thenStatusIsReserved: automatically sets status to RESERVED if available quantity is 0 and reserved quantity is greater than 0")
+        void create_success_whenQuantitiesReservedOnly_thenStatusIsReserved() {
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(30))
+                    .availableQuantity(BigInteger.ZERO)
+                    .reservedQuantity(BigInteger.ONE)
+                    .isActive(true)
+                    .build();
 
             StockItem created = stockItemService.create(stockItemDTO);
 
+            assertThat(created).isNotNull();
+            assertThat(created.getId()).isNotNull();
+            assertThat(created.getProductId()).isEqualTo(stockItemDTO.getProductId());
+            assertThat(created.getStockItemGroupId()).isEqualTo(stockItemDTO.getStockItemGroupId());
+            assertThat(created.getWarehouseId()).isEqualTo(stockItemDTO.getWarehouseId());
+            assertThat(created.getExpiryDate()).isEqualTo(stockItemDTO.getExpiryDate());
+            assertThat(created.getAvailableQuantity()).isEqualByComparingTo(stockItemDTO.getAvailableQuantity());
+            assertThat(created.getReservedQuantity()).isEqualByComparingTo(stockItemDTO.getReservedQuantity());
             assertThat(created.getStatus()).isEqualTo(StockItem.Status.RESERVED);
+            assertThat(created.getIsActive()).isEqualTo(stockItemDTO.getIsActive());
         }
 
         @Test
-        @DisplayName("create_success_setsDerivedStatus_OUT_OF_STOCK_whenBothZero")
-        void create_success_setsDerivedStatus_OUT_OF_STOCK_whenBothZero() {
-            StockItemDTO stockItemDTO = new StockItemDTO();
-            stockItemDTO.setProductId(productA.getId());
-            stockItemDTO.setStockItemGroupId(stockItemGroupA.getId());
-            stockItemDTO.setWarehouseId(warehouseA.getId());
-            stockItemDTO.setExpiryDate(LocalDate.now().plusDays(10));
-            stockItemDTO.setAvailableQuantity(BigInteger.ZERO);
-            stockItemDTO.setReservedQuantity(BigInteger.ZERO);
+        @DisplayName("create_success_whenQuantitiesAreZero_thenStatusIsOutOfStock: automatically sets status to OUT_OF_STOCK if quantities are 0")
+        void create_success_whenQuantitiesAreZero_thenStatusIsOutOfStock() {
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(10))
+                    .availableQuantity(BigInteger.ZERO)
+                    .reservedQuantity(BigInteger.ZERO)
+                    .isActive(true)
+                    .build();
 
             StockItem created = stockItemService.create(stockItemDTO);
 
+            assertThat(created).isNotNull();
+            assertThat(created.getId()).isNotNull();
+            assertThat(created.getProductId()).isEqualTo(stockItemDTO.getProductId());
+            assertThat(created.getStockItemGroupId()).isEqualTo(stockItemDTO.getStockItemGroupId());
+            assertThat(created.getWarehouseId()).isEqualTo(stockItemDTO.getWarehouseId());
+            assertThat(created.getExpiryDate()).isEqualTo(stockItemDTO.getExpiryDate());
+            assertThat(created.getAvailableQuantity()).isEqualByComparingTo(stockItemDTO.getAvailableQuantity());
+            assertThat(created.getReservedQuantity()).isEqualByComparingTo(stockItemDTO.getReservedQuantity());
             assertThat(created.getStatus()).isEqualTo(StockItem.Status.OUT_OF_STOCK);
+            assertThat(created.getIsActive()).isEqualTo(stockItemDTO.getIsActive());
         }
 
         @Test
-        @DisplayName("create_fail_nullPayload: @NotNull triggers ValidationException")
-        void create_fail_nullPayload() {
-            assertThatThrownBy(() -> stockItemService.create(null))
-                    .isInstanceOf(ValidationException.class);
+        @DisplayName("create_fails_whenNullPayload: @NotNull triggers ValidationException")
+        void create_fails_whenNullPayload() {
+            assertThatThrownBy(() -> stockItemService.create(null)).isInstanceOf(ValidationException.class);
         }
     }
 
@@ -345,28 +500,36 @@ class StockItemServiceIT extends AbstractIT {
     @DisplayName("update(stockItemDTO: StockItemDTO)")
     class UpdateTests {
         @Test
-        @DisplayName("update_success_patchQuantities_recomputesStatus")
-        void update_success_patchQuantities_recomputesStatus() {
-            StockItem initial = createPersistedItem(productA, stockItemGroupA, warehouseA, 5, 0);
+        @DisplayName("update_success_whenQuantitiesChange_thenStatusRecomputing")
+        void update_success_whenQuantitiesChange_thenStatusRecomputing() {
+            StockItem initialStockItem = createStockItem(productA, stockItemGroupA, warehouseA, true, 5, 0);
+
             StockItemDTO updateDTO = new StockItemDTO();
-            updateDTO.setId(initial.getId());
+            updateDTO.setId(initialStockItem.getId());
             updateDTO.setAvailableQuantity(BigInteger.ZERO);
             updateDTO.setReservedQuantity(BigInteger.ONE);
+            updateDTO.setIsActive(false);
 
             StockItem updated = stockItemService.update(updateDTO);
 
             assertThat(updated.getAvailableQuantity()).isEqualByComparingTo(BigInteger.ZERO);
             assertThat(updated.getReservedQuantity()).isEqualByComparingTo(BigInteger.ONE);
             assertThat(updated.getStatus()).isEqualTo(StockItem.Status.RESERVED);
+            assertThat(updated.getIsActive()).isEqualTo(false);
         }
 
         @Test
-        @DisplayName("update_success_outOfService_override")
-        void update_success_outOfService_override() {
-            StockItem initial = createPersistedItem(productA, stockItemGroupA, warehouseA, 8, 0);
+        @DisplayName("update_success_changingStatus")
+        void update_success_changingStatus() {
+            StockItem initialStockItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    8,
+                    0);
 
             StockItemDTO updateDTO = new StockItemDTO();
-            updateDTO.setId(initial.getId());
+            updateDTO.setId(initialStockItem.getId());
             updateDTO.setStatus(StockItem.Status.OUT_OF_SERVICE.name());
 
             StockItem updated = stockItemService.update(updateDTO);
@@ -375,37 +538,39 @@ class StockItemServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("update_fail_invalidStatus: BusinessException")
-        void update_fail_invalidStatus() {
-            StockItem initial = createPersistedItem(productA, stockItemGroupA, warehouseA, 8, 0);
+        @DisplayName("update_fails_whenInvalidStatus: throws BusinessException when status can't be identified")
+        void update_fails_whenInvalidStatus() {
+            StockItem initialStockItem = createStockItem(productA,
+                    stockItemGroupA,
+                    warehouseA,
+                    RandomUtils.secure().randomBoolean(),
+                    8,
+                    0);
 
             StockItemDTO updateDTO = new StockItemDTO();
-            updateDTO.setId(initial.getId());
+            updateDTO.setId(initialStockItem.getId());
             updateDTO.setStatus("WRONG_STATUS");
 
-            assertThatThrownBy(() -> stockItemService.update(updateDTO))
-                    .isInstanceOf(ValidationException.class);
+            assertThatThrownBy(() -> stockItemService.update(updateDTO)).isInstanceOf(ValidationException.class);
         }
 
         @Test
-        @DisplayName("update_fail_missingId: ValidationException")
-        void update_fail_missingId() {
+        @DisplayName("update_fails_whenIdIsAbsentInRequest: throws ValidationException when ID is absent in request")
+        void update_fails_whenIdIsAbsentInRequest() {
             StockItemDTO updateDTO = new StockItemDTO();
             updateDTO.setAvailableQuantity(BigInteger.TEN);
 
-            assertThatThrownBy(() -> stockItemService.update(updateDTO))
-                    .isInstanceOf(ValidationException.class);
+            assertThatThrownBy(() -> stockItemService.update(updateDTO)).isInstanceOf(ValidationException.class);
         }
 
         @Test
-        @DisplayName("update_fail_notFound: NotFoundException when ID absent")
-        void update_fail_notFound() {
+        @DisplayName("update_fails_whenItemWasNotFound: throws NotFoundException when item was not found by ID")
+        void update_fails_whenItemWasNotFound() {
             StockItemDTO updateDTO = new StockItemDTO();
             updateDTO.setId(999_999L);
             updateDTO.setAvailableQuantity(BigInteger.ONE);
 
-            assertThatThrownBy(() -> stockItemService.update(updateDTO))
-                    .isInstanceOf(NotFoundException.class);
+            assertThatThrownBy(() -> stockItemService.update(updateDTO)).isInstanceOf(NotFoundException.class);
         }
     }
 }

@@ -1,6 +1,6 @@
 package io.store.ua.models.api.external.request;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * Used to send all required parameters for initializing a LiqPay payment.
@@ -42,16 +42,17 @@ public class LPInitiatePaymentRequestDTO {
     private String currency;
     /**
      * Required parameter
-     * Payment amount as a decimal
-     * Example: 100.00
+     * Payment amount in cents, API accepts decimal values
+     * Example: 10000, 100.00 will be sent
      */
     @NotNull(message = "Amount can't be null")
-    @DecimalMin(value = "0.01", message = "Amount must be >= 0.01")
-    private BigDecimal amount;
+    @Min(value = 1, message = "Amount must be >= 1")
+    private BigInteger amount;
     /**
      * Optional parameter
      * For CREDIT only
      */
-    @NotBlank(message = "Beneficiary code can't be blank")
-    private String beneficiaryCode;
+    @NotNull(message = "Beneficiary ID can't be blank")
+    @Min(value = 1, message = "Beneficiary ID must be >= 1")
+    private Long beneficiaryID;
 }

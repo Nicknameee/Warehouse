@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -25,7 +24,6 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Profile("users")
 public class AuthenticationLogoutSecurityHandler implements LogoutSuccessHandler {
     private final AuthenticationService authenticationService;
     private final GenericEventPublisher<LogoutEvent> logoutEventEventPublisher;

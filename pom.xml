@@ -18,10 +18,6 @@
 
     <repositories>
         <repository>
-            <id>commons</id>
-            <url>https://maven.pkg.github.com/Nicknameee/commons</url>
-        </repository>
-        <repository>
             <id>repository</id>
             <url>https://github.com/liqpay/sdk-java/raw/repository</url>
             <snapshots>

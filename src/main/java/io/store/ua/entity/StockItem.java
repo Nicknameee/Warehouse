@@ -27,6 +27,9 @@ public class StockItem {
     @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false, insertable = false, updatable = false)
     private Product product;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "group_id", nullable = false, insertable = false, updatable = false)
+    private StockItemGroup stockItemGroup;
     @Column(name = "product_id", nullable = false)
     private Long productId;
     @Column(name = "group_id", nullable = false)
@@ -42,6 +45,8 @@ public class StockItem {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
 
     /**
      * Represents item state in the system

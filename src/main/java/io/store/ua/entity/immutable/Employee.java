@@ -17,31 +17,26 @@ import org.hibernate.annotations.Immutable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Employee {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(nullable = false, unique = true, updatable = false)
+    private String username;
+    @Column(nullable = false, unique = true, updatable = false)
+    private String email;
+    @Column(nullable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role;
+    @Column(nullable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status;
+    @Column(nullable = false, updatable = false)
+    private String timezone;
 
-  @Column(nullable = false, unique = true, updatable = false)
-  private String username;
-
-  @Column(nullable = false, unique = true, updatable = false)
-  private String email;
-
-  @Column(nullable = false, updatable = false)
-  @Enumerated(EnumType.STRING)
-  private Role role;
-
-  @Column(nullable = false, updatable = false)
-  @Enumerated(EnumType.STRING)
-  private Status status;
-
-  @Column(nullable = false, updatable = false)
-  private String timezone;
-
-  @PrePersist
-  @PreUpdate
-  @PreRemove
-  private void notSupported() {
-    throw new UnsupportedOperationException();
-  }
+    @PrePersist
+    @PreUpdate
+    @PreRemove
+    private void notSupported() {
+        throw new UnsupportedOperationException();
+    }
 }

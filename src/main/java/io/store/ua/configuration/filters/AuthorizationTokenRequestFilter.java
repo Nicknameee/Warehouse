@@ -10,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +23,6 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
-@Profile("users")
 public class AuthorizationTokenRequestFilter extends OncePerRequestFilter {
     private final AuthenticationService authenticationService;
     private final GenericEventPublisher<LoginEvent> loginEventPublisher;

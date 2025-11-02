@@ -2,11 +2,14 @@ package io.store.ua.models.api.external.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import io.store.ua.enums.TransactionStatus;
 import io.store.ua.models.api.external.AbstractAPIResponse;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 
 @Data
@@ -32,7 +35,17 @@ public class LPResponse extends AbstractAPIResponse {
         REVERSED,
         SANDBOX,
         CHARGEBACK,
-        UNKNOWN
+        UNKNOWN;
+
+        public static TransactionStatus convertToBasicStatus(Status status) {
+            if (List.of(SUCCESS, SANDBOX).contains(status)) {
+                return TransactionStatus.SETTLED;
+            } else if (Objects.equals(UNKNOWN, status)) {
+                return TransactionStatus.INITIATED;
+            } else {
+                return TransactionStatus.FAILED;
+            }
+        }
     }
 
 }

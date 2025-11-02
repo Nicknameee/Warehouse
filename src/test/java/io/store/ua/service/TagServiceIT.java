@@ -57,8 +57,7 @@ class TagServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName(
-                "save_idempotence: returns existing Tag when duplicate name is provided (idempotent)")
+        @DisplayName("save_idempotence: returns existing Tag when duplicate name is provided (idempotent)")
         @Transactional
         void save_idempotence() {
             String tagName = RandomStringUtils.secure().nextAlphanumeric(10);

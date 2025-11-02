@@ -1,5 +1,6 @@
 package io.store.ua.utility;
 
+import io.store.ua.enums.PaymentProvider;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.WarehouseDTO;
 import lombok.AccessLevel;
@@ -10,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.StringJoiner;
 
@@ -22,10 +24,10 @@ public final class CodeGenerator {
     }
 
     public static class TransactionCodeGenerator {
-        public static class LiqPay {
-            public static String generate() {
-                return "LiqPay-%s-%s".formatted(LocalDate.now().toString(), randomStringUtils.nextAlphanumeric(10).toUpperCase());
-            }
+        public static String generate(PaymentProvider paymentProvider) {
+            return "TRX-%s-%s-%s".formatted(LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")),
+                    randomStringUtils.nextAlphanumeric(15).toUpperCase(),
+                    paymentProvider.getCode());
         }
     }
 

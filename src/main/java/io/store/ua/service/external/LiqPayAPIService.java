@@ -1,13 +1,22 @@
 package io.store.ua.service.external;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.store.ua.entity.Transaction;
+import io.store.ua.enums.Currency;
+import io.store.ua.enums.PaymentProvider;
+import io.store.ua.enums.TransactionStatus;
+import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequest;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequestDTO;
 import io.store.ua.models.api.external.request.LPStatusPayload;
 import io.store.ua.models.api.external.response.LPInitiatePaymentResponse;
 import io.store.ua.models.api.external.response.LPResponse;
+import io.store.ua.models.data.CheckoutFinancialInformation;
+import io.store.ua.models.data.ExternalReferences;
 import io.store.ua.repository.BeneficiaryRepository;
+import io.store.ua.service.CurrencyRateService;
+import io.store.ua.utility.CodeGenerator;
 import io.store.ua.utility.HttpRequestService;
 import io.store.ua.utility.RegularObjectMapper;
 import io.store.ua.validations.FieldValidator;
@@ -24,14 +33,17 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Base64;
 
 @Service
 @Profile("external")
 @RequiredArgsConstructor
 @Validated
-public class LiqPayAPIService implements ExternalAPIService {
+public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService {
     private final HttpRequestService httpRequestService;
+    private final CurrencyRateService currencyRateService;
     private final BeneficiaryRepository beneficiaryRepository;
     private final FieldValidator fieldValidator;
 
@@ -48,7 +60,7 @@ public class LiqPayAPIService implements ExternalAPIService {
     @Value("${transaction.outcoming.privateKey}")
     private String privateKey;
     @Value("${transaction.outcoming.sandbox}")
-    private boolean sandbox;
+    private boolean isSandboxAPIState;
 
     private static String base64(String content) {
         return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
@@ -65,6 +77,94 @@ public class LiqPayAPIService implements ExternalAPIService {
         }
     }
 
+    @Override
+    public PaymentProvider provider() {
+        return PaymentProvider.LIQ_PAY;
+    }
+
+    @Override
+    public CheckoutFinancialInformation initiateIncomingPayment(Transaction transaction, boolean settleOnInitiation) {
+        if (settleOnInitiation) {
+            throw new UnsupportedOperationException("Auto Settlement is not supported by LiqPay");
+        }
+
+        var reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.LIQ_PAY);
+
+        LPInitiatePaymentResponse initiatePaymentRequestDTO = initiateIncomingPayment(LPInitiatePaymentRequestDTO.builder()
+                .orderId(reference)
+                .currency(transaction.getCurrency())
+                .amount(transaction.getAmount())
+                .beneficiaryID(transaction.getBeneficiaryId())
+                .build());
+
+        transaction.setReference(reference);
+        transaction.setTransactionId(reference);
+        transaction.setExternalReferences(
+                ExternalReferences.builder()
+                        .transactionId(reference)
+                        .reference(reference)
+                        .build());
+        transaction.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
+        transaction.setStatus(TransactionStatus.INITIATED);
+        transaction.setPaymentProvider(PaymentProvider.LIQ_PAY);
+
+        return CheckoutFinancialInformation.builder()
+                .checkoutUrl(initiatePaymentRequestDTO.getCheckoutUrl())
+                .signature(initiatePaymentRequestDTO.getSignature())
+                .encodedContent(initiatePaymentRequestDTO.getEncodedContent())
+                .transactionId(reference)
+                .reference(reference)
+                .paymentProvider(PaymentProvider.LIQ_PAY)
+                .build();
+    }
+
+    @Override
+    public Transaction initiateOutcomingPayment(Transaction transaction, boolean settleOnInitiation) {
+        if (settleOnInitiation) {
+            throw new UnsupportedOperationException("Auto Settlement is not supported by LiqPay");
+        }
+
+        var reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.LIQ_PAY);
+
+        LPResponse transactionResult = initiateOutcomingPayment(LPInitiatePaymentRequestDTO
+                .builder()
+                .orderId(reference)
+                .currency(transaction.getCurrency())
+                .amount(transaction.getAmount())
+                .beneficiaryID(transaction.getBeneficiaryId())
+                .build());
+
+        transaction.setReference(reference);
+        transaction.setTransactionId(reference);
+        transaction.setExternalReferences(
+                ExternalReferences.builder()
+                        .transactionId(reference)
+                        .reference(reference)
+                        .build());
+        transaction.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
+        transaction.setStatus(LPResponse.Status.convertToBasicStatus(transactionResult.getStatus()));
+        transaction.setPaymentProvider(PaymentProvider.LIQ_PAY);
+
+        return transaction;
+    }
+
+    @Override
+    public Transaction settlePayment(Transaction transaction) {
+        if (transaction.getStatus() != TransactionStatus.INITIATED) {
+            throw new BusinessException("Transaction is already finalized");
+        }
+
+        LPResponse response = checkPaymentStatus(transaction.getReference());
+
+        transaction.setStatus(LPResponse.Status.convertToBasicStatus(response.getStatus()));
+
+        if (transaction.getStatus() == TransactionStatus.SETTLED) {
+            transaction.setPaidAt(LocalDateTime.now(Clock.systemUTC()));
+        }
+
+        return transaction;
+    }
+
     public LPInitiatePaymentResponse initiateIncomingPayment(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
         if (!isHealthy()) {
             throw new HealthCheckException();
@@ -75,11 +175,11 @@ public class LiqPayAPIService implements ExternalAPIService {
                     .version(version)
                     .publicKey(publicKey)
                     .action(Constants.ACTION_PAY)
-                    .amount(requestDTO.getAmount().toEngineeringString())
+                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
                     .currency(requestDTO.getCurrency())
                     .description("Incoming payment for #%s".formatted(requestDTO.getOrderId()))
                     .orderId(requestDTO.getOrderId())
-                    .sandbox(String.valueOf(sandbox ? BigInteger.ONE : BigInteger.ZERO))
+                    .sandbox(String.valueOf(isSandboxAPIState ? BigInteger.ONE : BigInteger.ZERO))
                     .build()));
 
             return LPInitiatePaymentResponse.builder()
@@ -92,32 +192,32 @@ public class LiqPayAPIService implements ExternalAPIService {
         }
     }
 
-    public LPResponse initiateOutcomingPayment(@NotNull LPInitiatePaymentRequestDTO request) {
+    public LPResponse initiateOutcomingPayment(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
         if (!isHealthy()) {
             throw new HealthCheckException();
         }
 
-        fieldValidator.validate(request, true,
+        fieldValidator.validate(requestDTO, true,
                 LPInitiatePaymentRequestDTO.Fields.orderId,
                 LPInitiatePaymentRequestDTO.Fields.currency,
                 LPInitiatePaymentRequestDTO.Fields.amount,
-                LPInitiatePaymentRequestDTO.Fields.beneficiaryCode);
+                LPInitiatePaymentRequestDTO.Fields.beneficiaryID);
 
         try {
-            var beneficiary = beneficiaryRepository.findByCode(request.getBeneficiaryCode())
-                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found".formatted(request.getBeneficiaryCode())));
+            var beneficiary = beneficiaryRepository.findById(requestDTO.getBeneficiaryID())
+                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found".formatted(requestDTO.getBeneficiaryID())));
 
             String encoded = base64(RegularObjectMapper.writeToString(
                     LPInitiatePaymentRequest.builder()
                             .version(version)
                             .publicKey(publicKey)
                             .action(Constants.ACTION_P2P_CREDIT)
-                            .amount(request.getAmount().toEngineeringString())
-                            .currency(request.getCurrency())
-                            .description("Payout for beneficiary #" + request.getBeneficiaryCode())
-                            .orderId(request.getOrderId())
+                            .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
+                            .currency(requestDTO.getCurrency())
+                            .description("Payout for beneficiary #" + beneficiary.getCard())
+                            .orderId(requestDTO.getOrderId())
                             .receiverCard(beneficiary.getCard())
-                            .sandbox(String.valueOf(sandbox ? java.math.BigInteger.ONE : java.math.BigInteger.ZERO))
+                            .sandbox(String.valueOf(isSandboxAPIState ? java.math.BigInteger.ONE : java.math.BigInteger.ZERO))
                             .build()
             ));
 
@@ -132,7 +232,7 @@ public class LiqPayAPIService implements ExternalAPIService {
 
                 var result = RegularObjectMapper.read(body, LPResponse.class);
 
-                if (sandbox) {
+                if (isSandboxAPIState) {
                     result.setStatus(LPResponse.Status.SUCCESS.name());
                 }
 

@@ -1,8 +1,8 @@
 package io.store.ua.enums;
 
 public enum TransactionStatus {
-    PLANNED,
-    POSTED,
+    INITIATED,
+    SETTLED,
     FAILED,
     CANCELLED
 }

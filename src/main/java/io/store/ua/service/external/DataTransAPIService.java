@@ -1,10 +1,16 @@
 package io.store.ua.service.external;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.store.ua.entity.Transaction;
+import io.store.ua.enums.PaymentProvider;
+import io.store.ua.enums.TransactionStatus;
+import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.data.DataTransTransaction;
 import io.store.ua.models.api.external.request.DTPaymentInitiationRequest;
 import io.store.ua.models.api.external.response.DTPaymentResponse;
+import io.store.ua.models.data.CheckoutFinancialInformation;
+import io.store.ua.models.data.ExternalReferences;
 import io.store.ua.service.CurrencyRateService;
 import io.store.ua.utility.CodeGenerator;
 import io.store.ua.utility.HttpRequestService;
@@ -31,7 +37,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 @FieldNameConstants
 @Validated
-public class DataTransAPIService implements ExternalAPIService {
+public class DataTransAPIService implements ExternalAPIService, FinancialAPIService {
     private final HttpRequestService httpRequestService;
     private final CurrencyRateService currencyRateService;
     @Value("${transaction.incoming.provider:DataTrans}")
@@ -86,6 +94,82 @@ public class DataTransAPIService implements ExternalAPIService {
                 .getBytes()));
     }
 
+    @Override
+    public PaymentProvider provider() {
+        return PaymentProvider.DATA_TRANS;
+    }
+
+    @Override
+    public CheckoutFinancialInformation initiateIncomingPayment(Transaction transaction, boolean settleOnInitiation) {
+        DataTransTransaction dataTransTransaction = initiateIncomingPayment(transaction.getCurrency(), transaction.getAmount(), settleOnInitiation);
+
+        transaction.setReference(dataTransTransaction.getReference());
+        transaction.setTransactionId(dataTransTransaction.getTransactionId());
+        transaction.setExternalReferences(ExternalReferences.builder()
+                .reference(dataTransTransaction.getReference())
+                .transactionId(dataTransTransaction.getTransactionId())
+                .authenticationCode(dataTransTransaction.getAcquirerAuthorizationCode())
+                .build());
+        transaction.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
+
+        if (settleOnInitiation) {
+            transaction.setStatus(TransactionStatus.SETTLED);
+            transaction.setPaidAt(LocalDateTime.now(Clock.systemUTC()));
+        } else {
+            transaction.setStatus(TransactionStatus.INITIATED);
+        }
+
+        transaction.setPaymentProvider(PaymentProvider.DATA_TRANS);
+
+        return CheckoutFinancialInformation.builder()
+                .paymentProvider(PaymentProvider.DATA_TRANS)
+                .transactionId(dataTransTransaction.getTransactionId())
+                .reference(dataTransTransaction.getReference())
+                .build();
+    }
+
+    @Override
+    public Transaction initiateOutcomingPayment(Transaction transaction, boolean settleOnInitiation) {
+        DataTransTransaction dataTransTransaction = initiateOutcomingPayment(transaction.getCurrency(), transaction.getAmount());
+
+        transaction.setReference(dataTransTransaction.getReference());
+        transaction.setTransactionId(dataTransTransaction.getTransactionId());
+        transaction.setExternalReferences(ExternalReferences.builder()
+                .reference(dataTransTransaction.getReference())
+                .transactionId(dataTransTransaction.getTransactionId())
+                .authenticationCode(dataTransTransaction.getAcquirerAuthorizationCode())
+                .build());
+        transaction.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
+
+        if (settleOnInitiation) {
+            transaction.setStatus(TransactionStatus.SETTLED);
+            transaction.setPaidAt(LocalDateTime.now(Clock.systemUTC()));
+        } else {
+            transaction.setStatus(TransactionStatus.INITIATED);
+        }
+
+        transaction.setPaymentProvider(PaymentProvider.DATA_TRANS);
+
+        return transaction;
+    }
+
+    @Override
+    public Transaction settlePayment(Transaction transaction) {
+        if (transaction.getStatus() != TransactionStatus.INITIATED) {
+            throw new BusinessException("Transaction is already finalized");
+        }
+
+        settlePayment(transaction.getCurrency(),
+                transaction.getAmount(),
+                transaction.getExternalReferences().getTransactionId(),
+                transaction.getExternalReferences().getReference());
+
+        transaction.setPaidAt(LocalDateTime.now(Clock.systemUTC()));
+        transaction.setStatus(TransactionStatus.SETTLED);
+
+        return transaction;
+    }
+
     /**
      *
      * Securely send all the necessary parameters to the transaction initialization API.
@@ -97,21 +181,25 @@ public class DataTransAPIService implements ExternalAPIService {
      * @param autoSettle whether to automatically settle the transaction after an authorization or not
      * @return {@link DataTransTransaction} which contains transactionId and generated reference
      */
-    public DataTransTransaction initialisePayment(@NotBlank(message = "Currency can't be blank") String currency,
-                                                  @NotNull(message = "Amount can't be null")
-                                                  @Min(value = 1, message = "Amount can't be less than 1")
-                                                  BigDecimal amount,
-                                                  boolean autoSettle) {
+    public DataTransTransaction initiateIncomingPayment(@NotBlank(message = "Currency can't be blank") String currency,
+                                                        @NotNull(message = "Amount can't be null")
+                                                        @Min(value = 1, message = "Amount can't be less than 1")
+                                                        BigInteger amount,
+                                                        boolean autoSettle) {
         try {
             if (!isHealthy()) {
                 throw new HealthCheckException();
             }
 
-            String reference = CodeGenerator.generate(referenceLength);
+            String reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.DATA_TRANS);
+
+            if (reference.length() > referenceLength) {
+                throw new BusinessException("Transaction reference exceeds allowed length for '%s' provider".formatted(provider));
+            }
 
             var request = DTPaymentInitiationRequest.builder()
                     .currency(Constants.Currency.USD)
-                    .amount(String.valueOf(currencyRateService.convert(currency, Constants.Currency.USD, amount).intValue()))
+                    .amount(currencyRateService.convert(currency, Constants.Currency.USD, amount).toString())
                     .transactionReference(reference)
                     .redirect(new DTPaymentInitiationRequest.Redirect())
                     .theme(new DTPaymentInitiationRequest.Theme())
@@ -143,10 +231,10 @@ public class DataTransAPIService implements ExternalAPIService {
         }
     }
 
-    public DataTransTransaction authorizePayment(@NotBlank(message = "Currency can't be blank") String currency,
-                                                 @NotNull(message = "Amount can't be null")
-                                                 @Min(value = 1, message = "Amount can't be less than 1")
-                                                 BigDecimal amount) {
+    public DataTransTransaction initiateOutcomingPayment(@NotBlank(message = "Currency can't be blank") String currency,
+                                                         @NotNull(message = "Amount can't be null")
+                                                         @Min(value = 1, message = "Amount can't be less than 1")
+                                                         BigInteger amount) {
         try {
             if (!isHealthy()) {
                 throw new HealthCheckException();
@@ -156,7 +244,7 @@ public class DataTransAPIService implements ExternalAPIService {
 
             var request = DTPaymentInitiationRequest.builder()
                     .currency(Constants.Currency.USD)
-                    .amount(String.valueOf(currencyRateService.convert(currency, Constants.Currency.USD, amount).intValue()))
+                    .amount(currencyRateService.convert(currency, Constants.Currency.USD, amount).toString())
                     .transactionReference(reference)
                     .card(new DTPaymentInitiationRequest.Card())
                     .build();
@@ -190,7 +278,7 @@ public class DataTransAPIService implements ExternalAPIService {
     public DataTransTransaction settlePayment(@NotBlank(message = "Currency can't be blank") String currency,
                                               @NotNull(message = "Amount can't be null")
                                               @Min(value = 1, message = "Amount can't be less than 1")
-                                              BigDecimal amount,
+                                              BigInteger amount,
                                               @NotBlank(message = "Transaction ID can't be blank") String transactionId,
                                               @NotBlank(message = "Reference can't be blank") String reference) {
         try {
@@ -200,7 +288,7 @@ public class DataTransAPIService implements ExternalAPIService {
 
             var request = DTPaymentInitiationRequest.builder()
                     .currency(Constants.Currency.USD)
-                    .amount(String.valueOf(currencyRateService.convert(currency, Constants.Currency.USD, amount).intValue()))
+                    .amount(currencyRateService.convert(currency, Constants.Currency.USD, amount).toString())
                     .transactionReference(reference)
                     .build();
 

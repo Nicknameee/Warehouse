@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface StockItemGroupRepository extends JpaRepository<StockItemGroup, Long> {
     Optional<StockItemGroup> findByName(String name);
+
     Optional<StockItemGroup> findByCode(String code);
 }

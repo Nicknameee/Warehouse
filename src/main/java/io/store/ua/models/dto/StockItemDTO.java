@@ -3,7 +3,10 @@ package io.store.ua.models.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -11,6 +14,9 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldNameConstants
 public class StockItemDTO {
     @NotNull(message = "Stock item ID can't be null")
@@ -32,4 +38,5 @@ public class StockItemDTO {
     private BigInteger reservedQuantity;
     @Pattern(regexp = "OUT_OF_STOCK|AVAILABLE|RESERVED|OUT_OF_SERVICE", message = "Invalid status value")
     private String status;
+    private Boolean isActive;
 }
