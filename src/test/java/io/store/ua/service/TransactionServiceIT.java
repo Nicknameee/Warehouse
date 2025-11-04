@@ -290,7 +290,7 @@ class TransactionServiceIT extends AbstractIT {
                     .reference(RandomStringUtils.secure().nextAlphanumeric(30))
                     .build();
 
-            when(dataTransService.initiateIncomingPayment(anyString(), any(BigInteger.class), eq(true))).thenReturn(responseTransaction);
+            when(dataTransService.initiateIncomingPaymentAPICall(anyString(), any(BigInteger.class), eq(true))).thenReturn(responseTransaction);
 
             TransactionDTO transactionDTO = buildTransactionDTO(PaymentProvider.DATA_TRANS,
                     TransactionPurpose.STOCK_OUTBOUND_REVENUE.name(),
@@ -326,7 +326,7 @@ class TransactionServiceIT extends AbstractIT {
 
             long initialCount = transactionRepository.count();
 
-            when(liqPayService.initiateIncomingPayment(any(LPInitiatePaymentRequestDTO.class))).thenReturn(new LPInitiatePaymentResponse());
+            when(liqPayService.initiateIncomingPaymentAPICall(any(LPInitiatePaymentRequestDTO.class))).thenReturn(new LPInitiatePaymentResponse());
 
             TransactionDTO transactionDTO = buildTransactionDTO(PaymentProvider.LIQ_PAY,
                     TransactionPurpose.FEE.name(),
@@ -463,7 +463,7 @@ class TransactionServiceIT extends AbstractIT {
 
             long initialCount = transactionRepository.count();
 
-            when(liqPayService.initiateOutcomingPayment(any(LPInitiatePaymentRequestDTO.class))).thenReturn(LPResponse.builder()
+            when(liqPayService.initiateOutcomingPaymentAPICall(any(LPInitiatePaymentRequestDTO.class))).thenReturn(LPResponse.builder()
                     .status(LPResponse.Status.UNKNOWN)
                     .build());
 
@@ -573,7 +573,7 @@ class TransactionServiceIT extends AbstractIT {
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .build());
 
-            when(dataTransService.settlePayment(anyString(), any(BigInteger.class), anyString(), anyString()))
+            when(dataTransService.settlePaymentAPICall(anyString(), any(BigInteger.class), anyString(), anyString()))
                     .thenReturn(new DataTransTransaction());
 
             TransactionDTO transactionDTO = TransactionDTO.builder()

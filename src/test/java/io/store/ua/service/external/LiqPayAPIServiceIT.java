@@ -2,21 +2,32 @@ package io.store.ua.service.external;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Beneficiary;
+import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.cache.CurrencyRate;
 import io.store.ua.enums.Currency;
+import io.store.ua.enums.Role;
+import io.store.ua.enums.Status;
 import io.store.ua.exceptions.HealthCheckException;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequestDTO;
 import io.store.ua.models.api.external.response.LPResponse;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.TestPropertySource;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,11 +45,45 @@ class LiqPayAPIServiceIT extends AbstractIT {
     @Value("${transaction.outcoming.sandbox}")
     private boolean sandbox;
 
+    @BeforeEach
+    void setup() {
+        currencyRateRepository.saveAll(List.of(
+                CurrencyRate.builder()
+                        .currencyCode(DataTransAPIService.Constants.Currency.USD)
+                        .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
+                        .rate(BigDecimal.ONE)
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build(),
+                CurrencyRate.builder()
+                        .currencyCode(DataTransAPIService.Constants.Currency.CHF)
+                        .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
+                        .rate(BigDecimal.valueOf(1.25))
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build(),
+                CurrencyRate.builder()
+                        .currencyCode(DataTransAPIService.Constants.Currency.EUR)
+                        .baseCurrencyCode(DataTransAPIService.Constants.Currency.USD)
+                        .rate(BigDecimal.valueOf(0.91))
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build()
+        ));
+
+        var user = RegularUser.builder()
+                .username(RandomStringUtils.secure().nextAlphanumeric(333))
+                .role(Role.OWNER)
+                .status(Status.ACTIVE)
+                .build();
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(securityContext);
+    }
+
     @Test
-    void initiateIncomingPayment_success() {
+    void initiateIncomingPayment_APICall_success() {
         liqPayAPIService.setHealth(true);
 
-        assertNotNull(liqPayAPIService.initiateIncomingPayment(
+        assertNotNull(liqPayAPIService.initiateIncomingPaymentAPICall(
                 LPInitiatePaymentRequestDTO.builder()
                         .orderId(String.valueOf(System.currentTimeMillis()))
                         .currency(Currency.UAH.name())
@@ -48,33 +93,33 @@ class LiqPayAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateIncomingPayment_failsWithFalseHealth() {
+    void initiateIncomingPayment_APICall_failsWithFalseHealth() {
         liqPayAPIService.setHealth(false);
 
-        assertThatThrownBy(() -> liqPayAPIService.initiateIncomingPayment(new LPInitiatePaymentRequestDTO()))
+        assertThatThrownBy(() -> liqPayAPIService.initiateIncomingPaymentAPICall(new LPInitiatePaymentRequestDTO()))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
-    void checkPaymentStatus_success() {
+    void checkPaymentStatus_APICall_success() {
         liqPayAPIService.setHealth(true);
 
-        assertNotNull(liqPayAPIService.checkPaymentStatus("TEST-1761163416429"));
+        assertNotNull(liqPayAPIService.checkPaymentStatusAPICall("TEST-1761163416429"));
     }
 
     @Test
-    void checkPaymentStatus_failsWithFalseHealth() {
+    void checkPaymentStatus_APICall_failsWithFalseHealth() {
         liqPayAPIService.setHealth(false);
-        assertThatThrownBy(() -> liqPayAPIService.checkPaymentStatus(RandomStringUtils.secure().nextAlphanumeric(100)))
+        assertThatThrownBy(() -> liqPayAPIService.checkPaymentStatusAPICall(RandomStringUtils.secure().nextAlphanumeric(100)))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @SneakyThrows
     @Test
-    void initiateOutcomingPayment_success() {
+    void initiateOutcomingPayment_APICall_success() {
         liqPayAPIService.setHealth(true);
 
-        var result = liqPayAPIService.initiateOutcomingPayment(
+        var result = liqPayAPIService.initiateOutcomingPaymentAPICall(
                 LPInitiatePaymentRequestDTO.builder()
                         .orderId(RandomStringUtils.secure().nextAlphanumeric(33))
                         .currency("UAH")
@@ -96,10 +141,10 @@ class LiqPayAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateOutcomingPayment_fails_whenFalseHealth() {
+    void initiateOutcomingPayment_APICall_fails_whenFalseHealth() {
         liqPayAPIService.setHealth(false);
 
-        assertThatThrownBy(() -> liqPayAPIService.initiateOutcomingPayment(new LPInitiatePaymentRequestDTO()))
+        assertThatThrownBy(() -> liqPayAPIService.initiateOutcomingPaymentAPICall(new LPInitiatePaymentRequestDTO()))
                 .isInstanceOf(HealthCheckException.class);
     }
 }

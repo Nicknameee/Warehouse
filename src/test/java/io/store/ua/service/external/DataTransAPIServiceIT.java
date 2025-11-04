@@ -74,11 +74,12 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateIncomingPayment_realApi_invokesSuccessfully() {
+    void initiateIncomingPayment_APICall_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
+
         BigInteger amount = BigInteger.valueOf(1000);
 
-        var transaction = dataTransAPIService.initiateIncomingPayment(DataTransAPIService.Constants.Currency.CHF, amount, false);
+        var transaction = dataTransAPIService.initiateIncomingPaymentAPICall(DataTransAPIService.Constants.Currency.CHF, amount, false);
 
         assertNotNull(transaction);
         assertNotNull(transaction.getTransactionId());
@@ -88,18 +89,20 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateIncomingPayment_realApi_failsWithFalseHealth() {
+    void initiateIncomingPayment_APICall_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
-        assertThatThrownBy(() -> dataTransAPIService.initiateIncomingPayment(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000), false))
+
+        assertThatThrownBy(() -> dataTransAPIService.initiateIncomingPaymentAPICall(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000), false))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
-    void initiateOutcomingPayment_realApi_invokesSuccessfully() {
+    void initiateOutcomingPayment_APICall_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
+
         BigInteger amount = BigInteger.valueOf(1000);
 
-        var transaction = dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, amount);
+        var transaction = dataTransAPIService.initiateOutcomingPaymentAPICall(DataTransAPIService.Constants.Currency.CHF, amount);
 
         assertNotNull(transaction);
         assertNotNull(transaction.getTransactionId());
@@ -112,18 +115,20 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void initiateOutcomingPayment_realApi_failsWithFalseHealth() {
+    void initiateOutcomingPayment_APICall_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
-        assertThatThrownBy(() -> dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000)))
+
+        assertThatThrownBy(() -> dataTransAPIService.initiateOutcomingPaymentAPICall(DataTransAPIService.Constants.Currency.CHF, BigInteger.valueOf(1000)))
                 .isInstanceOf(HealthCheckException.class);
     }
 
     @Test
-    void settlePayment_realApi_invokesSuccessfully() {
+    void settlePayment_APICall_realApi_invokesSuccessfully() {
         dataTransAPIService.setHealth(true);
+
         BigInteger amount = BigInteger.valueOf(1000);
 
-        var authorized = dataTransAPIService.initiateOutcomingPayment(DataTransAPIService.Constants.Currency.CHF, amount);
+        var authorized = dataTransAPIService.initiateOutcomingPaymentAPICall(DataTransAPIService.Constants.Currency.CHF, amount);
 
         assertNotNull(authorized);
         assertNotNull(authorized.getTransactionId());
@@ -134,7 +139,7 @@ class DataTransAPIServiceIT extends AbstractIT {
         assertFalse(authorized.getAcquirerAuthorizationCode().isBlank());
         assertEquals(referenceLength, authorized.getReference().length());
 
-        DataTransTransaction settled = dataTransAPIService.settlePayment(
+        DataTransTransaction settled = dataTransAPIService.settlePaymentAPICall(
                 DataTransAPIService.Constants.Currency.CHF,
                 amount,
                 authorized.getTransactionId(),
@@ -147,11 +152,11 @@ class DataTransAPIServiceIT extends AbstractIT {
     }
 
     @Test
-    void settlePayment_realApi_failsWithFalseHealth() {
+    void settlePayment_APICall_realApi_failsWithFalseHealth() {
         dataTransAPIService.setHealth(false);
 
         assertThatThrownBy(() ->
-                dataTransAPIService.settlePayment(
+                dataTransAPIService.settlePaymentAPICall(
                         DataTransAPIService.Constants.Currency.CHF,
                         BigInteger.valueOf(1000),
                         RandomStringUtils.secure().nextAlphanumeric(100),

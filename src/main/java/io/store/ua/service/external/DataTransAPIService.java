@@ -101,7 +101,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
 
     @Override
     public CheckoutFinancialInformation initiateIncomingPayment(Transaction transaction, boolean settleOnInitiation) {
-        DataTransTransaction dataTransTransaction = initiateIncomingPayment(transaction.getCurrency(), transaction.getAmount(), settleOnInitiation);
+        DataTransTransaction dataTransTransaction = initiateIncomingPaymentAPICall(transaction.getCurrency(), transaction.getAmount(), settleOnInitiation);
 
         transaction.setReference(dataTransTransaction.getReference());
         transaction.setTransactionId(dataTransTransaction.getTransactionId());
@@ -130,7 +130,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
 
     @Override
     public Transaction initiateOutcomingPayment(Transaction transaction, boolean settleOnInitiation) {
-        DataTransTransaction dataTransTransaction = initiateOutcomingPayment(transaction.getCurrency(), transaction.getAmount());
+        DataTransTransaction dataTransTransaction = initiateOutcomingPaymentAPICall(transaction.getCurrency(), transaction.getAmount());
 
         transaction.setReference(dataTransTransaction.getReference());
         transaction.setTransactionId(dataTransTransaction.getTransactionId());
@@ -159,7 +159,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
             throw new BusinessException("Transaction is already finalized");
         }
 
-        settlePayment(transaction.getCurrency(),
+        settlePaymentAPICall(transaction.getCurrency(),
                 transaction.getAmount(),
                 transaction.getExternalReferences().getTransactionId(),
                 transaction.getExternalReferences().getReference());
@@ -181,11 +181,11 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
      * @param autoSettle whether to automatically settle the transaction after an authorization or not
      * @return {@link DataTransTransaction} which contains transactionId and generated reference
      */
-    public DataTransTransaction initiateIncomingPayment(@NotBlank(message = "Currency can't be blank") String currency,
-                                                        @NotNull(message = "Amount can't be null")
-                                                        @Min(value = 1, message = "Amount can't be less than 1")
-                                                        BigInteger amount,
-                                                        boolean autoSettle) {
+    public DataTransTransaction initiateIncomingPaymentAPICall(@NotBlank(message = "Currency can't be blank") String currency,
+                                                               @NotNull(message = "Amount can't be null")
+                                                               @Min(value = 1, message = "Amount can't be less than 1")
+                                                               BigInteger amount,
+                                                               boolean autoSettle) {
         try {
             if (!isHealthy()) {
                 throw new HealthCheckException();
@@ -231,10 +231,10 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
         }
     }
 
-    public DataTransTransaction initiateOutcomingPayment(@NotBlank(message = "Currency can't be blank") String currency,
-                                                         @NotNull(message = "Amount can't be null")
-                                                         @Min(value = 1, message = "Amount can't be less than 1")
-                                                         BigInteger amount) {
+    public DataTransTransaction initiateOutcomingPaymentAPICall(@NotBlank(message = "Currency can't be blank") String currency,
+                                                                @NotNull(message = "Amount can't be null")
+                                                                @Min(value = 1, message = "Amount can't be less than 1")
+                                                                BigInteger amount) {
         try {
             if (!isHealthy()) {
                 throw new HealthCheckException();
@@ -275,12 +275,12 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
         }
     }
 
-    public DataTransTransaction settlePayment(@NotBlank(message = "Currency can't be blank") String currency,
-                                              @NotNull(message = "Amount can't be null")
-                                              @Min(value = 1, message = "Amount can't be less than 1")
-                                              BigInteger amount,
-                                              @NotBlank(message = "Transaction ID can't be blank") String transactionId,
-                                              @NotBlank(message = "Reference can't be blank") String reference) {
+    public DataTransTransaction settlePaymentAPICall(@NotBlank(message = "Currency can't be blank") String currency,
+                                                     @NotNull(message = "Amount can't be null")
+                                                     @Min(value = 1, message = "Amount can't be less than 1")
+                                                     BigInteger amount,
+                                                     @NotBlank(message = "Transaction ID can't be blank") String transactionId,
+                                                     @NotBlank(message = "Reference can't be blank") String reference) {
         try {
             if (!isHealthy()) {
                 throw new HealthCheckException();

@@ -62,7 +62,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
     @Value("${transaction.outcoming.sandbox}")
     private boolean isSandboxAPIState;
 
-    private static String base64(String content) {
+    private static String encodeToBase64(String content) {
         return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -90,7 +90,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
 
         var reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.LIQ_PAY);
 
-        LPInitiatePaymentResponse initiatePaymentRequestDTO = initiateIncomingPayment(LPInitiatePaymentRequestDTO.builder()
+        LPInitiatePaymentResponse initiatePaymentRequestDTO = initiateIncomingPaymentAPICall(LPInitiatePaymentRequestDTO.builder()
                 .orderId(reference)
                 .currency(transaction.getCurrency())
                 .amount(transaction.getAmount())
@@ -126,7 +126,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
 
         var reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.LIQ_PAY);
 
-        LPResponse transactionResult = initiateOutcomingPayment(LPInitiatePaymentRequestDTO
+        LPResponse transactionResult = initiateOutcomingPaymentAPICall(LPInitiatePaymentRequestDTO
                 .builder()
                 .orderId(reference)
                 .currency(transaction.getCurrency())
@@ -154,7 +154,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
             throw new BusinessException("Transaction is already finalized");
         }
 
-        LPResponse response = checkPaymentStatus(transaction.getReference());
+        LPResponse response = checkPaymentStatusAPICall(transaction.getReference());
 
         transaction.setStatus(LPResponse.Status.convertToBasicStatus(response.getStatus()));
 
@@ -165,13 +165,13 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
         return transaction;
     }
 
-    public LPInitiatePaymentResponse initiateIncomingPayment(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
+    public LPInitiatePaymentResponse initiateIncomingPaymentAPICall(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
         if (!isHealthy()) {
             throw new HealthCheckException();
         }
 
         try {
-            String encodedRequest = base64(RegularObjectMapper.writeToString(LPInitiatePaymentRequest.builder()
+            String encodedRequest = encodeToBase64(RegularObjectMapper.writeToString(LPInitiatePaymentRequest.builder()
                     .version(version)
                     .publicKey(publicKey)
                     .action(Constants.ACTION_PAY)
@@ -192,7 +192,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
         }
     }
 
-    public LPResponse initiateOutcomingPayment(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
+    public LPResponse initiateOutcomingPaymentAPICall(@NotNull LPInitiatePaymentRequestDTO requestDTO) {
         if (!isHealthy()) {
             throw new HealthCheckException();
         }
@@ -207,49 +207,49 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
             var beneficiary = beneficiaryRepository.findById(requestDTO.getBeneficiaryID())
                     .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found".formatted(requestDTO.getBeneficiaryID())));
 
-            String encoded = base64(RegularObjectMapper.writeToString(
-                    LPInitiatePaymentRequest.builder()
-                            .version(version)
-                            .publicKey(publicKey)
-                            .action(Constants.ACTION_P2P_CREDIT)
-                            .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
-                            .currency(requestDTO.getCurrency())
-                            .description("Payout for beneficiary #" + beneficiary.getCard())
-                            .orderId(requestDTO.getOrderId())
-                            .receiverCard(beneficiary.getCard())
-                            .sandbox(String.valueOf(isSandboxAPIState ? java.math.BigInteger.ONE : java.math.BigInteger.ZERO))
-                            .build()
-            ));
+
+            if (isSandboxAPIState) {
+                return LPResponse.builder()
+                        .orderId(requestDTO.getOrderId())
+                        .status(LPResponse.Status.SUCCESS)
+                        .build();
+            }
+
+            String encoded = encodeToBase64(RegularObjectMapper.writeToString(LPInitiatePaymentRequest.builder()
+                    .version(version)
+                    .publicKey(publicKey)
+                    .action(Constants.ACTION_P2P_CREDIT)
+                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
+                    .currency(requestDTO.getCurrency())
+                    .description("Payout for beneficiary #" + beneficiary.getCard())
+                    .orderId(requestDTO.getOrderId())
+                    .receiverCard(beneficiary.getCard())
+                    .sandbox(String.valueOf(isSandboxAPIState ? BigInteger.ONE : BigInteger.ZERO))
+                    .build())
+            );
 
             try (var response = httpRequestService.fetchAsync(new Request.Builder()
-                    .url(apiUrl)
-                    .post(new FormBody.Builder()
-                            .add(Constants.CONTENT, encoded)
-                            .add(Constants.SIGNATURE, sign(privateKey, encoded))
+                            .url(apiUrl)
+                            .post(new FormBody.Builder()
+                                    .add(Constants.CONTENT, encoded)
+                                    .add(Constants.SIGNATURE, sign(privateKey, encoded))
+                                    .build())
                             .build())
-                    .build()).join()) {
-                var body = response.peekBody(Long.MAX_VALUE).string();
-
-                var result = RegularObjectMapper.read(body, LPResponse.class);
-
-                if (isSandboxAPIState) {
-                    result.setStatus(LPResponse.Status.SUCCESS.name());
-                }
-
-                return result;
+                    .join()) {
+                return RegularObjectMapper.read(response.peekBody(Long.MAX_VALUE).string(), LPResponse.class);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to initiate outgoing LiqPay payment", e);
         }
     }
 
-    public LPResponse checkPaymentStatus(@NotBlank String orderId) {
+    public LPResponse checkPaymentStatusAPICall(@NotBlank String orderId) {
         if (!isHealthy()) {
             throw new HealthCheckException();
         }
 
         try {
-            String data = base64(RegularObjectMapper.writeToString(LPStatusPayload.builder()
+            String data = encodeToBase64(RegularObjectMapper.writeToString(LPStatusPayload.builder()
                     .publicKey(publicKey)
                     .version(version)
                     .action(Constants.ACTION_STATUS)
@@ -257,12 +257,13 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
                     .build()));
 
             try (var response = httpRequestService.fetchAsync(new Request.Builder()
-                    .url(apiUrl)
-                    .post(new FormBody.Builder()
-                            .add(Constants.CONTENT, data)
-                            .add(Constants.SIGNATURE, sign(privateKey, data))
+                            .url(apiUrl)
+                            .post(new FormBody.Builder()
+                                    .add(Constants.CONTENT, data)
+                                    .add(Constants.SIGNATURE, sign(privateKey, data))
+                                    .build())
                             .build())
-                    .build()).join()) {
+                    .join()) {
                 return RegularObjectMapper.read(response.peekBody(Long.MAX_VALUE).string(), LPResponse.class);
             }
         } catch (Exception e) {

@@ -73,7 +73,7 @@ class TransactionAdapterServiceIT extends AbstractIT {
                     false,
                     PaymentProvider.GOOGLE_PAY));
             verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
-            verify(liqPayService, never()).initiateIncomingPayment(any());
+            verify(liqPayService, never()).initiateIncomingPaymentAPICall(any());
         }
     }
 
@@ -114,7 +114,7 @@ class TransactionAdapterServiceIT extends AbstractIT {
                     true,
                     PaymentProvider.CASH));
             verify(dataTransService, never()).initiateOutcomingPayment(any(), anyBoolean());
-            verify(liqPayService, never()).initiateOutcomingPayment(any());
+            verify(liqPayService, never()).initiateOutcomingPaymentAPICall(any());
         }
     }
 
