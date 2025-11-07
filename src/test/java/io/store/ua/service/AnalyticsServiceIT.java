@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("AnalyticsServiceIT: fetchItemSellingStatistic")
 class AnalyticsServiceIT extends AbstractIT {
     @Autowired
     private AnalyticsService analyticsService;
@@ -34,14 +33,29 @@ class AnalyticsServiceIT extends AbstractIT {
 
     private static BigInteger sumSoldAmounts(List<ItemSellingStatistic> statistics) {
         return statistics.stream()
-                .map(ItemSellingStatistic::getSoldAmount)
+                .map(ItemSellingStatistic::getSoldQuantity)
+                .reduce(BigInteger.ZERO, BigInteger::add);
+    }
+
+    private static BigInteger sumRevenue(List<ItemSellingStatistic> statistics) {
+        return statistics.stream()
+                .map(ItemSellingStatistic::getTotalRevenueAmount)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
     private static BigInteger expectedSold(Stream<StockItemHistory> entries) {
         return entries
-                .map(entry -> BigInteger.valueOf(Math.max(entry.getQuantityBefore().subtract(entry.getQuantityAfter()).longValue(), 0)))
+                .map(entry -> {
+                    BigInteger before = entry.getQuantityBefore() == null ? BigInteger.ZERO : entry.getQuantityBefore();
+                    BigInteger after = entry.getQuantityAfter() == null ? BigInteger.ZERO : entry.getQuantityAfter();
+                    BigInteger diff = before.subtract(after);
+                    return diff.signum() > 0 ? diff : BigInteger.ZERO;
+                })
                 .reduce(BigInteger.ZERO, BigInteger::add);
+    }
+
+    private static BigInteger expectedRevenue(Stream<StockItemHistory> entries, BigInteger pricePerUnit) {
+        return expectedSold(entries).multiply(pricePerUnit == null ? BigInteger.ZERO : pricePerUnit);
     }
 
     @BeforeEach
@@ -57,6 +71,7 @@ class AnalyticsServiceIT extends AbstractIT {
         return stockItemHistoryRepository.save(
                 StockItemHistory.builder()
                         .stockItemId(stockItemId)
+                        .currentProductPrice(product.getPrice()) // cents
                         .quantityBefore(quantityBefore)
                         .quantityAfter(quantityAfter)
                         .build()
@@ -69,15 +84,19 @@ class AnalyticsServiceIT extends AbstractIT {
         @Test
         @DisplayName("success_daily_aggregation")
         void success_daily_aggregation() {
-            StockItemHistory firstEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(10), BigInteger.valueOf(8));
-            StockItemHistory secondEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(8), BigInteger.valueOf(7));
-            StockItemHistory thirdEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(20), BigInteger.valueOf(25));
+            StockItemHistory firstEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(10), BigInteger.valueOf(8)); // +2
+            StockItemHistory secondEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(8), BigInteger.valueOf(7)); // +1
+            StockItemHistory thirdEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(20), BigInteger.valueOf(25)); // 0 (increase)
 
             List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 100, 1);
 
             assertThat(statistics).isNotEmpty();
-            assertThat(sumSoldAmounts(statistics)).isEqualTo(expectedSold(Stream.of(firstEntry, secondEntry, thirdEntry)));
-            assertThat(statistics.stream().map(ItemSellingStatistic::getStartDate).distinct().count()).isGreaterThanOrEqualTo(1);
+            assertThat(sumSoldAmounts(statistics))
+                    .isEqualTo(expectedSold(Stream.of(firstEntry, secondEntry, thirdEntry)));
+            assertThat(sumRevenue(statistics))
+                    .isEqualTo(expectedRevenue(Stream.of(firstEntry, secondEntry, thirdEntry), product.getPrice()));
+            assertThat(statistics.stream().map(ItemSellingStatistic::getStartDate).distinct().count())
+                    .isGreaterThanOrEqualTo(1);
         }
 
         @Test
@@ -85,22 +104,30 @@ class AnalyticsServiceIT extends AbstractIT {
         void success_filter_by_item() {
             StockItem otherStockItem = createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId());
 
-            StockItemHistory primaryEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(7));
-            insertHistoryRow(otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(5));
+            StockItemHistory primaryEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(7)); // +3
+            insertHistoryRow(otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(5)); // +5 (should be excluded)
 
             List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 50, 1);
 
             assertThat(sumSoldAmounts(statistics)).isEqualTo(expectedSold(Stream.of(primaryEntry)));
+            assertThat(sumRevenue(statistics)).isEqualTo(expectedRevenue(Stream.of(primaryEntry), product.getPrice()));
         }
 
         @Test
         @DisplayName("success_date_range")
         void success_date_range() {
-            StockItemHistory includedEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9));
+            StockItemHistory includedEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9)); // +1
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(), LocalDate.now(), LocalDate.now().plusDays(1), 100, 1);
+            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(
+                    stockItem.getId(),
+                    LocalDate.now(),
+                    LocalDate.now().plusDays(1),
+                    100,
+                    1
+            );
 
             assertThat(sumSoldAmounts(statistics)).isEqualTo(expectedSold(Stream.of(includedEntry)));
+            assertThat(sumRevenue(statistics)).isEqualTo(expectedRevenue(Stream.of(includedEntry), product.getPrice()));
             assertThat(statistics).allSatisfy(s -> assertThat(s.getStartDate()).isEqualTo(LocalDate.now()));
         }
 

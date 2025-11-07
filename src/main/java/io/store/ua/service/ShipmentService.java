@@ -1,10 +1,13 @@
 package io.store.ua.service;
 
 import io.store.ua.entity.Shipment;
+import io.store.ua.enums.ShipmentDirection;
+import io.store.ua.enums.ShipmentStatus;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ShipmentDTO;
 import io.store.ua.repository.ShipmentRepository;
+import io.store.ua.utility.CodeGenerator;
 import io.store.ua.validations.FieldValidator;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -39,26 +42,26 @@ public class ShipmentService {
     }
 
     public Shipment save(@NotNull(message = "Shipment can't be null") ShipmentDTO shipmentDTO) {
-        if (ObjectUtils.allNull(shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())) {
-            throw new BusinessException("Recipient code and address can't be null at the same time, unknown where to send shipment");
-        }
-
-        if (ObjectUtils.allNotNull(shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())) {
-            throw new BusinessException("Recipient code and address can't be not null at the same time, unknown where to send shipment");
+        if (ObjectUtils.allNull(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())) {
+            throw new BusinessException("Sender, recipient code and address can't be null at the same time, unknown where to or where from to send shipment");
         }
 
         Shipment.ShipmentBuilder shipmentBuilder = Shipment.builder();
-
+        shipmentBuilder.code(CodeGenerator.ShipmentCodeGenerator.generate());
         shipmentBuilder.initiatorId(RegularUserService.getCurrentlyAuthenticatedUserID());
 
-        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
+        if (StringUtils.isNoneBlank(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode())) {
+            fieldValidator.validate(shipmentDTO, true, ShipmentDTO.Fields.senderCode, ShipmentDTO.Fields.recipientCode);
 
-        if (shipmentDTO.getSenderCode().equals(shipmentDTO.getRecipientCode())) {
-            throw new BusinessException("Sender and recipient can't be the same");
+            if (shipmentDTO.getSenderCode().equals(shipmentDTO.getRecipientCode())) {
+                throw new BusinessException("Sender and recipient can't be the same");
+            }
         }
 
-        var warehouseSender = warehouseService.findByCode(shipmentDTO.getSenderCode());
-        shipmentBuilder.warehouseIdSender(warehouseSender.getId());
+        if (shipmentDTO.getSenderCode() != null) {
+            fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
+            shipmentBuilder.warehouseIdSender(warehouseService.findByCode(shipmentDTO.getSenderCode()).getId());
+        }
 
         if (shipmentDTO.getRecipientCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.recipientCode, true);
@@ -78,48 +81,72 @@ public class ShipmentService {
 
         if (!StringUtils.isBlank(shipmentDTO.getStatus())) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.status, true);
-            var shipmentStatus = Arrays.stream(Shipment.ShipmentStatus.values())
+            var shipmentStatus = Arrays.stream(ShipmentStatus.values())
                     .filter(status -> status.name().equalsIgnoreCase(shipmentDTO.getStatus()))
                     .findAny()
                     .orElseThrow(() -> new BusinessException("Invalid shipment status"));
             shipmentBuilder.status(shipmentStatus);
         } else {
-            shipmentBuilder.status(Shipment.ShipmentStatus.INITIATED);
+            shipmentBuilder.status(ShipmentStatus.PLANNED);
         }
+
+        if (ObjectUtils.allNotNull(shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())
+                || ObjectUtils.allNotNull(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode()) && shipmentDTO.getSenderCode().equals(shipmentDTO.getRecipientCode())) {
+            throw new BusinessException("Incorrect shipment locations, sender and recipient can't be the same and only one of recipient or address can be set");
+        }
+
+        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.shipmentDirection, true);
+        var shipmentDirection = Arrays.stream(ShipmentDirection.values())
+                .filter(status -> status.name().equalsIgnoreCase(shipmentDTO.getShipmentDirection()))
+                .findAny()
+                .orElseThrow(() -> new BusinessException("Invalid shipment direction"));
+
+        if (shipmentDirection == ShipmentDirection.INCOMING && shipmentDTO.getRecipientCode() == null) {
+            throw new BusinessException("Recipient code is required for incoming shipment");
+        } else if (shipmentDirection == ShipmentDirection.OUTCOMING
+                && (shipmentDTO.getSenderCode() == null || (shipmentDTO.getRecipientCode() == null && shipmentDTO.getAddress() == null))) {
+            throw new BusinessException("Sender code and recipient code or address are required for outgoing shipment");
+        }
+
+        shipmentBuilder.shipmentDirection(shipmentDirection);
 
         return shipmentRepository.save(shipmentBuilder.build());
     }
 
     public Shipment update(@NotNull(message = "Shipment can't be null") ShipmentDTO shipmentDTO) {
-        if (ObjectUtils.allNotNull(shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())) {
-            throw new BusinessException("Recipient code and address can't be not null at the same time, unknown where to send shipment");
-        }
-
         fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.id, true);
         Shipment entity = shipmentRepository.findById(shipmentDTO.getId())
-                .orElseThrow(() -> new BusinessException("Shipment with ID '%s' was not found".formatted(shipmentDTO.getId())));
+                .orElseThrow(() -> new NotFoundException("Shipment with ID '%s' was not found".formatted(shipmentDTO.getId())));
 
-
-        if (ObjectUtils.allNotNull(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode())
-                && shipmentDTO.getSenderCode().equals(shipmentDTO.getRecipientCode())) {
-            throw new BusinessException("Sender and recipient can't be the same");
+        if (StringUtils.isNoneBlank(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode())) {
+            fieldValidator.validate(shipmentDTO, true, ShipmentDTO.Fields.senderCode, ShipmentDTO.Fields.recipientCode);
+            if (shipmentDTO.getSenderCode().equals(shipmentDTO.getRecipientCode())) {
+                throw new BusinessException("Sender and recipient can't be the same");
+            }
         }
 
-        if (StringUtils.isNotBlank(shipmentDTO.getSenderCode())) {
+        var actualSender = entity.getWarehouseIdSender();
+        var actualRecipient = entity.getWarehouseIdRecipient();
+        var actualAddress = entity.getAddress();
+
+        if (shipmentDTO.getSenderCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
             var warehouseSender = warehouseService.findByCode(shipmentDTO.getSenderCode());
             entity.setWarehouseIdSender(warehouseSender.getId());
+            actualSender = warehouseSender.getId();
         }
 
         if (shipmentDTO.getRecipientCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.recipientCode, true);
             var warehouseRecipient = warehouseService.findByCode(shipmentDTO.getRecipientCode());
             entity.setWarehouseIdRecipient(warehouseRecipient.getId());
+            actualRecipient = warehouseRecipient.getId();
         }
 
         if (shipmentDTO.getAddress() != null) {
             fieldValidator.validateObject(shipmentDTO, ShipmentDTO.Fields.address, true);
             entity.setAddress(shipmentDTO.getAddress());
+            actualAddress = shipmentDTO.getAddress();
         }
 
         if (shipmentDTO.getStockItemId() != null) {
@@ -133,11 +160,39 @@ public class ShipmentService {
         }
 
         if (!StringUtils.isBlank(shipmentDTO.getStatus())) {
-            var shipmentStatus = Arrays.stream(Shipment.ShipmentStatus.values())
+            fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.status, true);
+            var shipmentStatus = Arrays.stream(ShipmentStatus.values())
                     .filter(status -> status.name().equalsIgnoreCase(shipmentDTO.getStatus()))
                     .findAny()
                     .orElseThrow(() -> new BusinessException("Invalid shipment status"));
+
+            if (!ShipmentStatus.canTransitionTo(entity.getStatus(), shipmentStatus)) {
+                throw new BusinessException("Can't transition shipment from '%s' to '%s'".formatted(entity.getStatus(), shipmentStatus));
+            }
+
             entity.setStatus(shipmentStatus);
+        }
+
+        if (ObjectUtils.allNotNull(actualRecipient, actualAddress)
+                || ObjectUtils.allNotNull(actualSender, actualRecipient) && actualSender.equals(actualRecipient)) {
+            throw new BusinessException("Incorrect shipment locations, sender and recipient can't be the same and only one of recipient or address can be set");
+        }
+
+        if (!StringUtils.isBlank(shipmentDTO.getShipmentDirection())) {
+            fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.shipmentDirection, true);
+            var shipmentDirection = Arrays.stream(ShipmentDirection.values())
+                    .filter(status -> status.name().equalsIgnoreCase(shipmentDTO.getShipmentDirection()))
+                    .findAny()
+                    .orElseThrow(() -> new BusinessException("Invalid shipment direction"));
+
+            if (shipmentDirection == ShipmentDirection.INCOMING && actualRecipient == null) {
+                throw new BusinessException("Recipient code is required for incoming shipment");
+            } else if (shipmentDirection == ShipmentDirection.OUTCOMING
+                    && (actualSender == null || (actualRecipient == null && actualAddress == null))) {
+                throw new BusinessException("Sender code and recipient code or address are required for outgoing shipment");
+            }
+
+            entity.setShipmentDirection(shipmentDirection);
         }
 
         return shipmentRepository.save(entity);

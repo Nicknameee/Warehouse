@@ -41,6 +41,12 @@ public class CodeGenerator {
         }
     }
 
+    public static class ShipmentCodeGenerator {
+        public static String generate() {
+            return "SH-%s-%s".formatted(LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")), randomStringUtils.nextAlphanumeric(15).toUpperCase());
+        }
+    }
+
     public static class WarehouseCodeGenerator {
         private static final String HASH_ALGORITHM = "SHA-256";
 

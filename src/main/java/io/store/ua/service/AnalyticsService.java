@@ -40,8 +40,7 @@ public class AnalyticsService {
         Expression<BigInteger> zero = criteriaBuilder.literal(BigInteger.ZERO);
 
         Path<Long> itemIdPath = root.get(StockItemHistory.Fields.stockItemId);
-        Expression<LocalDate> startDate = criteriaBuilder.function("DATE", LocalDate.class,
-                root.get(StockItemHistory.Fields.createdAt));
+        Expression<LocalDate> startDate = criteriaBuilder.function("DATE", LocalDate.class, root.get(StockItemHistory.Fields.createdAt));
 
         List<Predicate> predicates = new ArrayList<>();
 
@@ -60,15 +59,20 @@ public class AnalyticsService {
         predicates.add(criteriaBuilder.greaterThan(root.get(StockItemHistory.Fields.quantityBefore),
                 root.get(StockItemHistory.Fields.quantityAfter)));
 
-        Expression<BigInteger> sold = criteriaBuilder.<BigInteger>selectCase()
+        Expression<BigInteger> quantity = criteriaBuilder.<BigInteger>selectCase()
                 .when(criteriaBuilder.greaterThan(delta, zero), delta)
                 .otherwise(zero);
+
+        Path<BigInteger> currentProductPrice = root.get(StockItemHistory.Fields.currentProductPrice);
+
+        Expression<BigInteger> revenue = criteriaBuilder.prod(currentProductPrice, quantity);
 
         criteriaQuery.select(criteriaBuilder.construct(
                         ItemSellingStatistic.class,
                         itemIdPath,
                         startDate,
-                        criteriaBuilder.sum(sold)
+                        criteriaBuilder.sum(quantity),
+                        criteriaBuilder.sum(revenue)
                 ))
                 .where(predicates.toArray(Predicate[]::new))
                 .groupBy(itemIdPath, startDate)
@@ -79,5 +83,4 @@ public class AnalyticsService {
                 .setFirstResult((page - 1) * pageSize)
                 .getResultList();
     }
-
 }

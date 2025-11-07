@@ -15,5 +15,6 @@ import java.time.LocalDate;
 public class ItemSellingStatistic {
     private Long stockItemId;
     private LocalDate startDate;
-    private BigInteger soldAmount;
+    private BigInteger soldQuantity;
+    private BigInteger totalRevenueAmount;
 }

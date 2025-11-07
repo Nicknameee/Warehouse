@@ -1,5 +1,6 @@
 package io.store.ua.service;
 
+import io.store.ua.entity.StockItem;
 import io.store.ua.entity.immutable.StockItemHistory;
 import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.NotFoundException;
@@ -88,12 +89,14 @@ public class StockItemHistoryService {
 
     public StockItemHistory save(@NotNull StockItemHistoryDTO stockItemHistoryDTO) {
         fieldValidator.validate(stockItemHistoryDTO, StockItemHistoryDTO.Fields.stockItemId, true);
-        if (!stockItemRepository.existsById(stockItemHistoryDTO.getStockItemId())) {
-            throw new NotFoundException("Stock item with ID '%s' was not found".formatted(stockItemHistoryDTO.getStockItemId()));
-        }
+
+        StockItem stockItem = stockItemRepository.findById(stockItemHistoryDTO.getStockItemId())
+                .orElseThrow(() -> new NotFoundException("Stock item with ID '%s' was not found"
+                        .formatted(stockItemHistoryDTO.getStockItemId())));
 
         StockItemHistory.StockItemHistoryBuilder stockItemHistoryBuilder = StockItemHistory.builder();
         stockItemHistoryBuilder.stockItemId(stockItemHistoryDTO.getStockItemId());
+        stockItemHistoryBuilder.currentProductPrice(stockItem.getProduct().getPrice());
 
         if (stockItemHistoryDTO.getOldWarehouseId() != null && stockItemHistoryDTO.getNewWarehouseId() != null) {
             fieldValidator.validate(stockItemHistoryDTO, true, StockItemHistoryDTO.Fields.oldWarehouseId, StockItemHistoryDTO.Fields.newWarehouseId);

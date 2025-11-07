@@ -29,4 +29,6 @@ public class ShipmentDTO {
     private Long stockItemQuantity;
     @NotBlank(message = "Status can't be blank")
     private String status;
+    @NotNull(message = "Shipment direction can't be null")
+    private String shipmentDirection;
 }

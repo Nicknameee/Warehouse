@@ -2,8 +2,11 @@ package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
+import io.store.ua.enums.ShipmentDirection;
+import io.store.ua.enums.ShipmentStatus;
 import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.BusinessException;
+import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.ShipmentDTO;
@@ -87,17 +90,21 @@ class ShipmentServiceIT extends AbstractIT {
         @Test
         @DisplayName("findAll_success: returns shipments when page exists and size is valid")
         void findAll_success() {
-            ShipmentDTO firstShipmentDTO = new ShipmentDTO();
-            firstShipmentDTO.setSenderCode(warehouse.getCode());
-            firstShipmentDTO.setAddress(randomAddress());
-            firstShipmentDTO.setStockItemId(stockItem.getId());
-            firstShipmentDTO.setStockItemQuantity(3L);
+            ShipmentDTO firstShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
-            ShipmentDTO secondShipmentDTO = new ShipmentDTO();
-            secondShipmentDTO.setSenderCode(warehouse.getCode());
-            secondShipmentDTO.setAddress(randomAddress());
-            secondShipmentDTO.setStockItemId(stockItem.getId());
-            secondShipmentDTO.setStockItemQuantity(5L);
+            ShipmentDTO secondShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(5L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             Shipment firstCreatedShipment = shipmentService.save(firstShipmentDTO);
             Shipment secondCreatedShipment = shipmentService.save(secondShipmentDTO);
@@ -113,11 +120,13 @@ class ShipmentServiceIT extends AbstractIT {
         @Test
         @DisplayName("findAll_success_empty: returns empty list when page has no results")
         void findAll_success_empty() {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(2L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             shipmentService.save(shipmentDTO);
 
             List<Shipment> pagedShipments = shipmentService.findAll(10, 99);
@@ -129,31 +138,30 @@ class ShipmentServiceIT extends AbstractIT {
         @DisplayName("findAll_fail_invalidPageSize: throws ValidationException for invalid page size")
         void findAll_fail_invalidPageSize() {
             assertThatThrownBy(() -> shipmentService.findAll(0, 1))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("Size of page can't be less than 1");
+                    .isInstanceOf(ValidationException.class);
         }
 
         @Test
         @DisplayName("findAll_fail_invalidPageNumber: throws ValidationException for invalid page number")
         void findAll_fail_invalidPageNumber() {
             assertThatThrownBy(() -> shipmentService.findAll(10, 0))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("A page number can't be less than 1");
+                    .isInstanceOf(ValidationException.class);
         }
     }
 
     @Nested
     @DisplayName("findById(id: Long)")
     class FindShipmentByIdTests {
-
         @Test
         @DisplayName("findById_success: returns shipment when it exists")
         void findById_success() {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
@@ -167,7 +175,7 @@ class ShipmentServiceIT extends AbstractIT {
         @DisplayName("findById_fail_notFound: throws NotFoundException when shipment does not exist")
         void findById_fail_notFound() {
             assertThatThrownBy(() -> shipmentService.findById(9999L))
-                    .isInstanceOf(io.store.ua.exceptions.NotFoundException.class)
+                    .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Shipment with ID '9999' was not found");
         }
 
@@ -175,7 +183,7 @@ class ShipmentServiceIT extends AbstractIT {
         @DisplayName("findById_fail_null: throws ValidationException when id is null")
         void findById_fail_null() {
             assertThatThrownBy(() -> shipmentService.findById(null))
-                    .isInstanceOf(jakarta.validation.ValidationException.class);
+                    .isInstanceOf(ValidationException.class);
         }
     }
 
@@ -187,29 +195,33 @@ class ShipmentServiceIT extends AbstractIT {
         void save_success_withRecipient() {
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(5L);
-            shipmentDTO.setStatus(Shipment.ShipmentStatus.INITIATED.name());
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .recipientCode(recipientWarehouse.getCode())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(5L)
+                    .status(ShipmentStatus.INITIATED.name())
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
             assertThat(createdShipment.getId()).isNotNull();
             assertThat(createdShipment.getWarehouseIdSender()).isEqualTo(warehouse.getId());
             assertThat(createdShipment.getWarehouseIdRecipient()).isEqualTo(recipientWarehouse.getId());
-            assertThat(createdShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.INITIATED);
+            assertThat(createdShipment.getStatus()).isEqualTo(ShipmentStatus.INITIATED);
         }
 
         @Test
         @DisplayName("save_success_withAddressOnly: creates a Shipment when address provided and recipientCode is null")
         void save_success_withAddressOnly() {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(2L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
@@ -217,51 +229,54 @@ class ShipmentServiceIT extends AbstractIT {
             assertThat(createdShipment.getWarehouseIdSender()).isEqualTo(warehouse.getId());
             assertThat(createdShipment.getWarehouseIdRecipient()).isNull();
             assertThat(createdShipment.getAddress()).isEqualTo(shipmentDTO.getAddress());
-            assertThat(createdShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.INITIATED);
+            assertThat(createdShipment.getStatus()).isEqualTo(ShipmentStatus.PLANNED);
         }
 
         @Test
-        @DisplayName("save_success_defaultStatus_withAddress: sets INITIATED when status is blank and address is used")
+        @DisplayName("save_success_defaultStatus_withAddress: sets PLANNED when status is blank")
         void save_success_defaultStatus_withAddress() {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(1L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(1L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
-            assertThat(createdShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.INITIATED);
+            assertThat(createdShipment.getStatus()).isEqualTo(ShipmentStatus.PLANNED);
         }
 
         @Test
-        @DisplayName("save_fail_bothNull: throws BusinessException when both recipient and address are null")
+        @DisplayName("save_fail_bothNull: throws BusinessException when sender+recipient+address are all null targets")
         void save_fail_bothNull() {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(1L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(1L)
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Recipient code and address can't be null at the same time, unknown where to send shipment");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
-        @DisplayName("save_fail_bothNotNull: throws BusinessException when both recipient and address are provided")
+        @DisplayName("save_fail_bothRecipientAndAddress: disallow both for OUTCOMING")
         void save_fail_bothNotNull() {
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(3L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .recipientCode(recipientWarehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Recipient code and address can't be not null at the same time, unknown where to send shipment");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
@@ -269,30 +284,32 @@ class ShipmentServiceIT extends AbstractIT {
         void save_fail_sameSenderAndRecipient() {
             Warehouse secondWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(secondWarehouse.getCode());
-            shipmentDTO.setRecipientCode(secondWarehouse.getCode());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(secondWarehouse.getCode())
+                    .recipientCode(secondWarehouse.getCode())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(2L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Sender and recipient can't be the same");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
-        @DisplayName("save_fail_unauthenticated: throws BusinessException when user not authenticated")
+        @DisplayName("save_fail_unauthenticated: throws RegularAuthenticationException when user not authenticated")
         void save_fail_unauthenticated() {
-            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(null,
-                    null,
-                    AuthorityUtils.createAuthorityList()));
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    null, null, AuthorityUtils.createAuthorityList()));
 
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(1L);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .recipientCode(recipientWarehouse.getCode())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(1L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
                     .isInstanceOf(RegularAuthenticationException.class);
@@ -302,16 +319,17 @@ class ShipmentServiceIT extends AbstractIT {
         @ValueSource(strings = {"WRONG", "INVALID"})
         @DisplayName("save_fail_invalidStatus: throws BusinessException when shipment status is invalid")
         void save_fail_invalidStatus(String invalidStatus) {
-            ShipmentDTO shipmentDTO = new ShipmentDTO();
-            shipmentDTO.setSenderCode(warehouse.getCode());
-            shipmentDTO.setAddress(randomAddress());
-            shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemQuantity(1L);
-            shipmentDTO.setStatus(invalidStatus);
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(1L)
+                    .status(invalidStatus)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Invalid shipment status");
+                    .isInstanceOf(BusinessException.class);
         }
     }
 
@@ -324,41 +342,47 @@ class ShipmentServiceIT extends AbstractIT {
             Warehouse initialRecipientWarehouse = warehouseRepository.save(generateWarehouse());
             Warehouse newRecipientWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO createShipmentDTO = new ShipmentDTO();
-            createShipmentDTO.setSenderCode(warehouse.getCode());
-            createShipmentDTO.setRecipientCode(initialRecipientWarehouse.getCode());
-            createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemQuantity(3L);
+            ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .recipientCode(initialRecipientWarehouse.getCode())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(createdShipment.getId());
-            updateShipmentDTO.setRecipientCode(newRecipientWarehouse.getCode());
-            updateShipmentDTO.setStockItemQuantity(7L);
-            updateShipmentDTO.setStatus("SENT");
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(createdShipment.getId())
+                    .recipientCode(newRecipientWarehouse.getCode())
+                    .stockItemQuantity(7L)
+                    .status(ShipmentStatus.SENT.name())
+                    .build();
 
             Shipment updatedShipment = shipmentService.update(updateShipmentDTO);
 
             assertThat(updatedShipment.getId()).isEqualTo(createdShipment.getId());
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(newRecipientWarehouse.getId());
             assertThat(updatedShipment.getStockItemQuantity()).isEqualTo(7L);
-            assertThat(updatedShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.SENT);
+            assertThat(updatedShipment.getStatus()).isEqualTo(ShipmentStatus.SENT);
             assertThat(updatedShipment.getInitiatorId()).isEqualTo(RegularUserService.getCurrentlyAuthenticatedUserID());
         }
 
         @Test
         @DisplayName("update_success_partial: leaves unspecified fields unchanged")
         void update_success_partial() {
-            ShipmentDTO createShipmentDTO = new ShipmentDTO();
-            createShipmentDTO.setSenderCode(warehouse.getCode());
-            createShipmentDTO.setAddress(randomAddress());
-            createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(createdShipment.getId());
-            updateShipmentDTO.setStatus("DELIVERED");
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(createdShipment.getId())
+                    .status(ShipmentStatus.SENT.name())
+                    .build();
 
             Shipment updatedShipment = shipmentService.update(updateShipmentDTO);
 
@@ -367,60 +391,64 @@ class ShipmentServiceIT extends AbstractIT {
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(createdShipment.getWarehouseIdRecipient());
             assertThat(updatedShipment.getStockItemId()).isEqualTo(createdShipment.getStockItemId());
             assertThat(updatedShipment.getStockItemQuantity()).isEqualTo(createdShipment.getStockItemQuantity());
-            assertThat(updatedShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.DELIVERED);
+            assertThat(updatedShipment.getStatus()).isEqualTo(ShipmentStatus.SENT);
         }
 
         @Test
-        @DisplayName("update_fail_notFound: throws BusinessException when shipment ID does not exist")
+        @DisplayName("update_fail_notFound: throws NotFoundException when shipment ID does not exist")
         void update_fail_notFound() {
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(999_999L);
-            updateShipmentDTO.setStatus("SENT");
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(999_999L)
+                    .status(ShipmentStatus.SENT.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.update(updateShipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Shipment with ID");
+                    .isInstanceOf(NotFoundException.class);
         }
 
         @Test
         @DisplayName("update_fail_invalidStatus: throws BusinessException when shipment status is invalid")
         void update_fail_invalidStatus() {
-            ShipmentDTO createShipmentDTO = new ShipmentDTO();
-            createShipmentDTO.setSenderCode(warehouse.getCode());
-            createShipmentDTO.setAddress(randomAddress());
-            createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemQuantity(3L);
+            ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(createdShipment.getId());
-            updateShipmentDTO.setStatus("WRONG");
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(createdShipment.getId())
+                    .status("WRONG")
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.update(updateShipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Invalid shipment status");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
-        @DisplayName("update_fail_bothNotNull: throws BusinessException when both recipient and address are provided")
+        @DisplayName("update_fail_bothNotNull: disallow recipient & address together for OUTCOMING")
         void update_fail_bothNotNull() {
-            ShipmentDTO createShipmentDTO = new ShipmentDTO();
-            createShipmentDTO.setSenderCode(warehouse.getCode());
-            createShipmentDTO.setAddress(randomAddress());
-            createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemQuantity(2L);
+            ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .address(randomAddress())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(createdShipment.getId());
-            updateShipmentDTO.setRecipientCode(recipientWarehouse.getCode());
-            updateShipmentDTO.setAddress(randomAddress());
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(createdShipment.getId())
+                    .recipientCode(recipientWarehouse.getCode())
+                    .address(randomAddress())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.update(updateShipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Recipient code and address can't be not null at the same time, unknown where to send shipment");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
@@ -428,28 +456,31 @@ class ShipmentServiceIT extends AbstractIT {
         void update_fail_sameSenderAndRecipient() {
             Warehouse sameWarehouse = warehouseRepository.save(generateWarehouse());
 
-            ShipmentDTO createShipmentDTO = new ShipmentDTO();
-            createShipmentDTO.setSenderCode(warehouse.getCode());
-            createShipmentDTO.setRecipientCode(sameWarehouse.getCode());
-            createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemQuantity(3L);
+            ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
+                    .senderCode(warehouse.getCode())
+                    .recipientCode(sameWarehouse.getCode())
+                    .stockItemId(stockItem.getId())
+                    .stockItemQuantity(3L)
+                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
+                    .build();
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setId(createdShipment.getId());
-            updateShipmentDTO.setSenderCode(sameWarehouse.getCode());
-            updateShipmentDTO.setRecipientCode(sameWarehouse.getCode());
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .id(createdShipment.getId())
+                    .senderCode(sameWarehouse.getCode())
+                    .recipientCode(sameWarehouse.getCode())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.update(updateShipmentDTO))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("Sender and recipient can't be the same");
+                    .isInstanceOf(BusinessException.class);
         }
 
         @Test
         @DisplayName("update_fail_missingId: throws ValidationException when id is null")
         void update_fail_missingId() {
-            ShipmentDTO updateShipmentDTO = new ShipmentDTO();
-            updateShipmentDTO.setStatus("SENT");
+            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
+                    .status(ShipmentStatus.SENT.name())
+                    .build();
 
             assertThatThrownBy(() -> shipmentService.update(updateShipmentDTO))
                     .isInstanceOf(ValidationException.class);

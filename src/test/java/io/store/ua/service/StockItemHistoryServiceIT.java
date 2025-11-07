@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -53,7 +52,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
     class SaveTests {
         @Test
         @DisplayName("save_success_warehouseChange")
-        @Transactional
         void save_success_warehouseChange() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
@@ -70,7 +68,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("save_success_availableChange")
-        @Transactional
         void save_success_availableChange() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
@@ -86,7 +83,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("save_success_expirationChange")
-        @Transactional
         void save_success_expirationChange() {
             LocalDate oldDate = LocalDate.now().plusDays(1);
             LocalDate newDate = LocalDate.now().plusDays(30);
@@ -105,7 +101,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("save_success_statusChange")
-        @Transactional
         void save_success_statusChange() {
             StockItemHistoryDTO dto = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
@@ -121,7 +116,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("save_success_activityChange")
-        @Transactional
         void save_success_activityChange() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
@@ -137,7 +131,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("save_success_onlyRequired")
-        @Transactional
         void save_success_onlyRequired() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
@@ -179,11 +172,18 @@ class StockItemHistoryServiceIT extends AbstractIT {
     class FindByTests {
         @Test
         @DisplayName("findBy_success_filter")
-        @Transactional
         void findBy_success_filter() {
-            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder().stockItemId(stockItem.getId()).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).build(),
-                    StockItemHistory.builder().stockItemId(createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId()).getId()).build()
+            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build(),
+                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId()).getId())
+                            .currentProductPrice(product.getPrice())
+                            .build()
             ));
 
             List<StockItemHistory> result = stockItemHistoryService.findBy(stockItem.getId(), null, null, 10, 1);
@@ -193,13 +193,24 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("findBy_success_pagination")
-        @Transactional
         void findBy_success_pagination() {
             stockItemHistoryRepository.saveAll(List.of(
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).build()
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .build()
             ));
 
             List<StockItemHistory> page = stockItemHistoryService.findBy(stockItem.getId(), null, null, 3, 1);
@@ -212,9 +223,11 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("findBy_success_allWhenNull")
-        @Transactional
         void findBy_success_allWhenNull() {
-            var history = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder().stockItemId(stockItem.getId()).build()));
+            var history = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+                    .stockItemId(stockItem.getId())
+                    .currentProductPrice(product.getPrice())
+                    .build()));
 
             List<StockItemHistory> result = stockItemHistoryService.findBy(null, null, null, 5, 1);
 
@@ -223,17 +236,26 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
         @Test
         @DisplayName("findBy_success_dateRange")
-        @Transactional
         void findBy_success_dateRange() {
             LocalDate d1 = LocalDate.now().plusDays(5);
             LocalDate d2 = LocalDate.now().plusDays(10);
             LocalDate d3 = LocalDate.now().plusDays(20);
 
-            stockItemHistoryRepository.saveAll(List.of(
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).oldExpiration(d1).newExpiration(d2).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).oldExpiration(d2).newExpiration(d3).build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId()).oldExpiration(d3).newExpiration(d3).build()
-            ));
+            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder().stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(d1)
+                            .newExpiration(d2)
+                            .build(),
+                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(d2)
+                            .newExpiration(d3)
+                            .build(),
+                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(d3)
+                            .newExpiration(d3)
+                            .build()));
 
             LocalDateTime from = d2.atStartOfDay();
             LocalDateTime to = d3.atTime(23, 59);
