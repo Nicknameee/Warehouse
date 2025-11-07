@@ -12,6 +12,7 @@ import io.store.ua.models.api.external.response.DTPaymentResponse;
 import io.store.ua.models.data.CheckoutFinancialInformation;
 import io.store.ua.models.data.ExternalReferences;
 import io.store.ua.service.CurrencyRateService;
+import io.store.ua.service.FinancialAPIService;
 import io.store.ua.utility.CodeGenerator;
 import io.store.ua.utility.HttpRequestService;
 import io.store.ua.utility.RegularObjectMapper;
@@ -71,13 +72,13 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
     )
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES, initialDelay = 0)
     public void healthCheck() {
-        httpRequestService.fetchAsync(
-                        new Request.Builder()
-                                .addHeader(HttpHeaders.AUTHORIZATION, getAuthorizationHeader(Constants.TokenType.BASIC))
-                                .url(healthCheckUrl)
-                                .get()
-                                .build()
-                ).orTimeout(10, TimeUnit.SECONDS)
+        httpRequestService.queryAsync(new Request.Builder()
+                        .addHeader(HttpHeaders.AUTHORIZATION, getAuthorizationHeader(Constants.TokenType.BASIC))
+                        .url(healthCheckUrl)
+                        .get()
+                        .build()
+                )
+                .orTimeout(10, TimeUnit.SECONDS)
                 .thenApply(ignore -> {
                     IS_HEALTHY.set(true);
                     return null;
@@ -206,7 +207,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                     .autoSettle(autoSettle)
                     .build();
 
-            Response response = httpRequestService.fetchAsync(new Request.Builder()
+            Response response = httpRequestService.queryAsync(new Request.Builder()
                             .addHeader(HttpHeaders.AUTHORIZATION, getAuthorizationHeader(Constants.TokenType.BASIC))
                             .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .addHeader(Constants.Headers.IDEMPOTENCY_KEY, "initialisePayment_%s".formatted(reference))
@@ -249,7 +250,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                     .card(new DTPaymentInitiationRequest.Card())
                     .build();
 
-            Response response = httpRequestService.fetchAsync(new Request.Builder()
+            Response response = httpRequestService.queryAsync(new Request.Builder()
                             .addHeader(HttpHeaders.AUTHORIZATION, getAuthorizationHeader(Constants.TokenType.BASIC))
                             .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .addHeader(Constants.Headers.IDEMPOTENCY_KEY, "authorizePayment_%s".formatted(reference))
@@ -292,7 +293,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                     .transactionReference(reference)
                     .build();
 
-            httpRequestService.fetchAsync(new Request.Builder()
+            httpRequestService.queryAsync(new Request.Builder()
                             .addHeader(HttpHeaders.AUTHORIZATION, getAuthorizationHeader(Constants.TokenType.BASIC))
                             .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .addHeader(Constants.Headers.IDEMPOTENCY_KEY, "settlePayment_%s".formatted(reference))

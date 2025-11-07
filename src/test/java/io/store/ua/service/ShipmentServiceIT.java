@@ -2,15 +2,11 @@ package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.models.data.Address;
-import io.store.ua.models.data.WorkingHours;
 import io.store.ua.models.dto.ShipmentDTO;
-import io.store.ua.models.dto.WarehouseDTO;
-import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -27,9 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,18 +34,17 @@ class ShipmentServiceIT extends AbstractIT {
     private ShipmentService shipmentService;
 
     private Warehouse warehouse;
-    private RegularUser user;
     private StockItem stockItem;
 
     @BeforeEach
     void setUp() {
-        StockItemGroup stockItemGroup = stockItemGroupRepository.save(StockItemGroup.builder()
+        var stockItemGroup = stockItemGroupRepository.save(StockItemGroup.builder()
                 .code(RandomStringUtils.secure().nextAlphanumeric(20))
                 .name(RandomStringUtils.secure().nextAlphabetic(16))
                 .isActive(true)
                 .build());
 
-        Product product = productRepository.save(Product.builder()
+        var product = productRepository.save(Product.builder()
                 .code(RandomStringUtils.secure().nextAlphanumeric(32))
                 .title(RandomStringUtils.secure().nextAlphabetic(12))
                 .description(RandomStringUtils.secure().nextAlphanumeric(48))
@@ -62,20 +55,6 @@ class ShipmentServiceIT extends AbstractIT {
                 .height(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
                 .build());
 
-        user = userRepository.save(RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(24))
-                .password(RandomStringUtils.secure().nextAlphanumeric(32))
-                .email(String.format(
-                        "%s@%s.%s",
-                        RandomStringUtils.secure().nextAlphabetic(8).toLowerCase(),
-                        RandomStringUtils.secure().nextAlphabetic(6).toLowerCase(),
-                        RandomStringUtils.secure().nextAlphabetic(3).toLowerCase()
-                ))
-                .role(Role.OWNER)
-                .status(Status.ACTIVE)
-                .timezone("UTC")
-                .build());
-
         warehouse = warehouseRepository.save(generateWarehouse());
 
         stockItem = stockItemRepository.save(StockItem.builder()
@@ -84,54 +63,9 @@ class ShipmentServiceIT extends AbstractIT {
                 .warehouseId(warehouse.getId())
                 .expiryDate(LocalDate.now().plusDays(RandomUtils.secure().randomInt(30, 365)))
                 .availableQuantity(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 500)))
-                .reservedQuantity(BigInteger.valueOf(RandomUtils.secure().randomInt(0, 100)))
-                .status(StockItem.Status.AVAILABLE)
+                .status(StockItemStatus.AVAILABLE)
                 .isActive(true)
                 .build());
-    }
-
-    private Warehouse generateWarehouse() {
-        WarehouseDTO warehouseDTO = WarehouseDTO.builder()
-                .name(RandomStringUtils.secure().nextAlphabetic(9))
-                .address(Address.builder()
-                        .country(RandomStringUtils.secure().nextAlphabetic(2).toUpperCase())
-                        .state(RandomStringUtils.secure().nextAlphabetic(8))
-                        .city(RandomStringUtils.secure().nextAlphabetic(8))
-                        .street(RandomStringUtils.secure().nextAlphabetic(10))
-                        .building(RandomStringUtils.secure().nextNumeric(3))
-                        .postalCode(RandomStringUtils.secure().nextNumeric(5))
-                        .latitude(new BigDecimal("50.4501"))
-                        .longitude(new BigDecimal("30.5234"))
-                        .build())
-                .workingHours(WorkingHours.builder()
-                        .timezone("UTC")
-                        .days(List.of(
-                                WorkingHours.DayHours.builder()
-                                        .day(DayOfWeek.MONDAY)
-                                        .open(List.of(
-                                                WorkingHours.TimeRange.builder()
-                                                        .from(LocalTime.of(9, 0))
-                                                        .to(LocalTime.of(18, 0))
-                                                        .build()
-                                        ))
-                                        .build()
-                        ))
-                        .build())
-                .phones(List.of("+" + RandomStringUtils.secure().nextNumeric(11)))
-                .isActive(true)
-                .build();
-
-        String generatedCode = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
-
-        return Warehouse.builder()
-                .code(generatedCode)
-                .name(warehouseDTO.getName())
-                .address(warehouseDTO.getAddress())
-                .workingHours(warehouseDTO.getWorkingHours())
-                .phones(warehouseDTO.getPhones())
-                .managerId(user.getId())
-                .isActive(Boolean.TRUE.equals(warehouseDTO.getIsActive()))
-                .build();
     }
 
     private Address randomAddress() {
@@ -157,13 +91,13 @@ class ShipmentServiceIT extends AbstractIT {
             firstShipmentDTO.setSenderCode(warehouse.getCode());
             firstShipmentDTO.setAddress(randomAddress());
             firstShipmentDTO.setStockItemId(stockItem.getId());
-            firstShipmentDTO.setStockItemAmount(3L);
+            firstShipmentDTO.setStockItemQuantity(3L);
 
             ShipmentDTO secondShipmentDTO = new ShipmentDTO();
             secondShipmentDTO.setSenderCode(warehouse.getCode());
             secondShipmentDTO.setAddress(randomAddress());
             secondShipmentDTO.setStockItemId(stockItem.getId());
-            secondShipmentDTO.setStockItemAmount(5L);
+            secondShipmentDTO.setStockItemQuantity(5L);
 
             Shipment firstCreatedShipment = shipmentService.save(firstShipmentDTO);
             Shipment secondCreatedShipment = shipmentService.save(secondShipmentDTO);
@@ -183,7 +117,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(2L);
+            shipmentDTO.setStockItemQuantity(2L);
             shipmentService.save(shipmentDTO);
 
             List<Shipment> pagedShipments = shipmentService.findAll(10, 99);
@@ -219,7 +153,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(2L);
+            shipmentDTO.setStockItemQuantity(2L);
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
@@ -257,7 +191,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(5L);
+            shipmentDTO.setStockItemQuantity(5L);
             shipmentDTO.setStatus(Shipment.ShipmentStatus.INITIATED.name());
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
@@ -275,7 +209,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(2L);
+            shipmentDTO.setStockItemQuantity(2L);
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
@@ -293,7 +227,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(1L);
+            shipmentDTO.setStockItemQuantity(1L);
 
             Shipment createdShipment = shipmentService.save(shipmentDTO);
 
@@ -306,7 +240,7 @@ class ShipmentServiceIT extends AbstractIT {
             ShipmentDTO shipmentDTO = new ShipmentDTO();
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(1L);
+            shipmentDTO.setStockItemQuantity(1L);
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
                     .isInstanceOf(BusinessException.class)
@@ -323,7 +257,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(3L);
+            shipmentDTO.setStockItemQuantity(3L);
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
                     .isInstanceOf(BusinessException.class)
@@ -339,7 +273,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(secondWarehouse.getCode());
             shipmentDTO.setRecipientCode(secondWarehouse.getCode());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(2L);
+            shipmentDTO.setStockItemQuantity(2L);
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
                     .isInstanceOf(BusinessException.class)
@@ -358,7 +292,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setRecipientCode(recipientWarehouse.getCode());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(1L);
+            shipmentDTO.setStockItemQuantity(1L);
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
                     .isInstanceOf(RegularAuthenticationException.class);
@@ -372,7 +306,7 @@ class ShipmentServiceIT extends AbstractIT {
             shipmentDTO.setSenderCode(warehouse.getCode());
             shipmentDTO.setAddress(randomAddress());
             shipmentDTO.setStockItemId(stockItem.getId());
-            shipmentDTO.setStockItemAmount(1L);
+            shipmentDTO.setStockItemQuantity(1L);
             shipmentDTO.setStatus(invalidStatus);
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
@@ -394,20 +328,20 @@ class ShipmentServiceIT extends AbstractIT {
             createShipmentDTO.setSenderCode(warehouse.getCode());
             createShipmentDTO.setRecipientCode(initialRecipientWarehouse.getCode());
             createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemAmount(3L);
+            createShipmentDTO.setStockItemQuantity(3L);
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             ShipmentDTO updateShipmentDTO = new ShipmentDTO();
             updateShipmentDTO.setId(createdShipment.getId());
             updateShipmentDTO.setRecipientCode(newRecipientWarehouse.getCode());
-            updateShipmentDTO.setStockItemAmount(7L);
+            updateShipmentDTO.setStockItemQuantity(7L);
             updateShipmentDTO.setStatus("SENT");
 
             Shipment updatedShipment = shipmentService.update(updateShipmentDTO);
 
             assertThat(updatedShipment.getId()).isEqualTo(createdShipment.getId());
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(newRecipientWarehouse.getId());
-            assertThat(updatedShipment.getStockItemAmount()).isEqualTo(7L);
+            assertThat(updatedShipment.getStockItemQuantity()).isEqualTo(7L);
             assertThat(updatedShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.SENT);
             assertThat(updatedShipment.getInitiatorId()).isEqualTo(RegularUserService.getCurrentlyAuthenticatedUserID());
         }
@@ -419,7 +353,7 @@ class ShipmentServiceIT extends AbstractIT {
             createShipmentDTO.setSenderCode(warehouse.getCode());
             createShipmentDTO.setAddress(randomAddress());
             createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemAmount(2L);
+            createShipmentDTO.setStockItemQuantity(2L);
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             ShipmentDTO updateShipmentDTO = new ShipmentDTO();
@@ -432,7 +366,7 @@ class ShipmentServiceIT extends AbstractIT {
             assertThat(updatedShipment.getWarehouseIdSender()).isEqualTo(createdShipment.getWarehouseIdSender());
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(createdShipment.getWarehouseIdRecipient());
             assertThat(updatedShipment.getStockItemId()).isEqualTo(createdShipment.getStockItemId());
-            assertThat(updatedShipment.getStockItemAmount()).isEqualTo(createdShipment.getStockItemAmount());
+            assertThat(updatedShipment.getStockItemQuantity()).isEqualTo(createdShipment.getStockItemQuantity());
             assertThat(updatedShipment.getStatus()).isEqualTo(Shipment.ShipmentStatus.DELIVERED);
         }
 
@@ -455,7 +389,7 @@ class ShipmentServiceIT extends AbstractIT {
             createShipmentDTO.setSenderCode(warehouse.getCode());
             createShipmentDTO.setAddress(randomAddress());
             createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemAmount(3L);
+            createShipmentDTO.setStockItemQuantity(3L);
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             ShipmentDTO updateShipmentDTO = new ShipmentDTO();
@@ -474,7 +408,7 @@ class ShipmentServiceIT extends AbstractIT {
             createShipmentDTO.setSenderCode(warehouse.getCode());
             createShipmentDTO.setAddress(randomAddress());
             createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemAmount(2L);
+            createShipmentDTO.setStockItemQuantity(2L);
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
@@ -498,7 +432,7 @@ class ShipmentServiceIT extends AbstractIT {
             createShipmentDTO.setSenderCode(warehouse.getCode());
             createShipmentDTO.setRecipientCode(sameWarehouse.getCode());
             createShipmentDTO.setStockItemId(stockItem.getId());
-            createShipmentDTO.setStockItemAmount(3L);
+            createShipmentDTO.setStockItemQuantity(3L);
             Shipment createdShipment = shipmentService.save(createShipmentDTO);
 
             ShipmentDTO updateShipmentDTO = new ShipmentDTO();

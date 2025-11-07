@@ -73,8 +73,8 @@ public class ShipmentService {
         fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemId, true);
         shipmentBuilder.stockItemId(shipmentDTO.getStockItemId());
 
-        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemAmount, true);
-        shipmentBuilder.stockItemAmount(shipmentDTO.getStockItemAmount());
+        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemQuantity, true);
+        shipmentBuilder.stockItemQuantity(shipmentDTO.getStockItemQuantity());
 
         if (!StringUtils.isBlank(shipmentDTO.getStatus())) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.status, true);
@@ -127,9 +127,9 @@ public class ShipmentService {
             entity.setStockItemId(shipmentDTO.getStockItemId());
         }
 
-        if (shipmentDTO.getStockItemAmount() != null) {
-            fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemAmount, true);
-            entity.setStockItemAmount(shipmentDTO.getStockItemAmount());
+        if (shipmentDTO.getStockItemQuantity() != null) {
+            fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemQuantity, true);
+            entity.setStockItemQuantity(shipmentDTO.getStockItemQuantity());
         }
 
         if (!StringUtils.isBlank(shipmentDTO.getStatus())) {

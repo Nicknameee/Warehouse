@@ -1,4 +1,4 @@
-CREATE TABLE stock_items
+CREATE TABLE IF NOT EXISTS stock_items
 (
     id                 BIGSERIAL PRIMARY KEY NOT NULL,
     product_id         BIGINT                NOT NULL REFERENCES products (id),
@@ -6,7 +6,8 @@ CREATE TABLE stock_items
     warehouse_id       BIGINT                NOT NULL REFERENCES warehouses (id),
     expiry_date        DATE,
     available_quantity BIGINT                NOT NULL DEFAULT 0 CHECK ( available_quantity >= 0 ),
-    reserved_quantity  BIGINT                NOT NULL DEFAULT 0 CHECK ( reserved_quantity >= 0 ),
     status             VARCHAR               NOT NULL,
-    is_active          BOOLEAN               NOT NULL
+    is_active          BOOLEAN               NOT NULL,
+    storage_section_id BIGINT REFERENCES storage_sections (id),
+    CONSTRAINT uniquity UNIQUE (product_id, warehouse_id)
 )

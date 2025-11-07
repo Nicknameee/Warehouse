@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -74,12 +75,20 @@ public class TagService {
                 .build()));
     }
 
-    public Tag changeState(@NotBlank(message = "Tag name can't be blank") String tagName,
-                           @NotNull(message = "New state can't be null") Boolean isActive) {
-        Tag tag = tagRepository.findByName(tagName)
-                .orElseThrow(() -> new NotFoundException("Tag with name '%s' was not found".formatted(tagName)));
+    public Tag update(@NotNull(message = "Tag ID can't be null")
+                      @Min(value = 1, message = "Tag ID can't be less than 1") Long tagId,
+                      String tagName,
+                      Boolean isActive) {
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag with ID '%s' was not found".formatted(tagId)));
 
-        tag.setIsActive(isActive);
+        if (!StringUtils.isBlank(tagName)) {
+            tag.setName(tagName);
+        }
+
+        if (isActive != null) {
+            tag.setIsActive(isActive);
+        }
 
         return tagRepository.save(tag);
     }

@@ -48,7 +48,7 @@ public class OpenExchangeRateAPIService implements ExternalAPIService {
                 .get()
                 .build();
 
-        var response = httpRequestService.fetchAsync(request)
+        var response = httpRequestService.queryAsync(request)
                 .orTimeout(15, TimeUnit.SECONDS)
                 .join();
 

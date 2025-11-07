@@ -25,8 +25,8 @@ public class ShipmentDTO {
     private Address address;
     @NotNull(message = "Stock item id can't be null")
     private Long stockItemId;
-    @NotNull(message = "Stock item amount can't be null")
-    private Long stockItemAmount;
+    @NotNull(message = "Stock item quantity can't be null")
+    private Long stockItemQuantity;
     @NotBlank(message = "Status can't be blank")
     private String status;
 }

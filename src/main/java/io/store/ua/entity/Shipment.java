@@ -30,8 +30,8 @@ public class Shipment {
     private Address address;
     @Column(name = "stock_item_id")
     private Long stockItemId;
-    @Column
-    private Long stockItemAmount;
+    @Column(name = "stock_item_quantity")
+    private Long stockItemQuantity;
     @Enumerated(EnumType.STRING)
     @Column
     private ShipmentStatus status;

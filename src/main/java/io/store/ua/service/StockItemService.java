@@ -2,6 +2,7 @@ package io.store.ua.service;
 
 import io.store.ua.entity.StockItem;
 import io.store.ua.entity.StockItemGroup;
+import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.StockItemDTO;
@@ -12,11 +13,13 @@ import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +41,7 @@ public class StockItemService {
                                   List<@NotNull(message = "Product ID can't be null") Long> productIDs,
                                   List<@NotNull(message = "Stock item group ID can't be null") Long> stockItemGroupIDs,
                                   List<@NotNull(message = "Status can't be null") String> statuses,
+                                  List<@NotNull(message = "Storage section ID can't be null") Long> storageSectionIDs,
                                   Boolean isItemActive,
                                   Boolean isItemGroupActive,
                                   @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
@@ -51,19 +55,26 @@ public class StockItemService {
         if (warehouseIDs != null && !warehouseIDs.isEmpty()) {
             predicates.add(root.get(StockItem.Fields.warehouseId).in(warehouseIDs));
         }
+
         if (productIDs != null && !productIDs.isEmpty()) {
             predicates.add(root.get(StockItem.Fields.productId).in(productIDs));
         }
+
         if (stockItemGroupIDs != null && !stockItemGroupIDs.isEmpty()) {
             predicates.add(root.get(StockItem.Fields.stockItemGroupId).in(stockItemGroupIDs));
         }
+
         if (statuses != null && !statuses.isEmpty()) {
             try {
                 predicates.add(root.get(StockItem.Fields.status).in(statuses.stream().map(status ->
-                        StockItem.Status.valueOf(status.toUpperCase())).toList()));
+                        StockItemStatus.valueOf(status.toUpperCase())).toList()));
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Invalid stock item status");
             }
+        }
+
+        if (storageSectionIDs != null && !storageSectionIDs.isEmpty()) {
+            predicates.add(root.get(StockItem.Fields.storageSectionId).in(storageSectionIDs));
         }
 
         if (isItemActive != null) {
@@ -99,8 +110,12 @@ public class StockItemService {
                 StockItem.Fields.productId,
                 StockItem.Fields.stockItemGroupId,
                 StockItem.Fields.warehouseId,
-                StockItem.Fields.availableQuantity,
-                StockItem.Fields.reservedQuantity);
+                StockItem.Fields.availableQuantity);
+        fieldValidator.validate(stockItemDTO, false,
+                StockItemDTO.Fields.expiryDate,
+                StockItemDTO.Fields.status,
+                StockItemDTO.Fields.isActive,
+                StockItemDTO.Fields.storageSectionId);
 
         return stockItemRepository.save(StockItem.builder()
                 .productId(stockItemDTO.getProductId())
@@ -108,9 +123,9 @@ public class StockItemService {
                 .warehouseId(stockItemDTO.getWarehouseId())
                 .expiryDate(stockItemDTO.getExpiryDate())
                 .availableQuantity(stockItemDTO.getAvailableQuantity())
-                .reservedQuantity(stockItemDTO.getReservedQuantity())
-                .status(determineStatus(stockItemDTO.getAvailableQuantity().longValue(), stockItemDTO.getReservedQuantity().longValue()))
+                .status(determineStatus(stockItemDTO.getAvailableQuantity(), stockItemDTO.getStatus()))
                 .isActive(stockItemDTO.getIsActive() == null || stockItemDTO.getIsActive())
+                .storageSectionId(stockItemDTO.getStorageSectionId())
                 .build());
     }
 
@@ -137,48 +152,34 @@ public class StockItemService {
         if (stockItemDTO.getAvailableQuantity() != null) {
             fieldValidator.validate(stockItemDTO, StockItemDTO.Fields.availableQuantity, true);
             current.setAvailableQuantity(stockItemDTO.getAvailableQuantity());
-
-        }
-
-        if (stockItemDTO.getReservedQuantity() != null) {
-            fieldValidator.validate(stockItemDTO, StockItemDTO.Fields.reservedQuantity, true);
-            current.setReservedQuantity(stockItemDTO.getReservedQuantity());
-        }
-
-        StockItem.Status requestedStatus = null;
-
-        if (stockItemDTO.getStatus() != null) {
-            fieldValidator.validate(stockItemDTO, StockItemDTO.Fields.status, true);
-            try {
-                requestedStatus = StockItem.Status.valueOf(stockItemDTO.getStatus().trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new BusinessException("Invalid stock item status");
-            }
         }
 
         if (stockItemDTO.getIsActive() != null) {
             current.setIsActive(stockItemDTO.getIsActive());
         }
 
-        if (requestedStatus == StockItem.Status.OUT_OF_SERVICE) {
-            current.setStatus(StockItem.Status.OUT_OF_SERVICE);
-        } else {
-            current.setStatus(determineStatus(
-                    current.getAvailableQuantity().longValue(),
-                    current.getReservedQuantity().longValue()
-            ));
+        if (stockItemDTO.getStorageSectionId() != null) {
+            current.setStorageSectionId(stockItemDTO.getStorageSectionId());
         }
+
+        if (stockItemDTO.getStatus() != null) {
+            fieldValidator.validate(stockItemDTO, true, StockItemDTO.Fields.status);
+        }
+
+        current.setStatus(determineStatus(current.getAvailableQuantity(), stockItemDTO.getStatus()));
 
         return stockItemRepository.save(current);
     }
 
-    private StockItem.Status determineStatus(long availableQuantity, long reservedQuantity) {
-        if (availableQuantity == 0 && reservedQuantity == 0) {
-            return StockItem.Status.OUT_OF_STOCK;
-        } else if (availableQuantity == 0) {
-            return StockItem.Status.RESERVED;
+    private StockItemStatus determineStatus(BigInteger availableQuantity, String status) {
+        if (!StringUtils.isBlank(status) && status.equalsIgnoreCase(StockItemStatus.OUT_OF_SERVICE.name())) {
+            return StockItemStatus.OUT_OF_SERVICE;
+        }
+
+        if (availableQuantity.compareTo(BigInteger.ZERO) == 0) {
+            return StockItemStatus.OUT_OF_STOCK;
         } else {
-            return StockItem.Status.AVAILABLE;
+            return StockItemStatus.AVAILABLE;
         }
     }
 }

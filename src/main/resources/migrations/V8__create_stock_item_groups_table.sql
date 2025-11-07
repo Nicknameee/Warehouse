@@ -1,4 +1,4 @@
-CREATE TABLE stock_item_groups
+CREATE TABLE IF NOT EXISTS stock_item_groups
 (
     id           BIGSERIAL PRIMARY KEY NOT NULL,
     code         VARCHAR UNIQUE        NOT NULL,

@@ -55,8 +55,7 @@ public class TransactionService {
                 allowed.append(v.name());
             }
 
-            throw new ValidationException("Invalid %s '%s'. Allowed values: [%s]".formatted(fieldName, value, allowed)
-            );
+            throw new ValidationException("Invalid %s '%s'. Allowed values: [%s]".formatted(fieldName, value, allowed));
         }
     }
 

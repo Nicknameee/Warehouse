@@ -17,11 +17,9 @@ import lombok.experimental.FieldNameConstants;
 @AllArgsConstructor
 @FieldNameConstants
 public class CheckoutFinancialInformation {
-    //LIQ_PAY
     private String checkoutUrl;
     private String signature;
     private String encodedContent;
-    //DATA_TRANS
     private String transactionId;
     private String reference;
     private PaymentProvider paymentProvider;

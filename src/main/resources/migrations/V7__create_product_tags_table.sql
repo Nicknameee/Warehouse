@@ -1,4 +1,4 @@
-CREATE TABLE product_tags
+CREATE TABLE IF NOT EXISTS product_tags
 (
     id         BIGSERIAL PRIMARY KEY NOT NULL,
     tag_id     BIGINT                NOT NULL REFERENCES tags (id),

@@ -33,10 +33,12 @@ public class StockItemDTO {
     @NotNull(message = "Available quantity can't be null")
     @Min(value = 0, message = "Available quantity must be >= 0")
     private BigInteger availableQuantity;
-    @NotNull(message = "Reserved quantity can't be null")
-    @Min(value = 0, message = "Reserved quantity must be >= 0")
-    private BigInteger reservedQuantity;
-    @Pattern(regexp = "OUT_OF_STOCK|AVAILABLE|RESERVED|OUT_OF_SERVICE", message = "Invalid status value")
+    @NotNull(message = "Status can't be null")
+    @Pattern(regexp = "OUT_OF_STOCK|AVAILABLE|OUT_OF_SERVICE", message = "Invalid status value")
     private String status;
+    @NotNull(message = "Is active can't be null")
     private Boolean isActive;
+    @NotNull(message = "Storage section ID can't be null")
+    @Min(value = 1, message = "Storage section ID must be >= 1")
+    private Long storageSectionId;
 }

@@ -1,9 +1,6 @@
 package io.store.ua.entity.immutable;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +21,9 @@ public class ProductTagLink {
     private Long productId;
     @Column(name = "tag_id", nullable = false)
     private Long tagId;
+
+    @PreUpdate
+    private void notSupported() {
+        throw new UnsupportedOperationException();
+    }
 }

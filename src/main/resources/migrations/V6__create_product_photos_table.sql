@@ -1,4 +1,4 @@
-CREATE TABLE product_photos
+CREATE TABLE IF NOT EXISTS product_photos
 (
     id                  BIGSERIAL PRIMARY KEY NOT NULL,
     product_id          BIGINT REFERENCES products (id),

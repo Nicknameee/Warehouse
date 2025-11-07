@@ -1,4 +1,4 @@
-package io.store.ua.service.external;
+package io.store.ua.service;
 
 import io.store.ua.entity.Transaction;
 import io.store.ua.enums.PaymentProvider;

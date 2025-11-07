@@ -9,7 +9,9 @@ import io.store.ua.validations.FieldValidator;
 import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -80,15 +82,25 @@ public class StockItemGroupService {
         }
     }
 
-    public StockItemGroup toggleState(@NotBlank(message = "Group code can not be blank") String code) {
+    public StockItemGroup update(@NotNull(message = "Group ID can't be null")
+                                 @Min(value = 1, message = "Group ID can't be less than 1")
+                                 Long groupId,
+                                 String groupName,
+                                 Boolean isActive) {
         StockItemGroup stockItemGroup =
                 stockItemGroupRepository
-                        .findByCode(code)
+                        .findById(groupId)
                         .orElseThrow(() ->
                                 new NotFoundException(
-                                        "Stock group with code: %s was not found".formatted(code)));
+                                        "Stock group with ID '%s' was not found".formatted(groupId)));
 
-        stockItemGroup.setIsActive(!stockItemGroup.getIsActive());
+        if (!StringUtils.isBlank(groupName)) {
+            stockItemGroup.setName(groupName);
+        }
+
+        if (isActive != null) {
+            stockItemGroup.setIsActive(isActive);
+        }
 
         return stockItemGroupRepository.save(stockItemGroup);
     }

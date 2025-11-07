@@ -16,7 +16,7 @@ import java.util.HexFormat;
 import java.util.StringJoiner;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class CodeGenerator {
+public class CodeGenerator {
     private static final RandomStringUtils randomStringUtils = RandomStringUtils.secure();
 
     public static String generate(int length) {
@@ -57,23 +57,15 @@ public final class CodeGenerator {
 
             return new StringJoiner("_")
                     .add(checkString(warehouseDto.getName()))
-                    .add(checkString(address.getBuilding()))
-                    .add(checkString(address.getStreet()))
                     .add(checkString(address.getCity()))
                     .add(checkString(address.getState()))
                     .add(checkString(address.getCountry()))
-                    .add(checkString(address.getPostalCode()))
-                    .add(checkString(address.getLatitude().toPlainString()))
-                    .add(checkString(address.getLongitude().toPlainString()))
                     .toString();
         }
 
         private static String sha256Hex(String input) {
             try {
-                MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
-                byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-
-                return HexFormat.of().formatHex(hash);
+                return HexFormat.of().formatHex(MessageDigest.getInstance(HASH_ALGORITHM).digest(input.getBytes(StandardCharsets.UTF_8)));
             } catch (Exception e) {
                 throw new IllegalStateException("%s unavailable".formatted(HASH_ALGORITHM), e);
             }

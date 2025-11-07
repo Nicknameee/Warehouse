@@ -11,10 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +22,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class StockItemGroupServiceIT extends AbstractIT {
     @Autowired
@@ -211,16 +209,19 @@ class StockItemGroupServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("toggleState(code: string)")
-    class ToggleStateTests {
+    @DisplayName("update(code: string)")
+    class UpdateTests {
         @Test
-        @DisplayName("toggleState_success: flips isActive and persists")
-        void toggleState_success() {
+        @DisplayName("update_success: flips isActive and persists")
+        void update_success() {
             StockItemGroup group = stockItemGroupRepository.save(generateGroups(1).getFirst());
 
-            StockItemGroup toggled = stockItemGroupService.toggleState(group.getCode());
+            String newName = RandomStringUtils.secure().nextAlphanumeric(33);
 
-            assertEquals(group.getIsActive(), !toggled.getIsActive());
+            StockItemGroup toggled = stockItemGroupService.update(group.getId(), newName, false);
+
+            assertEquals(toggled.getName(), newName);
+            assertFalse(toggled.getIsActive());
 
             StockItemGroup reloaded = stockItemGroupRepository.findByCode(group.getCode()).orElseThrow();
 
@@ -228,20 +229,17 @@ class StockItemGroupServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("toggleState_fail_whenNotFound: throws NotFoundException")
-        void toggleState_fail_whenNotFound() {
-            assertThatThrownBy(
-                    () ->
-                            stockItemGroupService.toggleState(
-                                    RandomStringUtils.secure().nextAlphanumeric(10)))
+        @DisplayName("update_fail_whenNotFound: throws NotFoundException")
+        void update_fail_whenNotFound() {
+            assertThatThrownBy(() -> stockItemGroupService.update(Long.MAX_VALUE, null, null))
                     .isInstanceOf(NotFoundException.class);
         }
 
-        @ParameterizedTest(name = "toggleState_fail_whenCodeIsInvalid: code=''{0}'' (string)")
-        @NullAndEmptySource
-        @ValueSource(strings = {" ", "\t"})
-        void toggleState_fail_whenCodeIsInvalid(String code) {
-            assertThatThrownBy(() -> stockItemGroupService.toggleState(code))
+        @ParameterizedTest(name = "update_fail_whenCodeIsInvalid: code=''{0}'' (string)")
+        @NullSource
+        @ValueSource(longs = {0, -1})
+        void update_fail_whenIdIsInvalid(Long id) {
+            assertThatThrownBy(() -> stockItemGroupService.update(id, null, null))
                     .isInstanceOf(ConstraintViolationException.class);
         }
     }

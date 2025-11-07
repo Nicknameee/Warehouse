@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class SqlResourceReader {
+public class SqlResourceReader {
     private static final DefaultResourceLoader RESOURCE_LOADER = new DefaultResourceLoader();
     private static final Map<String, String> CACHE = new ConcurrentHashMap<>();
 
@@ -25,24 +25,19 @@ public final class SqlResourceReader {
             throw new IllegalArgumentException("SQL resource name must not be blank");
         }
 
-        String path = "classpath:sql/" + name + ".sql";
+        return CACHE.computeIfAbsent("classpath:sql/%s.sql".formatted(name), file -> {
+            Resource resource = RESOURCE_LOADER.getResource(file);
 
-        return CACHE.computeIfAbsent(
-                path,
-                p -> {
-                    Resource resource = RESOURCE_LOADER.getResource(p);
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new IllegalArgumentException("SQL resource not found or unreadable: " + file);
+            }
 
-                    if (!resource.exists() || !resource.isReadable()) {
-                        throw new IllegalArgumentException("SQL resource not found or unreadable: " + p);
-                    }
-
-                    try (Reader inputStreamReader =
-                                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
-                        return FileCopyUtils.copyToString(inputStreamReader);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException("Failed to read SQL resource: " + p, e);
-                    }
-                });
+            try (Reader inputStreamReader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                return FileCopyUtils.copyToString(inputStreamReader);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to read SQL resource: " + file, e);
+            }
+        });
     }
 
     public static void clearCache() {

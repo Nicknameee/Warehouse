@@ -7,7 +7,6 @@ import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,25 +32,12 @@ import static org.mockito.Mockito.when;
 class ProductPhotoServiceIT extends AbstractIT {
     @Autowired
     private ProductPhotoService productPhotoService;
+
     private Product product;
 
     @BeforeEach
     void setUp() {
-        generateProduct();
-    }
-
-    private void generateProduct() {
-        product = productRepository.save(
-                Product.builder()
-                        .code(RandomStringUtils.secure().nextAlphanumeric(32))
-                        .title("Product " + RandomStringUtils.secure().nextAlphabetic(10))
-                        .description("Description for product " + RandomStringUtils.secure().nextAlphanumeric(20))
-                        .price(BigInteger.valueOf(RandomUtils.secure().randomLong(500, 50_000)))
-                        .weight(BigInteger.valueOf(RandomUtils.secure().randomLong(100, 5000)))
-                        .length(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
-                        .width(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
-                        .height(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
-                        .build());
+        product = createProduct();
     }
 
     private MockMultipartFile generateMockFile(String name, int size) {

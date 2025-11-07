@@ -1,4 +1,4 @@
-CREATE TABLE warehouses
+CREATE TABLE IF NOT EXISTS warehouses
 (
     id            BIGSERIAL PRIMARY KEY NOT NULL,
     code          VARCHAR UNIQUE        NOT NULL,

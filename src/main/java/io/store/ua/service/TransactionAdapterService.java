@@ -4,7 +4,6 @@ import io.store.ua.entity.Transaction;
 import io.store.ua.enums.PaymentProvider;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.CheckoutFinancialInformation;
-import io.store.ua.service.external.FinancialAPIService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;

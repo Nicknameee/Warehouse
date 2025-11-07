@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TagServiceIT extends AbstractIT {
     @Autowired
@@ -121,59 +123,68 @@ class TagServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("changeState(tagName: string, isActive: boolean)")
-    class ChangeStateTests {
+    @DisplayName("update(tagId: long, tagName: string, isActive: boolean)")
+    class UpdateTests {
         @Test
-        @DisplayName("changeState_success_true: sets isActive to true")
+        @DisplayName("update_success_true: sets isActive to true")
         @Transactional
-        void changeState_success_true() {
-            String tagName = RandomStringUtils.secure().nextAlphanumeric(10);
-            tagRepository.save(Tag.builder().name(tagName).isActive(false).build());
+        void update_success_isActiveTrue() {
+            String newName = RandomStringUtils.secure().nextAlphanumeric(10);
+            var tag = tagRepository.save(Tag.builder().name(RandomStringUtils.secure().nextAlphanumeric(10)).isActive(false).build());
 
-            Tag updated = tagService.changeState(tagName, true);
+            Tag updated = tagService.update(tag.getId(), newName, true);
 
             assertThat(updated.getIsActive()).isTrue();
-            assertThat(tagRepository.findByName(tagName)).isPresent().get()
+            assertThat(tagRepository.findById(tag.getId())).isPresent().get()
                     .extracting(Tag::getIsActive).isEqualTo(true);
+            assertThat(updated.getName()).isEqualTo(newName);
         }
 
         @Test
-        @DisplayName("changeState_success_false: sets isActive to false")
+        @DisplayName("update_success_false: sets isActive to false")
         @Transactional
-        void changeState_success_false() {
-            String tagName = RandomStringUtils.secure().nextAlphanumeric(10);
-            tagRepository.save(Tag.builder().name(tagName).isActive(true).build());
+        void update_success_isActiveFalse() {
+            var tag = tagRepository.save(Tag.builder().name(RandomStringUtils.secure().nextAlphanumeric(10)).isActive(true).build());
 
-            Tag updated = tagService.changeState(tagName, false);
+            Tag updated = tagService.update(tag.getId(), null, false);
 
+            var fetchResult = tagRepository.findById(tag.getId());
             assertThat(updated.getIsActive()).isFalse();
-            assertThat(tagRepository.findByName(tagName)).isPresent().get()
+            assertTrue(fetchResult.isPresent());
+            assertThat(fetchResult.get())
                     .extracting(Tag::getIsActive).isEqualTo(false);
+            assertThat(updated.getName()).isEqualTo(tag.getName());
         }
 
         @Test
-        @DisplayName("changeState_fail_whenTagWasNotFound: throws NotFoundException")
-        void changeState_fail_whenTagWasNotFound() {
-            assertThatThrownBy(() -> tagService.changeState(RandomStringUtils.secure().nextAlphanumeric(333), true))
+        @DisplayName("update_fail_whenTagWasNotFound: throws NotFoundException")
+        void update_fail_whenTagWasNotFound() {
+            assertThatThrownBy(() -> tagService.update(Long.MAX_VALUE, null, true))
                     .isInstanceOf(NotFoundException.class);
         }
 
-        @ParameterizedTest(name = "changeState_fail_whenTagNameIsInvalid: tagName=''{0}''")
-        @NullAndEmptySource
-        @ValueSource(strings = {" ", "\t"})
-        void changeState_fail_whenTagNameIsInvalid(String name) {
-            assertThatThrownBy(() -> tagService.changeState(name, true))
-                    .isInstanceOf(ConstraintViolationException.class);
+        @ParameterizedTest(name = "update_ignores_blankTagName: tagName=''{0}'' leaves name unchanged")
+        @ValueSource(strings = {"", " ", "\t", "\n"})
+        @Transactional
+        void update_ignores_blankTagName(String badName) {
+            var original = tagRepository.save(Tag.builder()
+                    .name(RandomStringUtils.secure().nextAlphanumeric(10))
+                    .isActive(true)
+                    .build());
+
+            Tag updated = tagService.update(original.getId(), badName, null);
+
+            assertThat(updated.getId()).isEqualTo(original.getId());
+            assertThat(updated.getName()).isEqualTo(original.getName());
+            assertThat(updated.getIsActive()).isEqualTo(original.getIsActive());
         }
 
-        @Test
-        @DisplayName("changeState_fail_whenNewStateIsNull: ConstraintViolationException")
-        void changeState_fail_whenNewStateIsNull() {
-            String tagName = RandomStringUtils.secure().nextAlphanumeric(10);
-            tagRepository.save(Tag.builder().name(tagName).isActive(true).build());
-
-            assertThatThrownBy(() -> tagService.changeState(tagName, null))
-                    .isInstanceOf(ConstraintViolationException.class);
+        @ParameterizedTest(name = "update_fail_whenTagIdIsInvalid: tagId={0}")
+        @NullSource
+        @ValueSource(longs = {0, -1})
+        void update_fail_whenTagIdIsInvalid(Long tagId) {
+            assertThatThrownBy(() -> tagService.update(tagId, null, null))
+                    .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
         }
     }
 

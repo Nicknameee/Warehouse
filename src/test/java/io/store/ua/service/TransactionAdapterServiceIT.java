@@ -112,7 +112,7 @@ class TransactionAdapterServiceIT extends AbstractIT {
 
             assertThrows(NotFoundException.class, () -> transactionAdapterService.initiateOutcomingPayment(transaction,
                     true,
-                    PaymentProvider.CASH));
+                    PaymentProvider.GOOGLE_PAY));
             verify(dataTransService, never()).initiateOutcomingPayment(any(), anyBoolean());
             verify(liqPayService, never()).initiateOutcomingPaymentAPICall(any());
         }

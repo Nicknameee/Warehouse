@@ -13,7 +13,6 @@ import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -37,60 +35,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WarehouseServiceIT extends AbstractIT {
     @Autowired
     private WarehouseService warehouseService;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
-    private RegularUser user;
-
-    @BeforeEach
-    void setUp() {
-        user = userRepository.save(RegularUser.builder()
-                .username(RandomStringUtils.secure().nextAlphanumeric(64))
-                .password(passwordEncoder.encode(RandomStringUtils.secure().nextAlphanumeric(64)))
-                .email(RandomStringUtils.secure().nextAlphanumeric(32))
-                .role(Role.OWNER)
-                .status(Status.ACTIVE)
-                .timezone("UTC")
-                .build());
-    }
-
-    private WarehouseDTO buildWarehouseDTO() {
-        Address address = Address.builder()
-                .country("UA")
-                .state("Kyiv")
-                .city("Kyiv")
-                .street("St." + RandomStringUtils.secure().nextAlphanumeric(5))
-                .building(RandomStringUtils.secure().nextNumeric(3))
-                .postalCode("01001")
-                .latitude(new BigDecimal("50.4501"))
-                .longitude(new BigDecimal("30.5234"))
-                .build();
-
-        WorkingHours workingHours = WorkingHours.builder()
-                .timezone("UTC")
-                .days(List.of(
-                        WorkingHours.DayHours.builder()
-                                .day(DayOfWeek.MONDAY)
-                                .open(List.of(
-                                        WorkingHours.TimeRange.builder()
-                                                .from(LocalTime.of(9, 0))
-                                                .to(LocalTime.of(18, 0))
-                                                .build()
-                                ))
-                                .build()
-                ))
-                .build();
-
-        return WarehouseDTO.builder()
-                .name(RandomStringUtils.secure().nextAlphanumeric(9))
-                .address(address)
-                .workingHours(workingHours)
-                .phones(List.of("+" + RandomStringUtils.secure().nextNumeric(11)))
-                .isActive(true)
-                .build();
-    }
-
-    private List<Warehouse> generateWarehouses(int count) {
+    protected List<Warehouse> generateWarehouses(int count) {
         return IntStream.rangeClosed(1, count)
                 .mapToObj(ignore -> {
                     WarehouseDTO warehouseDTO = buildWarehouseDTO();

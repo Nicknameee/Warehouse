@@ -1,0 +1,220 @@
+package io.store.ua.service;
+
+import io.store.ua.AbstractIT;
+import io.store.ua.entity.StorageSection;
+import io.store.ua.entity.Warehouse;
+import io.store.ua.exceptions.NotFoundException;
+import io.store.ua.exceptions.UniqueCheckException;
+import jakarta.validation.ConstraintViolationException;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.IntStream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class StorageSectionServiceIT extends AbstractIT {
+    @Autowired
+    private StorageSectionService storageSectionService;
+
+    private Warehouse warehouse;
+
+    @BeforeEach
+    void setUp() {
+        warehouse = generateWarehouse();
+    }
+
+    private List<StorageSection> generateSections(int count) {
+        return generateSections(warehouse.getId(), count);
+    }
+
+    private List<StorageSection> generateSections(long warehouseId, int count) {
+        return IntStream.rangeClosed(1, count)
+                .mapToObj(ignore -> StorageSection.builder()
+                        .warehouseId(warehouseId)
+                        .code(RandomStringUtils.secure().nextAlphanumeric(8))
+                        .build())
+                .toList();
+    }
+
+    @Nested
+    @DisplayName("save(warehouseId: long, code: string)")
+    class SaveTests {
+        @Test
+        @DisplayName("save_success: creates a new StorageSection when (warehouseId, code) is unique")
+        void save_success() {
+            long initialCount = storageSectionRepository.count();
+            String code = RandomStringUtils.secure().nextAlphanumeric(10);
+
+            StorageSection saved = storageSectionService.save(warehouse.getId(), code);
+
+            assertThat(saved.getId()).isNotNull();
+            assertThat(saved.getWarehouseId()).isEqualTo(warehouse.getId());
+            assertThat(saved.getCode()).isEqualTo(code);
+            assertThat(storageSectionRepository.count()).isEqualTo(initialCount + 1);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenDuplicateInSameWarehouse: throws UniqueCheckException")
+        void save_fail_duplicateSameWarehouse() {
+            String code = RandomStringUtils.secure().nextAlphanumeric(10);
+            storageSectionRepository.save(StorageSection.builder()
+                    .warehouseId(warehouse.getId())
+                    .code(code)
+                    .build());
+
+            assertThatThrownBy(() -> storageSectionService.save(warehouse.getId(), code))
+                    .isInstanceOf(UniqueCheckException.class);
+        }
+
+        @Test
+        @DisplayName("save_success_sameCodeDifferentWarehouse: allowed")
+        void save_success_sameCodeDifferentWarehouse() {
+            String code = RandomStringUtils.secure().nextAlphanumeric(10);
+            storageSectionRepository.save(StorageSection.builder().warehouseId(generateWarehouse().getId()).code(code).build());
+
+            StorageSection saved = storageSectionService.save(warehouse.getId(), code);
+
+            assertThat(saved.getId()).isNotNull();
+            assertThat(saved.getWarehouseId()).isEqualTo(warehouse.getId());
+            assertThat(saved.getCode()).isEqualTo(code);
+        }
+
+        @ParameterizedTest(name = "save_fail_whenWarehouseIdInvalid: warehouseId={0}")
+        @NullSource
+        @ValueSource(longs = {0, -1})
+        void save_fail_whenWarehouseIdInvalid(Long warehouseId) {
+            assertThatThrownBy(() -> storageSectionService.save(warehouseId, RandomStringUtils.secure().nextAlphanumeric(333)))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "save_fail_whenCodeInvalid: code=''{0}''")
+        @NullAndEmptySource
+        @ValueSource(strings = {" ", "\t", "\n"})
+        void save_fail_whenCodeInvalid(String code) {
+            assertThatThrownBy(() -> storageSectionService.save(1L, code))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("update(sectionId: long, newCode: string)")
+    class UpdateTests {
+        @Test
+        @DisplayName("update_success: changes code when new one is unique within the warehouse")
+        @Transactional
+        void update_success() {
+            var existing = storageSectionRepository.save(StorageSection.builder()
+                    .warehouseId(warehouse.getId())
+                    .code(RandomStringUtils.secure().nextAlphanumeric(8))
+                    .build());
+
+            String newCode = RandomStringUtils.secure().nextAlphanumeric(9);
+
+            StorageSection updated = storageSectionService.update(existing.getId(), newCode);
+
+            assertThat(updated.getCode()).isEqualTo(newCode);
+            assertThat(storageSectionRepository.findById(existing.getId()))
+                    .isPresent().get().extracting(StorageSection::getCode).isEqualTo(newCode);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenNotFound: throws NotFoundException")
+        void update_fail_whenNotFound() {
+            assertThatThrownBy(() -> storageSectionService.update(Long.MAX_VALUE, "X1"))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenDuplicateInSameWarehouse: throws UniqueCheckException")
+        void update_fail_duplicateSameWarehouse() {
+            var target = storageSectionRepository.save(StorageSection.builder()
+                    .warehouseId(warehouse.getId())
+                    .code("OLD_CODE")
+                    .build());
+            var conflict = storageSectionRepository.save(StorageSection.builder()
+                    .warehouseId(warehouse.getId())
+                    .code("USED")
+                    .build());
+
+            assertThat(conflict.getId()).isNotNull();
+
+            assertThatThrownBy(() -> storageSectionService.update(target.getId(), "USED"))
+                    .isInstanceOf(UniqueCheckException.class);
+        }
+
+        @ParameterizedTest(name = "update_fail_whenSectionIdInvalid: sectionId={0}")
+        @NullSource
+        @ValueSource(longs = {0, -1})
+        void update_fail_whenSectionIdInvalid(Long sectionId) {
+            assertThatThrownBy(() -> storageSectionService.update(sectionId, "C1"))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "update_fail_whenCodeInvalid: code=''{0}''")
+        @NullAndEmptySource
+        @ValueSource(strings = {" ", "\t", "\n"})
+        void update_fail_whenCodeInvalid(String code) {
+            assertThatThrownBy(() -> storageSectionService.update(1L, code))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("findBy(warehouseId: Long|null, pageSize: int, page: int)")
+    class FindByTests {
+        @ParameterizedTest(name = "findBy_success_specificWarehouse_paged: pageSize={0}, page={1}")
+        @CsvSource({"1,1", "2,1", "2,2"})
+        @Transactional
+        void findBy_success_specificWarehouse_paged(int pageSize, int page) {
+            storageSectionRepository.saveAll(generateSections(5));
+            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
+
+            var result = storageSectionService.findBy(warehouse.getId(), pageSize, page);
+
+            assertThat(result).hasSizeLessThanOrEqualTo(pageSize);
+            assertThat(result).allMatch(storageSection -> storageSection.getWarehouseId().equals(warehouse.getId()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_nullWarehouse_returnsAllPaginated")
+        @Transactional
+        void findBy_success_nullWarehouse_returnsAllPaginated() {
+            storageSectionRepository.saveAll(generateSections(3));
+            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
+
+            var firstBatch = storageSectionService.findBy(null, 3, 1);
+            var otherBatch = storageSectionService.findBy(null, 3, 2);
+
+            assertThat(firstBatch).hasSize(3);
+            assertThat(otherBatch).hasSize(3);
+            assertThat(firstBatch).doesNotContainAnyElementsOf(otherBatch);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageSizeInvalid: pageSize={0}")
+        @ValueSource(ints = {0, -1, -5})
+        void findBy_fail_whenPageSizeInvalid(int pageSize) {
+            assertThatThrownBy(() -> storageSectionService.findBy(null, pageSize, 1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageInvalid: page={0}")
+        @ValueSource(ints = {0, -1, -10})
+        void findBy_fail_whenPageInvalid(int page) {
+            assertThatThrownBy(() -> storageSectionService.findBy(null, 10, page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+}

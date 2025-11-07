@@ -16,6 +16,7 @@ import io.store.ua.models.data.CheckoutFinancialInformation;
 import io.store.ua.models.data.ExternalReferences;
 import io.store.ua.repository.BeneficiaryRepository;
 import io.store.ua.service.CurrencyRateService;
+import io.store.ua.service.FinancialAPIService;
 import io.store.ua.utility.CodeGenerator;
 import io.store.ua.utility.HttpRequestService;
 import io.store.ua.utility.RegularObjectMapper;
@@ -175,7 +176,9 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
                     .version(version)
                     .publicKey(publicKey)
                     .action(Constants.ACTION_PAY)
-                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
+                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(),
+                            Currency.UAH.name(),
+                            requestDTO.getAmount()).toEngineeringString())
                     .currency(requestDTO.getCurrency())
                     .description("Incoming payment for #%s".formatted(requestDTO.getOrderId()))
                     .orderId(requestDTO.getOrderId())
@@ -205,7 +208,8 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
 
         try {
             var beneficiary = beneficiaryRepository.findById(requestDTO.getBeneficiaryID())
-                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found".formatted(requestDTO.getBeneficiaryID())));
+                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found"
+                            .formatted(requestDTO.getBeneficiaryID())));
 
 
             if (isSandboxAPIState) {
@@ -219,7 +223,9 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
                     .version(version)
                     .publicKey(publicKey)
                     .action(Constants.ACTION_P2P_CREDIT)
-                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(), Currency.UAH.name(), requestDTO.getAmount()).toEngineeringString())
+                    .amount(currencyRateService.convertFromCentsToCurrencyUnit(requestDTO.getCurrency(),
+                            Currency.UAH.name(),
+                            requestDTO.getAmount()).toEngineeringString())
                     .currency(requestDTO.getCurrency())
                     .description("Payout for beneficiary #" + beneficiary.getCard())
                     .orderId(requestDTO.getOrderId())
@@ -228,7 +234,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
                     .build())
             );
 
-            try (var response = httpRequestService.fetchAsync(new Request.Builder()
+            try (var response = httpRequestService.queryAsync(new Request.Builder()
                             .url(apiUrl)
                             .post(new FormBody.Builder()
                                     .add(Constants.CONTENT, encoded)
@@ -256,7 +262,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
                     .orderId(orderId)
                     .build()));
 
-            try (var response = httpRequestService.fetchAsync(new Request.Builder()
+            try (var response = httpRequestService.queryAsync(new Request.Builder()
                             .url(apiUrl)
                             .post(new FormBody.Builder()
                                     .add(Constants.CONTENT, data)
