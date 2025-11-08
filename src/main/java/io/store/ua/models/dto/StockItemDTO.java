@@ -2,7 +2,6 @@ package io.store.ua.models.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +19,7 @@ import java.time.LocalDate;
 @FieldNameConstants
 public class StockItemDTO {
     @NotNull(message = "Stock item ID can't be null")
-    private Long id;
+    private Long stockItemId;
     @NotNull(message = "Product ID can't be null")
     private Long productId;
     @NotNull(message = "Stock item group ID can't be null")
@@ -33,12 +32,12 @@ public class StockItemDTO {
     @NotNull(message = "Available quantity can't be null")
     @Min(value = 0, message = "Available quantity must be >= 0")
     private BigInteger availableQuantity;
-    @NotNull(message = "Status can't be null")
-    @Pattern(regexp = "OUT_OF_STOCK|AVAILABLE|OUT_OF_SERVICE", message = "Invalid status value")
-    private String status;
     @NotNull(message = "Is active can't be null")
     private Boolean isActive;
     @NotNull(message = "Storage section ID can't be null")
     @Min(value = 1, message = "Storage section ID must be >= 1")
     private Long storageSectionId;
+    private boolean nullifyExpiration;
+    private boolean nullifySection;
+    private boolean switchOff;
 }

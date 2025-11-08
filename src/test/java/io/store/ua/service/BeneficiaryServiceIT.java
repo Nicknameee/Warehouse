@@ -49,38 +49,38 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("save_success: creates a new Beneficiary with provided bank details")
         @Transactional
         void save_success() {
-            var request = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(10))
                     .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
                     .build();
 
-            var result = beneficiaryService.save(request);
+            Beneficiary beneficiary = beneficiaryService.save(beneficiaryDTO);
 
-            assertThat(result.getId()).isNotNull();
-            assertThat(result.getName()).isEqualTo(request.getName());
-            assertThat(result.getIBAN()).isEqualTo(request.getIBAN());
-            assertThat(result.getSWIFT()).isNull();
-            assertThat(result.getCard()).isNull();
+            assertThat(beneficiary.getId()).isNotNull();
+            assertThat(beneficiary.getName()).isEqualTo(beneficiaryDTO.getName());
+            assertThat(beneficiary.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
+            assertThat(beneficiary.getSWIFT()).isNull();
+            assertThat(beneficiary.getCard()).isNull();
             assertThat(beneficiaryRepository.count()).isEqualTo(1);
         }
 
         @Test
         @DisplayName("save_fail_whenNoBankInfo: save fails when no financial information is present")
         void save_fail_whenNoBankInfo() {
-            var request = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(10))
                     .build();
 
-            assertThatThrownBy(() -> beneficiaryService.save(request))
-                    .isInstanceOf(jakarta.validation.ValidationException.class);
+            assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTO))
+                    .isInstanceOf(ValidationException.class);
         }
 
         @Test
         @DisplayName("save_fail_whenDuplicateIBANOrCard: save fails when card or IBAN information is already taken")
         @Transactional
         void save_fail_whenDuplicateIBANOrCard() {
-            var iban = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            var card = RandomStringUtils.secure().nextNumeric(16);
+            String iban = "UA" + RandomStringUtils.secure().nextNumeric(27);
+            String card = RandomStringUtils.secure().nextNumeric(16);
 
             beneficiaryRepository.save(Beneficiary.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(10))
@@ -89,18 +89,18 @@ class BeneficiaryServiceIT extends AbstractIT {
                     .isActive(true)
                     .build());
 
-            var duplicateIban = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTOWithWrongIban = BeneficiaryDTO.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(10))
                     .IBAN(iban)
                     .build();
-            var duplicateCard = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTOWithWrongCardNumber = BeneficiaryDTO.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(10))
                     .card(card)
                     .build();
 
-            assertThatThrownBy(() -> beneficiaryService.save(duplicateIban))
+            assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTOWithWrongIban))
                     .isInstanceOf(BusinessException.class);
-            assertThatThrownBy(() -> beneficiaryService.save(duplicateCard))
+            assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTOWithWrongCardNumber))
                     .isInstanceOf(BusinessException.class);
         }
 
@@ -121,10 +121,10 @@ class BeneficiaryServiceIT extends AbstractIT {
         void findAll_success(int pageSize, int page) {
             beneficiaryRepository.saveAll(generateBeneficiaries(pageSize * page));
 
-            var result = beneficiaryService.findAll(pageSize, page);
+            var beneficiaries = beneficiaryService.findAll(pageSize, page);
 
-            assertThat(result).hasSize(pageSize);
-            assertThat(result).allSatisfy(b -> assertThat(b.getId()).isNotNull());
+            assertThat(beneficiaries).hasSize(pageSize);
+            assertThat(beneficiaries).allSatisfy(b -> assertThat(b.getId()).isNotNull());
         }
 
         @ParameterizedTest
@@ -149,11 +149,18 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("findBy_success: filters correctly by prefixes")
         @Transactional
         void findBy_success() {
-            var ibanPrefix = "UA12" + RandomStringUtils.secure().nextNumeric(23);
-            var swiftPrefix = RandomStringUtils.secure().nextAlphabetic(4).toUpperCase();
-            var cardPrefix = RandomStringUtils.secure().nextNumeric(4);
+            String ibanPrefix = "UA12" + RandomStringUtils.secure().nextNumeric(23);
+            String swiftPrefix = RandomStringUtils.secure().nextAlphabetic(4).toUpperCase();
+            String cardPrefix = RandomStringUtils.secure().nextNumeric(4);
 
-            var firstTargetBeneficiary = Beneficiary.builder()
+            Beneficiary firstBeneficiary = Beneficiary.builder()
+                    .name(RandomStringUtils.secure().nextAlphabetic(8))
+                    .IBAN(ibanPrefix + RandomStringUtils.secure().nextNumeric(4))
+                    .SWIFT(swiftPrefix + RandomStringUtils.secure().nextAlphabetic(4).toUpperCase())
+                    .card(cardPrefix + RandomStringUtils.secure().nextNumeric(12))
+                    .isActive(true)
+                    .build();
+            Beneficiary otherBeneficiary = Beneficiary.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(8))
                     .IBAN(ibanPrefix + RandomStringUtils.secure().nextNumeric(4))
                     .SWIFT(swiftPrefix + RandomStringUtils.secure().nextAlphabetic(4).toUpperCase())
@@ -161,25 +168,22 @@ class BeneficiaryServiceIT extends AbstractIT {
                     .isActive(true)
                     .build();
 
-            var otherTargetBeneficiary = Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
-                    .IBAN(ibanPrefix + RandomStringUtils.secure().nextNumeric(4))
-                    .SWIFT(swiftPrefix + RandomStringUtils.secure().nextAlphabetic(4).toUpperCase())
-                    .card(cardPrefix + RandomStringUtils.secure().nextNumeric(12))
-                    .isActive(true)
-                    .build();
+            List<Beneficiary> beneficiaries = new ArrayList<>(generateBeneficiaries(5));
 
-            var beneficiaryPool = new ArrayList<>(generateBeneficiaries(5));
+            beneficiaries.add(firstBeneficiary);
+            beneficiaries.add(otherBeneficiary);
 
-            beneficiaryPool.add(firstTargetBeneficiary);
-            beneficiaryPool.add(otherTargetBeneficiary);
+            beneficiaryRepository.saveAll(beneficiaries);
 
-            beneficiaryRepository.saveAll(beneficiaryPool);
+            beneficiaries = beneficiaryService.findBy(ibanPrefix,
+                    swiftPrefix,
+                    cardPrefix,
+                    "",
+                    5,
+                    1);
 
-            var result = beneficiaryService.findBy(ibanPrefix, swiftPrefix, cardPrefix, "", 5, 1);
-
-            assertThat(result).isNotEmpty();
-            assertThat(result).allMatch(beneficiary -> beneficiary.getIBAN().startsWith(ibanPrefix)
+            assertThat(beneficiaries).isNotEmpty();
+            assertThat(beneficiaries).allMatch(beneficiary -> beneficiary.getIBAN().startsWith(ibanPrefix)
                     || beneficiary.getSWIFT().startsWith(swiftPrefix)
                     || beneficiary.getCard().startsWith(cardPrefix));
         }
@@ -192,7 +196,7 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("update_success: updates all fields when provided")
         @Transactional
         void update_success() {
-            var initialBeneficiaries = beneficiaryRepository.save(Beneficiary.builder()
+            Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(8))
                     .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
                     .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
@@ -200,26 +204,26 @@ class BeneficiaryServiceIT extends AbstractIT {
                     .isActive(true)
                     .build());
 
-            var beneficiaryDTO = BeneficiaryDTO.builder()
-                    .id(initialBeneficiaries.getId())
+            BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
+                    .id(beneficiary.getId())
                     .name(RandomStringUtils.secure().nextAlphabetic(8))
                     .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
                     .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
                     .card(RandomStringUtils.secure().nextNumeric(16))
                     .build();
 
-            var result = beneficiaryService.update(beneficiaryDTO);
+            beneficiary = beneficiaryService.update(beneficiaryDTO);
 
-            assertThat(result.getName()).isEqualTo(beneficiaryDTO.getName());
-            assertThat(result.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
-            assertThat(result.getSWIFT()).isEqualTo(beneficiaryDTO.getSWIFT());
-            assertThat(result.getCard()).isEqualTo(beneficiaryDTO.getCard());
+            assertThat(beneficiary.getName()).isEqualTo(beneficiaryDTO.getName());
+            assertThat(beneficiary.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
+            assertThat(beneficiary.getSWIFT()).isEqualTo(beneficiaryDTO.getSWIFT());
+            assertThat(beneficiary.getCard()).isEqualTo(beneficiaryDTO.getCard());
         }
 
         @Test
         @DisplayName("update_fail_whenMissingId: update fails when no beneficiary ID is present")
         void update_fail_whenMissingId() {
-            var beneficiaryDTO = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(909))
                     .build();
 
@@ -230,7 +234,7 @@ class BeneficiaryServiceIT extends AbstractIT {
         @Test
         @DisplayName("update_fail_whenNotFound: update fails when no beneficiary found by ID")
         void update_fail_whenNotFound() {
-            var beneficiaryDTO = BeneficiaryDTO.builder()
+            BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .id(RandomUtils.secure().randomLong(1, 100_000))
                     .name(RandomStringUtils.secure().nextAlphabetic(99))
                     .build();
@@ -243,12 +247,12 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("update_fail_whenDuplicateIBANOrCard: update fails when suggested new financial info already registered in the system")
         @Transactional
         void update_fail_whenDuplicateIBANOrCard() {
-            var initialIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            var initialCard = RandomStringUtils.secure().nextNumeric(16);
-            var newIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            var newCard = RandomStringUtils.secure().nextNumeric(16);
+            String initialIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
+            String initialCard = RandomStringUtils.secure().nextNumeric(16);
+            String newIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
+            String newCard = RandomStringUtils.secure().nextNumeric(16);
 
-            var initialBeneficiary = beneficiaryRepository.save(Beneficiary.builder()
+            Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
                     .name(RandomStringUtils.secure().nextAlphabetic(8))
                     .IBAN(initialIBAN)
                     .card(initialCard)
@@ -262,9 +266,15 @@ class BeneficiaryServiceIT extends AbstractIT {
                     .isActive(true)
                     .build());
 
-            assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder().id(initialBeneficiary.getId()).IBAN(newIBAN).build()))
+            assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder()
+                    .id(beneficiary.getId())
+                    .IBAN(newIBAN)
+                    .build()))
                     .isInstanceOf(BusinessException.class);
-            assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder().id(initialBeneficiary.getId()).card(newCard).build()))
+            assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder()
+                    .id(beneficiary.getId())
+                    .card(newCard)
+                    .build()))
                     .isInstanceOf(BusinessException.class);
         }
     }
@@ -276,15 +286,15 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("changeState_success: changes state to given flag for given beneficiaries by their ID")
         @Transactional
         void changeState_success() {
-            var initialBeneficiaryIDs = beneficiaryRepository.saveAll(generateBeneficiaries(3))
+            List<Long> beneficiaryIDs = beneficiaryRepository.saveAll(generateBeneficiaries(3))
                     .stream()
                     .map(Beneficiary::getId)
                     .toList();
 
-            var deactivated = beneficiaryService.changeState(initialBeneficiaryIDs, false);
+            var deactivated = beneficiaryService.changeState(beneficiaryIDs, false);
             assertThat(deactivated).allMatch(beneficiary -> Boolean.FALSE.equals(beneficiary.getIsActive()));
 
-            var reactivated = beneficiaryService.changeState(initialBeneficiaryIDs, true);
+            var reactivated = beneficiaryService.changeState(beneficiaryIDs, true);
             assertThat(reactivated).allMatch(beneficiary -> Boolean.TRUE.equals(beneficiary.getIsActive()));
         }
 

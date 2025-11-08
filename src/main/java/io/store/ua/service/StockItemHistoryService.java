@@ -89,7 +89,6 @@ public class StockItemHistoryService {
 
     public StockItemHistory save(@NotNull StockItemHistoryDTO stockItemHistoryDTO) {
         fieldValidator.validate(stockItemHistoryDTO, StockItemHistoryDTO.Fields.stockItemId, true);
-
         StockItem stockItem = stockItemRepository.findById(stockItemHistoryDTO.getStockItemId())
                 .orElseThrow(() -> new NotFoundException("Stock item with ID '%s' was not found"
                         .formatted(stockItemHistoryDTO.getStockItemId())));
@@ -97,6 +96,13 @@ public class StockItemHistoryService {
         StockItemHistory.StockItemHistoryBuilder stockItemHistoryBuilder = StockItemHistory.builder();
         stockItemHistoryBuilder.stockItemId(stockItemHistoryDTO.getStockItemId());
         stockItemHistoryBuilder.currentProductPrice(stockItem.getProduct().getPrice());
+
+        if (stockItemHistoryDTO.getOldStockItemGroupId() != null && stockItemHistoryDTO.getNewStockItemGroupId() != null) {
+            fieldValidator.validate(stockItemHistoryDTO, true, StockItemHistoryDTO.Fields.oldStockItemGroupId, StockItemHistoryDTO.Fields.newStockItemGroupId);
+            stockItemHistoryBuilder
+                    .oldGroupId(stockItemHistoryDTO.getOldStockItemGroupId())
+                    .newGroupId(stockItemHistoryDTO.getNewStockItemGroupId());
+        }
 
         if (stockItemHistoryDTO.getOldWarehouseId() != null && stockItemHistoryDTO.getNewWarehouseId() != null) {
             fieldValidator.validate(stockItemHistoryDTO, true, StockItemHistoryDTO.Fields.oldWarehouseId, StockItemHistoryDTO.Fields.newWarehouseId);
@@ -112,8 +118,8 @@ public class StockItemHistoryService {
                     .quantityAfter(stockItemHistoryDTO.getQuantityAfter());
         }
 
-        if (stockItemHistoryDTO.getOldExpiration() != null && stockItemHistoryDTO.getNewExpiration() != null) {
-            fieldValidator.validate(stockItemHistoryDTO, true, StockItemHistoryDTO.Fields.oldExpiration, StockItemHistoryDTO.Fields.newExpiration);
+        if (stockItemHistoryDTO.isChangeExpiration()) {
+            fieldValidator.validate(stockItemHistoryDTO, false, StockItemHistoryDTO.Fields.oldExpiration, StockItemHistoryDTO.Fields.newExpiration);
             stockItemHistoryBuilder
                     .oldExpiration(stockItemHistoryDTO.getOldExpiration())
                     .newExpiration(stockItemHistoryDTO.getNewExpiration());
@@ -124,6 +130,13 @@ public class StockItemHistoryService {
             stockItemHistoryBuilder
                     .oldStatus(parseEnumOrThrow(stockItemHistoryDTO.getOldStatus(), StockItemStatus.class, StockItemHistoryDTO.Fields.oldStatus))
                     .newStatus(parseEnumOrThrow(stockItemHistoryDTO.getNewStatus(), StockItemStatus.class, StockItemHistoryDTO.Fields.newStatus));
+        }
+
+        if (stockItemHistoryDTO.isChangeSection()) {
+            fieldValidator.validate(stockItemHistoryDTO, false, StockItemHistoryDTO.Fields.oldSectionId, StockItemHistoryDTO.Fields.newSectionId);
+            stockItemHistoryBuilder
+                    .oldSectionId(stockItemHistoryDTO.getOldSectionId())
+                    .newSectionId(stockItemHistoryDTO.getNewSectionId());
         }
 
         if (stockItemHistoryDTO.getOldActivity() != null && stockItemHistoryDTO.getNewActivity() != null) {

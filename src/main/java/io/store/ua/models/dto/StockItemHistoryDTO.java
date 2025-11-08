@@ -21,22 +21,38 @@ public class StockItemHistoryDTO {
     @NotNull(message = "Stock item history ID can't be null")
     @Min(value = 1, message = "Stock item history ID can't be less than 1")
     private Long stockItemId;
+    @NotNull(message = "Stock item group ID can't be null")
+    @Min(value = 1, message = "Stock item group ID can't be less than 1")
+    private Long oldStockItemGroupId;
+    @NotNull(message = "Stock item group ID can't be null")
+    @Min(value = 1, message = "Stock item group ID can't be less than 1")
+    private Long newStockItemGroupId;
+    @NotNull(message = "Warehouse ID can't be null")
     @Min(value = 1, message = "Warehouse ID can't be less than 1")
     private Long oldWarehouseId;
+    @NotNull(message = "Warehouse ID can't be null")
     @Min(value = 1, message = "Warehouse ID can't be less than 1")
     private Long newWarehouseId;
-    @Min(value = 1, message = "Quantity can't be less than 1")
+    @NotNull(message = "Quantity can't be null")
+    @Min(value = 0, message = "Quantity can't be less than 0")
     private BigInteger quantityBefore;
-    @Min(value = 1, message = "Quantity can't be less than 1")
+    @NotNull(message = "Quantity can't be null")
+    @Min(value = 0, message = "Quantity can't be less than 0")
     private BigInteger quantityAfter;
-    @NotNull(message = "Expiration can't be null")
     private LocalDate oldExpiration;
-    @NotNull(message = "Expiration can't be null")
     private LocalDate newExpiration;
     @NotBlank(message = "Status can't be blank")
     private String oldStatus;
     @NotBlank(message = "Status can't be blank")
     private String newStatus;
+    @Min(value = 1, message = "Section ID can't be less than 1")
+    private Long oldSectionId;
+    @Min(value = 1, message = "Section ID can't be less than 1")
+    private Long newSectionId;
+    @NotNull(message = "Is active can't be null")
     private Boolean oldActivity;
+    @NotNull(message = "Is active can't be null")
     private Boolean newActivity;
+    private boolean changeExpiration;
+    private boolean changeSection;
 }

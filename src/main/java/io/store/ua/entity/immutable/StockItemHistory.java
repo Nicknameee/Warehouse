@@ -34,6 +34,10 @@ public class StockItemHistory {
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+    @Column(name = "old_group_id")
+    private Long oldGroupId;
+    @Column(name = "new_group_id")
+    private Long newGroupId;
     @Column(name = "old_warehouse_id")
     private Long oldWarehouseId;
     @Column(name = "new_warehouse_id")
@@ -54,6 +58,10 @@ public class StockItemHistory {
     @Column(name = "new_status")
     @Enumerated(EnumType.STRING)
     private StockItemStatus newStatus;
+    @Column(name = "old_section_id")
+    private Long oldSectionId;
+    @Column(name = "new_section_id")
+    private Long newSectionId;
     @Column(name = "old_activity")
     private Boolean oldActivity;
     @Column(name = "new_activity")

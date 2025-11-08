@@ -9,7 +9,7 @@ public enum StockItemStatus {
      */
     OUT_OF_STOCK,
     /**
-     * Items available for reserve or shipment
+     * Items available for shipment
      */
     AVAILABLE,
     /**

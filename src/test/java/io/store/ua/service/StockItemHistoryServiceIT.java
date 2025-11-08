@@ -1,10 +1,7 @@
 package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
-import io.store.ua.entity.Product;
-import io.store.ua.entity.StockItem;
-import io.store.ua.entity.StockItemGroup;
-import io.store.ua.entity.Warehouse;
+import io.store.ua.entity.*;
 import io.store.ua.entity.immutable.StockItemHistory;
 import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.NotFoundException;
@@ -22,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,19 +28,25 @@ class StockItemHistoryServiceIT extends AbstractIT {
     @Autowired
     private StockItemHistoryService stockItemHistoryService;
 
-    private Warehouse initialWarehouse;
-    private Warehouse newWarehouse;
+    private Warehouse warehouseInitial;
+    private Warehouse warehouseNew;
+    private StorageSection sectionInitial;
+    private StorageSection sectionNew;
+    private StockItemGroup groupInitial;
+    private StockItemGroup groupNew;
     private StockItem stockItem;
     private Product product;
-    private StockItemGroup stockItemGroup;
 
     @BeforeEach
     void setUp() {
-        initialWarehouse = generateWarehouse();
-        newWarehouse = generateWarehouse();
-        product = createProduct();
-        stockItemGroup = createStockItemGroup();
-        stockItem = createStockItem(product.getId(), stockItemGroup.getId(), initialWarehouse.getId());
+        warehouseInitial = generateWarehouse();
+        warehouseNew = generateWarehouse();
+        sectionInitial = generateStorageSection(warehouseInitial.getId());
+        sectionNew = generateStorageSection(warehouseInitial.getId());
+        product = generateProduct();
+        groupInitial = generateStockItemGroup(true);
+        groupNew = generateStockItemGroup(true);
+        stockItem = generateStockItem(product.getId(), groupInitial.getId(), warehouseInitial.getId());
     }
 
     @Nested
@@ -55,15 +57,30 @@ class StockItemHistoryServiceIT extends AbstractIT {
         void save_success_warehouseChange() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
-                    .oldWarehouseId(initialWarehouse.getId())
-                    .newWarehouseId(newWarehouse.getId())
+                    .oldWarehouseId(warehouseInitial.getId())
+                    .newWarehouseId(warehouseNew.getId())
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(stockItemHistoryDTO);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getId()).isNotNull();
-            assertThat(result.getOldWarehouseId()).isEqualTo(initialWarehouse.getId());
-            assertThat(result.getNewWarehouseId()).isEqualTo(newWarehouse.getId());
+            assertThat(stockItemHistory.getId()).isNotNull();
+            assertThat(stockItemHistory.getOldWarehouseId()).isEqualTo(warehouseInitial.getId());
+            assertThat(stockItemHistory.getNewWarehouseId()).isEqualTo(warehouseNew.getId());
+        }
+
+        @Test
+        @DisplayName("save_success_groupChange")
+        void save_success_groupChange() {
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldStockItemGroupId(groupInitial.getId())
+                    .newStockItemGroupId(groupNew.getId())
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldGroupId()).isEqualTo(groupInitial.getId());
+            assertThat(stockItemHistory.getNewGroupId()).isEqualTo(groupNew.getId());
         }
 
         @Test
@@ -75,15 +92,52 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     .quantityAfter(BigInteger.valueOf(90))
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(stockItemHistoryDTO);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getQuantityBefore()).isEqualTo(BigInteger.valueOf(100));
-            assertThat(result.getQuantityAfter()).isEqualTo(BigInteger.valueOf(90));
+            assertThat(stockItemHistory.getQuantityBefore()).isEqualTo(BigInteger.valueOf(100));
+            assertThat(stockItemHistory.getQuantityAfter()).isEqualTo(BigInteger.valueOf(90));
         }
 
         @Test
-        @DisplayName("save_success_expirationChange")
-        void save_success_expirationChange() {
+        @DisplayName("save_success_expirationChange_withFlag")
+        void save_success_expirationChange_withFlag() {
+            LocalDate oldDate = LocalDate.now().plusDays(1);
+            LocalDate newDate = LocalDate.now().plusDays(30);
+
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldExpiration(oldDate)
+                    .newExpiration(newDate)
+                    .changeExpiration(true)
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldExpiration()).isEqualTo(oldDate);
+            assertThat(stockItemHistory.getNewExpiration()).isEqualTo(newDate);
+        }
+
+        @Test
+        @DisplayName("save_success_expirationNullify_withFlag")
+        void save_success_expirationNullify_withFlag() {
+            LocalDate localDate = LocalDate.now().plusDays(15);
+
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldExpiration(localDate)
+                    .newExpiration(null)
+                    .changeExpiration(true)
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldExpiration()).isEqualTo(localDate);
+            assertThat(stockItemHistory.getNewExpiration()).isNull();
+        }
+
+        @Test
+        @DisplayName("save_ignores_expiration_withoutFlag")
+        void save_ignores_expiration_withoutFlag() {
             LocalDate oldDate = LocalDate.now().plusDays(1);
             LocalDate newDate = LocalDate.now().plusDays(30);
 
@@ -93,25 +147,72 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     .newExpiration(newDate)
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(stockItemHistoryDTO);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getOldExpiration()).isEqualTo(oldDate);
-            assertThat(result.getNewExpiration()).isEqualTo(newDate);
+            assertThat(stockItemHistory.getOldExpiration()).isNull();
+            assertThat(stockItemHistory.getNewExpiration()).isNull();
+        }
+
+        @Test
+        @DisplayName("save_success_sectionChange_withFlag")
+        void save_success_sectionChange_withFlag() {
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldSectionId(sectionInitial.getId())
+                    .newSectionId(sectionNew.getId())
+                    .changeSection(true)
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldSectionId()).isEqualTo(sectionInitial.getId());
+            assertThat(stockItemHistory.getNewSectionId()).isEqualTo(sectionNew.getId());
+        }
+
+        @Test
+        @DisplayName("save_success_sectionNullify_withFlag")
+        void save_success_sectionNullify_withFlag() {
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldSectionId(sectionInitial.getId())
+                    .newSectionId(null)
+                    .changeSection(true)
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldSectionId()).isEqualTo(sectionInitial.getId());
+            assertThat(stockItemHistory.getNewSectionId()).isNull();
+        }
+
+        @Test
+        @DisplayName("save_ignores_section_withoutFlag")
+        void save_ignores_section_withoutFlag() {
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .oldSectionId(sectionInitial.getId())
+                    .newSectionId(sectionNew.getId())
+                    .build();
+
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
+
+            assertThat(stockItemHistory.getOldSectionId()).isNull();
+            assertThat(stockItemHistory.getNewSectionId()).isNull();
         }
 
         @Test
         @DisplayName("save_success_statusChange")
         void save_success_statusChange() {
-            StockItemHistoryDTO dto = StockItemHistoryDTO.builder()
+            StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
                     .stockItemId(stockItem.getId())
                     .oldStatus(StockItemStatus.AVAILABLE.name())
                     .newStatus(StockItemStatus.OUT_OF_STOCK.name())
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(dto);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getOldStatus()).isEqualTo(StockItemStatus.AVAILABLE);
-            assertThat(result.getNewStatus()).isEqualTo(StockItemStatus.OUT_OF_STOCK);
+            assertThat(stockItemHistory.getOldStatus()).isEqualTo(StockItemStatus.AVAILABLE);
+            assertThat(stockItemHistory.getNewStatus()).isEqualTo(StockItemStatus.OUT_OF_STOCK);
         }
 
         @Test
@@ -123,10 +224,10 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     .newActivity(false)
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(stockItemHistoryDTO);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getOldActivity()).isTrue();
-            assertThat(result.getNewActivity()).isFalse();
+            assertThat(stockItemHistory.getOldActivity()).isTrue();
+            assertThat(stockItemHistory.getNewActivity()).isFalse();
         }
 
         @Test
@@ -136,17 +237,17 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     .stockItemId(stockItem.getId())
                     .build();
 
-            StockItemHistory result = stockItemHistoryService.save(stockItemHistoryDTO);
+            StockItemHistory stockItemHistory = stockItemHistoryService.save(stockItemHistoryDTO);
 
-            assertThat(result.getId()).isNotNull();
-            assertThat(result.getStockItemId()).isEqualTo(stockItem.getId());
+            assertThat(stockItemHistory.getId()).isNotNull();
+            assertThat(stockItemHistory.getStockItemId()).isEqualTo(stockItem.getId());
         }
 
         @Test
         @DisplayName("save_fail_stockItemNotFound")
         void save_fail_stockItemNotFound() {
             StockItemHistoryDTO stockItemHistoryDTO = StockItemHistoryDTO.builder()
-                    .stockItemId(99999L)
+                    .stockItemId(Long.MAX_VALUE)
                     .build();
 
             assertThatThrownBy(() -> stockItemHistoryService.save(stockItemHistoryDTO))
@@ -168,25 +269,27 @@ class StockItemHistoryServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findBy(stockItemId: Long, pageSize: int, page: int)")
+    @DisplayName("findBy(stockItemId: Long, from: LocalDateTime, to: LocalDateTime, pageSize: int, page: int)")
     class FindByTests {
         @Test
         @DisplayName("findBy_success_filter")
         void findBy_success_filter() {
-            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+            stockItemHistoryRepository.saveAll(List.of(
+                    StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
                             .build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
                             .build(),
                     StockItemHistory.builder()
-                            .stockItemId(createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId()).getId())
+                            .stockItemId(generateStockItem(product.getId(), groupInitial.getId(), generateWarehouse().getId()).getId())
                             .currentProductPrice(product.getPrice())
                             .build()
             ));
 
-            List<StockItemHistory> result = stockItemHistoryService.findBy(stockItem.getId(), null, null, 10, 1);
+            var result = stockItemHistoryService.findBy(stockItem.getId(), null, null, 10, 1);
 
             assertThat(result).allMatch(stockItemHistory -> stockItemHistory.getStockItemId().equals(stockItem.getId()));
         }
@@ -213,59 +316,64 @@ class StockItemHistoryServiceIT extends AbstractIT {
                             .build()
             ));
 
-            List<StockItemHistory> page = stockItemHistoryService.findBy(stockItem.getId(), null, null, 3, 1);
-            List<StockItemHistory> histories = stockItemHistoryService.findBy(stockItem.getId(), null, null, 1, 4);
+            var page = stockItemHistoryService.findBy(stockItem.getId(), null, null, 3, 1);
+            var tail = stockItemHistoryService.findBy(stockItem.getId(), null, null, 1, 4);
 
             assertThat(page).hasSize(3);
-            assertThat(histories).hasSize(1);
-            assertThat(page).doesNotContainAnyElementsOf(histories);
+            assertThat(tail).hasSize(1);
+            assertThat(page).doesNotContainAnyElementsOf(tail);
         }
 
         @Test
         @DisplayName("findBy_success_allWhenNull")
         void findBy_success_allWhenNull() {
-            var history = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+            var saved = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
                     .stockItemId(stockItem.getId())
                     .currentProductPrice(product.getPrice())
                     .build()));
 
-            List<StockItemHistory> result = stockItemHistoryService.findBy(null, null, null, 5, 1);
+            var result = stockItemHistoryService.findBy(null, null, null, 5, 1);
 
-            assertThat(result).hasSize(history.size());
+            assertThat(result).hasSize(saved.size());
         }
 
         @Test
         @DisplayName("findBy_success_dateRange")
         void findBy_success_dateRange() {
-            LocalDate d1 = LocalDate.now().plusDays(5);
-            LocalDate d2 = LocalDate.now().plusDays(10);
-            LocalDate d3 = LocalDate.now().plusDays(20);
+            var future5Days = LocalDate.now().plusDays(5);
+            var future10Days = LocalDate.now().plusDays(10);
+            var future30Days = LocalDate.now().plusDays(30);
 
-            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder().stockItemId(stockItem.getId())
+            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
-                            .oldExpiration(d1)
-                            .newExpiration(d2)
+                            .oldExpiration(future5Days)
+                            .newExpiration(future10Days)
                             .build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
-                            .oldExpiration(d2)
-                            .newExpiration(d3)
+                            .oldExpiration(future10Days)
+                            .newExpiration(future30Days)
                             .build(),
-                    StockItemHistory.builder().stockItemId(stockItem.getId())
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
-                            .oldExpiration(d3)
-                            .newExpiration(d3)
-                            .build()));
+                            .oldExpiration(future30Days)
+                            .newExpiration(future30Days)
+                            .build()
+            ));
 
-            LocalDateTime from = d2.atStartOfDay();
-            LocalDateTime to = d3.atTime(23, 59);
+            var from = future10Days.atStartOfDay();
+            var to = future30Days.atTime(23, 59);
 
-            List<StockItemHistory> itemHistoryServiceBy = stockItemHistoryService.findBy(stockItem.getId(), from, to, 50, 1);
+            var result = stockItemHistoryService.findBy(stockItem.getId(), from, to, 50, 1);
 
-            assertThat(itemHistoryServiceBy).isNotEmpty();
-            assertThat(itemHistoryServiceBy).allMatch(h ->
-                    (h.getOldExpiration() == null || !h.getOldExpiration().isBefore(from.toLocalDate())) &&
-                            (h.getNewExpiration() == null || !h.getNewExpiration().isAfter(to.toLocalDate()))
+            assertThat(result)
+                    .isNotEmpty();
+            assertThat(result).allMatch(stockItemHistory ->
+                    (stockItemHistory.getOldExpiration() == null || !stockItemHistory.getOldExpiration().isBefore(from.toLocalDate())) &&
+                            (stockItemHistory.getNewExpiration() == null || !stockItemHistory.getNewExpiration().isAfter(to.toLocalDate()))
             );
         }
 

@@ -37,7 +37,7 @@ class ProductPhotoServiceIT extends AbstractIT {
 
     @BeforeEach
     void setUp() {
-        product = createProduct();
+        product = generateProduct();
     }
 
     private MockMultipartFile generateMockFile(String name, int size) {
@@ -79,28 +79,24 @@ class ProductPhotoServiceIT extends AbstractIT {
             String httpFront = secureFront.replace("https", "http");
             String httpBack = secureBack.replace("https", "http");
 
-            List<MultipartFile> files = List.of(
-                    generateMockFile("front.png", 1500),
-                    generateMockFile("back.png", 2000)
-            );
+            List<MultipartFile> files = List.of(generateMockFile("front.png", 1500), generateMockFile("back.png", 2000));
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
                     .thenReturn(CompletableFuture.completedFuture(List.of(
                             generateCloudinaryImageUploadResponse(publicFront, secureFront, httpFront),
-                            generateCloudinaryImageUploadResponse(publicBack, secureBack, httpBack)
-                    )));
+                            generateCloudinaryImageUploadResponse(publicBack, secureBack, httpBack))));
 
-            List<ProductPhoto> saved = productPhotoService.saveAll(product.getId(), files);
+            List<ProductPhoto> productPhotos = productPhotoService.saveAll(product.getId(), files);
 
             verify(cloudinaryAPIService).uploadAllImages(files);
-            assertThat(saved).hasSize(2);
+            assertThat(productPhotos).hasSize(2);
             assertThat(productPhotoRepository.count()).isEqualTo(2);
 
-            assertThat(saved).extracting(ProductPhoto::getProductId)
+            assertThat(productPhotos).extracting(ProductPhoto::getProductId)
                     .containsOnly(product.getId());
-            assertThat(saved).extracting(ProductPhoto::getExternalReference)
+            assertThat(productPhotos).extracting(ProductPhoto::getExternalReference)
                     .containsExactlyInAnyOrder(publicFront, publicBack);
-            assertThat(saved).extracting(ProductPhoto::getPhotoUrl)
+            assertThat(productPhotos).extracting(ProductPhoto::getPhotoUrl)
                     .containsExactlyInAnyOrder(secureFront, secureBack);
         }
 
@@ -114,13 +110,12 @@ class ProductPhotoServiceIT extends AbstractIT {
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
                     .thenReturn(CompletableFuture.completedFuture(List.of(
-                            generateCloudinaryImageUploadResponse(publicId, null, httpUrl)
-                    )));
+                            generateCloudinaryImageUploadResponse(publicId, null, httpUrl))));
 
-            List<ProductPhoto> saved = productPhotoService.saveAll(product.getId(), files);
+            List<ProductPhoto> productPhotos = productPhotoService.saveAll(product.getId(), files);
 
-            assertThat(saved).hasSize(1);
-            ProductPhoto photo = saved.getFirst();
+            assertThat(productPhotos).hasSize(1);
+            ProductPhoto photo = productPhotos.getFirst();
             assertThat(photo.getProductId()).isEqualTo(product.getId());
             assertThat(photo.getExternalReference()).isEqualTo(publicId);
             assertThat(photo.getPhotoUrl()).isEqualTo(httpUrl);
@@ -135,24 +130,20 @@ class ProductPhotoServiceIT extends AbstractIT {
 
             List<MultipartFile> files = List.of(generateMockTextFile("not-image.txt", "payload"));
 
-            when(cloudinaryAPIService.uploadAllImages(anyList()))
-                    .thenReturn(CompletableFuture.completedFuture(List.of(
-                            generateCloudinaryImageUploadResponse(publicId, secureUrl, url)
-                    )));
+            when(cloudinaryAPIService.uploadAllImages(anyList())).thenReturn(CompletableFuture
+                    .completedFuture(List.of(generateCloudinaryImageUploadResponse(publicId, secureUrl, url))));
 
-            List<ProductPhoto> saved = productPhotoService.saveAll(product.getId(), files);
+            List<ProductPhoto> productPhotos = productPhotoService.saveAll(product.getId(), files);
 
-            assertThat(saved).hasSize(1);
-            assertThat(saved.getFirst().getExternalReference()).isEqualTo(publicId);
-            assertThat(saved.getFirst().getPhotoUrl()).isEqualTo(secureUrl);
+            assertThat(productPhotos).hasSize(1);
+            assertThat(productPhotos.getFirst().getExternalReference()).isEqualTo(publicId);
+            assertThat(productPhotos.getFirst().getPhotoUrl()).isEqualTo(secureUrl);
         }
 
         @Test
         @DisplayName("saveAll_fail_whenPhotosListIsEmpty_throwsConstraintViolationException: throws ConstraintViolationException when photos list is empty")
         void saveAll_fail_whenPhotosListIsEmpty_throwsConstraintViolationException() {
-            List<MultipartFile> files = List.of();
-
-            assertThatThrownBy(() -> productPhotoService.saveAll(product.getId(), files))
+            assertThatThrownBy(() -> productPhotoService.saveAll(product.getId(), List.of()))
                     .isInstanceOf(ConstraintViolationException.class);
         }
 
@@ -179,7 +170,8 @@ class ProductPhotoServiceIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_fail_whenPhotoIsNull_throwsConstraintViolationException: throws ConstraintViolationException when a photo item is null")
         void saveAll_fail_whenPhotoIsNull_throwsConstraintViolationException() {
-            List<MultipartFile> files = new ArrayList<>(List.of(generateMockFile("ok.png", 300), generateMockFile("ok2.png", 400)));
+            List<MultipartFile> files = new ArrayList<>(List.of(generateMockFile("ok.png", 300),
+                    generateMockFile("ok2.png", 400)));
             files.add(null);
 
             assertThatThrownBy(() -> productPhotoService.saveAll(product.getId(), files))
@@ -189,7 +181,6 @@ class ProductPhotoServiceIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_fail_whenProductDoesNotExist_throwsNotFoundException: throws NotFoundException when product does not exist")
         void saveAll_fail_whenProductDoesNotExist_throwsNotFoundException() {
-            Long missingProductId = 999_999L;
             List<MultipartFile> files = List.of(generateMockFile("file.png", 1024));
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
@@ -197,11 +188,9 @@ class ProductPhotoServiceIT extends AbstractIT {
                             generateCloudinaryImageUploadResponse(
                                     RandomStringUtils.secure().nextAlphanumeric(10),
                                     "https://cdn.example.com/test.png",
-                                    "http://cdn.example.com/test.png"
-                            )
-                    )));
+                                    "http://cdn.example.com/test.png"))));
 
-            assertThatThrownBy(() -> productPhotoService.saveAll(missingProductId, files))
+            assertThatThrownBy(() -> productPhotoService.saveAll(Long.MAX_VALUE, files))
                     .isInstanceOf(NotFoundException.class);
         }
     }

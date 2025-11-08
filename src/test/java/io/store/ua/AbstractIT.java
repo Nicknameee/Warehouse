@@ -155,7 +155,7 @@ public abstract class AbstractIT {
         }
     }
 
-    protected StockItem createStockItem(Long productId, Long stockItemGroupId, Long warehouseId) {
+    protected StockItem generateStockItem(Long productId, Long stockItemGroupId, Long warehouseId) {
         return stockItemRepository.save(StockItem.builder()
                 .productId(productId)
                 .stockItemGroupId(stockItemGroupId)
@@ -218,7 +218,7 @@ public abstract class AbstractIT {
                 .build());
     }
 
-    protected Product createProduct() {
+    protected Product generateProduct() {
         return productRepository.save(Product.builder()
                 .code(RandomStringUtils.secure().nextAlphanumeric(24))
                 .title(RandomStringUtils.secure().nextAlphabetic(10))
@@ -232,11 +232,18 @@ public abstract class AbstractIT {
 
     }
 
-    protected StockItemGroup createStockItemGroup() {
+    protected StockItemGroup generateStockItemGroup(boolean isActive) {
         return stockItemGroupRepository.save(StockItemGroup.builder()
                 .code(RandomStringUtils.secure().nextAlphanumeric(16))
                 .name(RandomStringUtils.secure().nextAlphabetic(12))
-                .isActive(true)
+                .isActive(isActive)
+                .build());
+    }
+
+    protected StorageSection generateStorageSection(long warehouseId) {
+        return storageSectionRepository.save(StorageSection.builder()
+                .warehouseId(warehouseId)
+                .code(RandomStringUtils.secure().nextAlphanumeric(8))
                 .build());
     }
 }

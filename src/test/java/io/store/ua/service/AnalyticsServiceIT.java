@@ -3,7 +3,6 @@ package io.store.ua.service;
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.StockItem;
-import io.store.ua.entity.StockItemGroup;
 import io.store.ua.entity.immutable.StockItemHistory;
 import io.store.ua.models.data.ItemSellingStatistic;
 import jakarta.validation.ConstraintViolationException;
@@ -28,54 +27,53 @@ class AnalyticsServiceIT extends AbstractIT {
     private AnalyticsService analyticsService;
 
     private Product product;
-    private StockItemGroup stockItemGroup;
     private StockItem stockItem;
+    private StockItem otherStockItem;
 
-    private static BigInteger sumSoldAmounts(List<ItemSellingStatistic> statistics) {
+
+    private static BigInteger calculateQuantity(List<ItemSellingStatistic> statistics) {
         return statistics.stream()
                 .map(ItemSellingStatistic::getSoldQuantity)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
-    private static BigInteger sumRevenue(List<ItemSellingStatistic> statistics) {
+    private static BigInteger calculateRevenue(List<ItemSellingStatistic> statistics) {
         return statistics.stream()
                 .map(ItemSellingStatistic::getTotalRevenueAmount)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
-    private static BigInteger expectedSold(Stream<StockItemHistory> entries) {
-        return entries
-                .map(entry -> {
+    private static BigInteger expectedQuantity(Stream<StockItemHistory> entries) {
+        return entries.map(entry -> {
                     BigInteger before = entry.getQuantityBefore() == null ? BigInteger.ZERO : entry.getQuantityBefore();
                     BigInteger after = entry.getQuantityAfter() == null ? BigInteger.ZERO : entry.getQuantityAfter();
-                    BigInteger diff = before.subtract(after);
-                    return diff.signum() > 0 ? diff : BigInteger.ZERO;
+                    BigInteger difference = before.subtract(after);
+
+                    return difference.signum() > 0 ? difference : BigInteger.ZERO;
                 })
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
-    private static BigInteger expectedRevenue(Stream<StockItemHistory> entries, BigInteger pricePerUnit) {
-        return expectedSold(entries).multiply(pricePerUnit == null ? BigInteger.ZERO : pricePerUnit);
+    private static BigInteger expectedRevenue(Stream<StockItemHistory> history, BigInteger price) {
+        return expectedQuantity(history).multiply(price == null ? BigInteger.ZERO : price);
+    }
+
+    private StockItemHistory insertHistoryRow(Long stockItemId, BigInteger quantityBefore, BigInteger quantityAfter) {
+        return stockItemHistoryRepository.save(StockItemHistory.builder()
+                .stockItemId(stockItemId)
+                .currentProductPrice(product.getPrice())
+                .quantityBefore(quantityBefore)
+                .quantityAfter(quantityAfter)
+                .build());
     }
 
     @BeforeEach
     void setUp() {
-        product = createProduct();
-        stockItemGroup = createStockItemGroup();
-        stockItem = createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId());
-    }
-
-    private StockItemHistory insertHistoryRow(Long stockItemId,
-                                              BigInteger quantityBefore,
-                                              BigInteger quantityAfter) {
-        return stockItemHistoryRepository.save(
-                StockItemHistory.builder()
-                        .stockItemId(stockItemId)
-                        .currentProductPrice(product.getPrice()) // cents
-                        .quantityBefore(quantityBefore)
-                        .quantityAfter(quantityAfter)
-                        .build()
-        );
+        product = generateProduct();
+        var stockItemGroup = generateStockItemGroup(true);
+        var warehouse = generateWarehouse();
+        stockItem = generateStockItem(product.getId(), stockItemGroup.getId(), warehouse.getId());
+        otherStockItem = generateStockItem(generateProduct().getId(), stockItemGroup.getId(), warehouse.getId());
     }
 
     @Nested
@@ -84,17 +82,30 @@ class AnalyticsServiceIT extends AbstractIT {
         @Test
         @DisplayName("success_daily_aggregation")
         void success_daily_aggregation() {
-            StockItemHistory firstEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(10), BigInteger.valueOf(8)); // +2
-            StockItemHistory secondEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(8), BigInteger.valueOf(7)); // +1
-            StockItemHistory thirdEntry = insertHistoryRow(stockItem.getId(), BigInteger.valueOf(20), BigInteger.valueOf(25)); // 0 (increase)
+            StockItemHistory firstEntry = insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(10),
+                    BigInteger.valueOf(8));
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 100, 1);
+            StockItemHistory extraEntry = insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(8),
+                    BigInteger.valueOf(7));
 
-            assertThat(statistics).isNotEmpty();
-            assertThat(sumSoldAmounts(statistics))
-                    .isEqualTo(expectedSold(Stream.of(firstEntry, secondEntry, thirdEntry)));
-            assertThat(sumRevenue(statistics))
-                    .isEqualTo(expectedRevenue(Stream.of(firstEntry, secondEntry, thirdEntry), product.getPrice()));
+            StockItemHistory thirdEntry = insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(20),
+                    BigInteger.valueOf(25));
+
+            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(),
+                    null,
+                    null,
+                    100,
+                    1);
+
+            assertThat(statistics)
+                    .isNotEmpty();
+            assertThat(calculateQuantity(statistics))
+                    .isEqualTo(expectedQuantity(Stream.of(firstEntry, extraEntry, thirdEntry)));
+            assertThat(calculateRevenue(statistics))
+                    .isEqualTo(expectedRevenue(Stream.of(firstEntry, extraEntry, thirdEntry), product.getPrice()));
             assertThat(statistics.stream().map(ItemSellingStatistic::getStartDate).distinct().count())
                     .isGreaterThanOrEqualTo(1);
         }
@@ -102,67 +113,92 @@ class AnalyticsServiceIT extends AbstractIT {
         @Test
         @DisplayName("success_filter_by_item")
         void success_filter_by_item() {
-            StockItem otherStockItem = createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId());
+            StockItemHistory stockItemHistory = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(7));
+            insertHistoryRow(otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(5));
 
-            StockItemHistory primaryEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(7)); // +3
-            insertHistoryRow(otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(5)); // +5 (should be excluded)
+            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(),
+                    null,
+                    null,
+                    50,
+                    1);
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 50, 1);
-
-            assertThat(sumSoldAmounts(statistics)).isEqualTo(expectedSold(Stream.of(primaryEntry)));
-            assertThat(sumRevenue(statistics)).isEqualTo(expectedRevenue(Stream.of(primaryEntry), product.getPrice()));
+            assertThat(calculateQuantity(statistics))
+                    .isEqualTo(expectedQuantity(Stream.of(stockItemHistory)));
+            assertThat(calculateRevenue(statistics))
+                    .isEqualTo(expectedRevenue(Stream.of(stockItemHistory), product.getPrice()));
         }
 
         @Test
         @DisplayName("success_date_range")
         void success_date_range() {
-            StockItemHistory includedEntry = insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9)); // +1
+            StockItemHistory stockItemHistory = insertHistoryRow(stockItem.getId(),
+                    BigInteger.TEN,
+                    BigInteger.valueOf(9));
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(
-                    stockItem.getId(),
+            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(stockItem.getId(),
                     LocalDate.now(),
                     LocalDate.now().plusDays(1),
                     100,
-                    1
-            );
+                    1);
 
-            assertThat(sumSoldAmounts(statistics)).isEqualTo(expectedSold(Stream.of(includedEntry)));
-            assertThat(sumRevenue(statistics)).isEqualTo(expectedRevenue(Stream.of(includedEntry), product.getPrice()));
-            assertThat(statistics).allSatisfy(s -> assertThat(s.getStartDate()).isEqualTo(LocalDate.now()));
+            assertThat(calculateQuantity(statistics))
+                    .isEqualTo(expectedQuantity(Stream.of(stockItemHistory)));
+            assertThat(calculateRevenue(statistics))
+                    .isEqualTo(expectedRevenue(Stream.of(stockItemHistory), product.getPrice()));
+            assertThat(statistics)
+                    .allSatisfy(itemSellingStatistic -> assertThat(itemSellingStatistic.getStartDate())
+                            .isEqualTo(LocalDate.now()));
         }
 
         @Test
         @DisplayName("success_pagination")
         void success_pagination() {
-            var otherItem = createStockItem(product.getId(), stockItemGroup.getId(), generateWarehouse().getId());
-
-            for (int i = 0; i < 10; i++) {
-                if (i % 2 == 0) {
-                    insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9));
-                } else {
-                    insertHistoryRow(otherItem.getId(), BigInteger.TEN, BigInteger.valueOf(9));
-                }
+            for (int i = 0; i < 5; i++) {
+                insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9));
             }
 
-            var firstPage = analyticsService.fetchItemSellingStatistic(null, null, null, 1, 1);
-            var otherPage = analyticsService.fetchItemSellingStatistic(null, null, null, 1, 2);
+            for (int i = 0; i < 5; i++) {
+                insertHistoryRow(otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9));
+            }
 
-            assertThat(firstPage).hasSize(1);
-            assertThat(otherPage).hasSize(1);
-            assertThat(otherPage).doesNotContainAnyElementsOf(firstPage);
+            var firstPage = analyticsService.fetchItemSellingStatistic(null,
+                    null,
+                    null,
+                    1,
+                    1);
+            var otherPage = analyticsService.fetchItemSellingStatistic(null,
+                    null,
+                    null,
+                    1,
+                    2);
+
+            assertThat(firstPage)
+                    .hasSize(1);
+            assertThat(otherPage)
+                    .hasSize(1);
+            assertThat(otherPage)
+                    .doesNotContainAnyElementsOf(firstPage);
         }
 
         @ParameterizedTest(name = "fail_invalid_pageSize={0}")
         @ValueSource(ints = {0, -1})
         void fail_invalid_pageSize(int pageSize) {
-            assertThatThrownBy(() -> analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, pageSize, 1))
+            assertThatThrownBy(() -> analyticsService.fetchItemSellingStatistic(stockItem.getId(),
+                    null,
+                    null,
+                    pageSize,
+                    1))
                     .isInstanceOf(ConstraintViolationException.class);
         }
 
         @ParameterizedTest(name = "fail_invalid_page={0}")
         @ValueSource(ints = {0, -1})
         void fail_invalid_page(int page) {
-            assertThatThrownBy(() -> analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 10, page))
+            assertThatThrownBy(() -> analyticsService.fetchItemSellingStatistic(stockItem.getId(),
+                    null,
+                    null,
+                    10,
+                    page))
                     .isInstanceOf(ConstraintViolationException.class);
         }
     }

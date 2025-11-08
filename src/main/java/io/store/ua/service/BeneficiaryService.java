@@ -141,7 +141,8 @@ public class BeneficiaryService {
 
     public List<Beneficiary> changeState(@NotEmpty(message = "IDs can't be empty") List<
                                                  @NotNull(message = "ID can't be null")
-                                                 @Min(value = 1, message = "ID can't be less than 1") Long> IDs,
+                                                 @Min(value = 1, message = "ID can't be less than 1")
+                                                         Long> IDs,
                                          @NotNull(message = "Active flag can't be null") Boolean isActive) {
         var beneficiaries = beneficiaryRepository.findAllById(IDs);
 

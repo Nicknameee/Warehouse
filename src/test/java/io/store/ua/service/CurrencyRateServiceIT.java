@@ -22,21 +22,40 @@ class CurrencyRateServiceIT extends AbstractIT {
     @Autowired
     private CurrencyRateService currencyRateService;
 
-    private void upsertRates(BigDecimal usd, BigDecimal eur, BigDecimal chf, BigDecimal uah) {
+    private void upsertRates(BigDecimal usdRate, BigDecimal eurRate, BigDecimal chfRate, BigDecimal uahRate) {
         currencyRateRepository.deleteAll();
-        currencyRateRepository.saveAll(List.of(
-                CurrencyRate.builder().currencyCode(Currency.USD.name()).baseCurrencyCode(Currency.USD.name()).rate(usd).expiryTime(TimeUnit.DAYS.toSeconds(1)).build(),
-                CurrencyRate.builder().currencyCode(Currency.EUR.name()).baseCurrencyCode(Currency.USD.name()).rate(eur).expiryTime(TimeUnit.DAYS.toSeconds(1)).build(),
-                CurrencyRate.builder().currencyCode(Currency.CHF.name()).baseCurrencyCode(Currency.USD.name()).rate(chf).expiryTime(TimeUnit.DAYS.toSeconds(1)).build(),
-                CurrencyRate.builder().currencyCode(Currency.UAH.name()).baseCurrencyCode(Currency.USD.name()).rate(uah).expiryTime(TimeUnit.DAYS.toSeconds(1)).build()
+        currencyRateRepository.saveAll(List.of(CurrencyRate.builder()
+                        .currencyCode(Currency.USD.name())
+                        .baseCurrencyCode(Currency.USD.name())
+                        .rate(usdRate)
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build(),
+                CurrencyRate.builder()
+                        .currencyCode(Currency.EUR.name())
+                        .baseCurrencyCode(Currency.USD.name())
+                        .rate(eurRate)
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build(),
+                CurrencyRate.builder()
+                        .currencyCode(Currency.CHF.name())
+                        .baseCurrencyCode(Currency.USD.name())
+                        .rate(chfRate)
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build(),
+                CurrencyRate.builder()
+                        .currencyCode(Currency.UAH.name())
+                        .baseCurrencyCode(Currency.USD.name())
+                        .rate(uahRate)
+                        .expiryTime(TimeUnit.DAYS.toSeconds(1))
+                        .build()
         ));
     }
 
     private BigInteger expectedCents(String base, String target, BigInteger amountCents) {
         BigDecimal baseRate = currencyRateRepository.findById(base).orElseThrow().getRate();
         BigDecimal targetRate = currencyRateRepository.findById(target).orElseThrow().getRate();
-        return new BigDecimal(amountCents)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+
+        return new BigDecimal(amountCents).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
                 .multiply(baseRate)
                 .divide(targetRate, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
@@ -50,58 +69,88 @@ class CurrencyRateServiceIT extends AbstractIT {
         @Test
         @DisplayName("convert_success_whenUsdToEurExactCents")
         void convert_success_whenUsdToEurExactCents() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9300"), new BigDecimal("0.9800"), new BigDecimal("41.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9300"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.0000"));
+
             BigInteger amount = new BigInteger("12345");
             BigInteger actual = currencyRateService.convert("USD", "EUR", amount);
             BigInteger expected = expectedCents("USD", "EUR", amount);
+
             assertEquals(expected, actual);
         }
 
         @Test
         @DisplayName("convert_success_whenEurToChfFractionBoundary")
         void convert_success_whenEurToChfFractionBoundary() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9550"), new BigDecimal("0.9555"), new BigDecimal("40.5000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9550"),
+                    new BigDecimal("0.9555"),
+                    new BigDecimal("40.5000"));
+
             BigInteger amount = new BigInteger("101");
             BigInteger actual = currencyRateService.convert("EUR", "CHF", amount);
             BigInteger expected = expectedCents("EUR", "CHF", amount);
+
             assertEquals(expected, actual);
         }
 
         @Test
         @DisplayName("convert_success_whenUahToUsdLargeAmount")
         void convert_success_whenUahToUsdLargeAmount() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9200"), new BigDecimal("0.9800"), new BigDecimal("41.2500"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9200"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.2500"));
+
             BigInteger amount = new BigInteger("9876543210");
             BigInteger actual = currencyRateService.convert("UAH", "USD", amount);
             BigInteger expected = expectedCents("UAH", "USD", amount);
+
             assertEquals(expected, actual);
         }
 
         @Test
         @DisplayName("convert_success_whenSameCurrencyReturnsSameAmount")
         void convert_success_whenSameCurrencyReturnsSameAmount() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9300"), new BigDecimal("0.9800"), new BigDecimal("41.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9300"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.0000"));
+
             BigInteger amount = new BigInteger("777");
             BigInteger actual = currencyRateService.convert("USD", "USD", amount);
+
             assertEquals(amount, actual);
         }
 
         @Test
         @DisplayName("convert_success_whenHalfUpBoundaryReached")
         void convert_success_whenHalfUpBoundaryReached() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9950"), new BigDecimal("0.9900"), new BigDecimal("40.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9950"),
+                    new BigDecimal("0.9900"),
+                    new BigDecimal("40.0000"));
+
             BigInteger amount = new BigInteger("105");
             BigInteger actual = currencyRateService.convert("USD", "EUR", amount);
             BigInteger expected = expectedCents("USD", "EUR", amount);
+
             assertEquals(expected, actual);
         }
 
         @Test
         @DisplayName("convert_success_whenVerySmallAmountRoundsToZero")
         void convert_success_whenVerySmallAmountRoundsToZero() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("100.0000"), new BigDecimal("120.0000"), new BigDecimal("41.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("100.0000"),
+                    new BigDecimal("120.0000"),
+                    new BigDecimal("41.0000"));
+
             BigInteger amount = BigInteger.ONE;
             BigInteger actual = currencyRateService.convert("USD", "EUR", amount);
+
             assertEquals(BigInteger.ZERO, actual);
         }
 
@@ -136,7 +185,11 @@ class CurrencyRateServiceIT extends AbstractIT {
         @Test
         @DisplayName("convert_fail_whenBaseCurrencyNotFound")
         void convert_fail_whenBaseCurrencyNotFound() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9300"), new BigDecimal("0.9800"), new BigDecimal("41.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9300"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.0000"));
+
             assertThatThrownBy(() -> currencyRateService.convert("ZZZ", "USD", BigInteger.TEN))
                     .isInstanceOf(RuntimeException.class);
         }
@@ -144,7 +197,11 @@ class CurrencyRateServiceIT extends AbstractIT {
         @Test
         @DisplayName("convert_fail_whenTargetCurrencyNotFound")
         void convert_fail_whenTargetCurrencyNotFound() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9300"), new BigDecimal("0.9800"), new BigDecimal("41.0000"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9300"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.0000"));
+
             assertThatThrownBy(() -> currencyRateService.convert("USD", "ZZZ", BigInteger.TEN))
                     .isInstanceOf(RuntimeException.class);
         }
@@ -156,20 +213,30 @@ class CurrencyRateServiceIT extends AbstractIT {
         @Test
         @DisplayName("convertFromCentsToCurrencyUnit_success_whenMatchesConvertThenMoveLeft")
         void convertFromCentsToCurrencyUnit_success_whenMatchesConvertThenMoveLeft() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9400"), new BigDecimal("0.9600"), new BigDecimal("40.7500"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9400"),
+                    new BigDecimal("0.9600"),
+                    new BigDecimal("40.7500"));
+
             BigInteger amount = new BigInteger("8888");
             BigInteger converted = currencyRateService.convert("USD", "EUR", amount);
             BigDecimal expected = new BigDecimal(converted).movePointLeft(2);
             BigDecimal actual = currencyRateService.convertFromCentsToCurrencyUnit("USD", "EUR", amount);
+
             assertEquals(0, expected.compareTo(actual));
         }
 
         @Test
         @DisplayName("convertFromCentsToCurrencyUnit_success_whenSameCurrencyDividesBy100")
         void convertFromCentsToCurrencyUnit_success_whenSameCurrencyDividesBy100() {
-            upsertRates(new BigDecimal("1.0000"), new BigDecimal("0.9400"), new BigDecimal("0.9600"), new BigDecimal("40.7500"));
+            upsertRates(new BigDecimal("1.0000"),
+                    new BigDecimal("0.9400"),
+                    new BigDecimal("0.9600"),
+                    new BigDecimal("40.7500"));
             BigInteger amount = new BigInteger("901");
+
             BigDecimal actual = currencyRateService.convertFromCentsToCurrencyUnit("USD", "USD", amount);
+
             assertEquals(0, actual.compareTo(new BigDecimal("9.01")));
         }
 
