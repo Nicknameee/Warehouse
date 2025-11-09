@@ -18,7 +18,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigInteger;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -278,14 +280,17 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(generateStockItem(product.getId(), groupInitial.getId(), generateWarehouse().getId()).getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build()
             ));
 
@@ -301,18 +306,22 @@ class StockItemHistoryServiceIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build()
             ));
 
@@ -330,6 +339,7 @@ class StockItemHistoryServiceIT extends AbstractIT {
             var saved = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
                     .stockItemId(stockItem.getId())
                     .currentProductPrice(product.getPrice())
+                    .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                     .build()));
 
             var result = stockItemHistoryService.findBy(null, null, null, 5, 1);
@@ -349,18 +359,21 @@ class StockItemHistoryServiceIT extends AbstractIT {
                             .currentProductPrice(product.getPrice())
                             .oldExpiration(future5Days)
                             .newExpiration(future10Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
                             .oldExpiration(future10Days)
                             .newExpiration(future30Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build(),
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
                             .oldExpiration(future30Days)
                             .newExpiration(future30Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build()
             ));
 

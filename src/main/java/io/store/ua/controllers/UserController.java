@@ -26,24 +26,21 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build());
     }
 
-    @GetMapping("/find/byRole")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
+    @GetMapping("/findBy/role")
     public ResponseEntity<?> findByRole(@RequestParam("role") UserRole role,
-                                        @RequestParam(value = "pageSize", defaultValue = "1") int pageSize,
-                                        @RequestParam(value = "page", defaultValue = "1") int page) {
+                                        @RequestParam(value = "pageSize") int pageSize,
+                                        @RequestParam(value = "page") int page) {
         return ResponseEntity.ok(userService.findByRole(role, pageSize, page));
     }
 
-    @GetMapping("/find/byStatus")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
+    @GetMapping("/findBy/status")
     public ResponseEntity<?> findByStatus(@RequestParam("status") UserStatus status,
-                                          @RequestParam(value = "pageSize", defaultValue = "1") int pageSize,
-                                          @RequestParam(value = "page", defaultValue = "1") int page) {
+                                          @RequestParam(value = "pageSize") int pageSize,
+                                          @RequestParam(value = "page") int page) {
         return ResponseEntity.ok(userService.findByStatus(status, pageSize, page));
     }
 
-    @GetMapping("/find")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
+    @GetMapping("/findBy")
     public ResponseEntity<?> findBy(@RequestParam(value = "username", required = false) String usernamePrefix,
                                     @RequestParam(value = "email", required = false) String emailPart,
                                     @RequestParam(value = "roles", required = false) List<UserRole> roles,
@@ -55,25 +52,21 @@ public class UserController {
     }
 
     @PostMapping("/all")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public ResponseEntity<?> saveAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.saveAll(userDTOS));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public ResponseEntity<?> save(@RequestBody UserDTO regularUser) {
         return ResponseEntity.ok(userService.save(regularUser));
     }
 
     @PutMapping("/all")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public ResponseEntity<?> updateAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.updateAll(userDTOS));
     }
 
     @PutMapping
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public ResponseEntity<?> update(@RequestBody UserDTO regularUser) {
         return ResponseEntity.ok(userService.update(regularUser));
     }

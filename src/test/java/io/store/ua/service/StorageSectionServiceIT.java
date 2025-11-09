@@ -41,10 +41,7 @@ class StorageSectionServiceIT extends AbstractIT {
     }
 
     private List<StorageSection> generateSections(long warehouseId, int count) {
-        return Stream.generate(() -> StorageSection.builder()
-                        .warehouseId(warehouseId)
-                        .code(RandomStringUtils.secure().nextAlphanumeric(8))
-                        .build())
+        return Stream.generate(() -> generateStorageSection(warehouseId))
                 .limit(count)
                 .toList();
     }

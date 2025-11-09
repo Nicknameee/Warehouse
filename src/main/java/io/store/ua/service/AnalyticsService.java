@@ -31,7 +31,9 @@ import java.util.List;
 public class AnalyticsService {
     private final EntityManager entityManager;
 
-    public List<ItemSellingStatistic> fetchItemSellingStatistic(Long stockItemId,
+    public List<ItemSellingStatistic> fetchItemSellingStatistic(@NotNull(message = "Stock item ID can't be null")
+                                                                @Min(value = 1, message = "Stock item ID can't be less than 1")
+                                                                Long stockItemId,
                                                                 LocalDate from,
                                                                 LocalDate to,
                                                                 @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
@@ -53,20 +55,17 @@ public class AnalyticsService {
         Expression<BigInteger> zero = criteriaBuilder.literal(BigInteger.ZERO);
 
         Path<Long> itemIdPath = root.get(StockItemHistory.Fields.stockItemId);
-        Expression<LocalDate> startDate = criteriaBuilder.function("DATE", LocalDate.class, root.get(StockItemHistory.Fields.createdAt));
+        Path<LocalDateTime> loggedAt = root.get(StockItemHistory.Fields.loggedAt);
+        Expression<LocalDate> startDate = criteriaBuilder.function("DATE", LocalDate.class, loggedAt);
 
         List<Predicate> predicates = new ArrayList<>();
+        predicates.add(criteriaBuilder.equal(itemIdPath, stockItemId));
 
-        if (stockItemId != null) {
-            predicates.add(criteriaBuilder.equal(itemIdPath, stockItemId));
-        }
         if (from != null) {
-            predicates.add(criteriaBuilder.greaterThanOrEqualTo(
-                    root.get(StockItemHistory.Fields.createdAt), from.atStartOfDay()));
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(loggedAt, from.atStartOfDay()));
         }
         if (to != null) {
-            predicates.add(criteriaBuilder.lessThan(
-                    root.get(StockItemHistory.Fields.createdAt), to.plusDays(1).atStartOfDay()));
+            predicates.add(criteriaBuilder.lessThan(loggedAt, to.plusDays(1).atStartOfDay()));
         }
 
         predicates.add(criteriaBuilder.greaterThan(root.get(StockItemHistory.Fields.quantityBefore),
@@ -77,19 +76,16 @@ public class AnalyticsService {
                 .otherwise(zero);
 
         Path<BigInteger> currentProductPrice = root.get(StockItemHistory.Fields.currentProductPrice);
-
         Expression<BigInteger> revenue = criteriaBuilder.prod(currentProductPrice, quantity);
 
-        criteriaQuery.select(criteriaBuilder.construct(
-                        ItemSellingStatistic.class,
-                        itemIdPath,
+        criteriaQuery.select(criteriaBuilder.construct(ItemSellingStatistic.class,
+                        criteriaBuilder.literal(stockItemId),
                         startDate,
                         criteriaBuilder.sum(quantity),
-                        criteriaBuilder.sum(revenue)
-                ))
+                        criteriaBuilder.sum(revenue)))
                 .where(predicates.toArray(Predicate[]::new))
-                .groupBy(itemIdPath, startDate)
-                .orderBy(criteriaBuilder.asc(itemIdPath), criteriaBuilder.asc(startDate));
+                .groupBy(startDate)
+                .orderBy(criteriaBuilder.asc(startDate));
 
         return entityManager.createQuery(criteriaQuery)
                 .setMaxResults(pageSize)

@@ -6,11 +6,17 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import org.hibernate.validator.constraints.Length;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldNameConstants
 public class UserDTO {
     @Email(message = "Invalid email",

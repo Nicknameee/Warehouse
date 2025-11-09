@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,11 +32,11 @@ class TagServiceIT extends AbstractIT {
     private TagService tagService;
 
     private List<Tag> generateTags(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(ignore -> Tag.builder()
+        return Stream.generate(() -> Tag.builder()
                         .name(RandomStringUtils.secure().nextAlphanumeric(10))
                         .isActive(true)
                         .build())
+                .limit(count)
                 .toList();
     }
 

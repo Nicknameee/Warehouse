@@ -243,7 +243,7 @@ class UserServiceIT extends AbstractIT {
             assertThat(successCount).isEqualTo(1);
 
             User reloadedUser =
-                    userRepository.findRegularUserByUsername(firstUser.getUsername());
+                    userRepository.findUserByUsername(firstUser.getUsername());
             assertThat(reloadedUser.getStatus()).isEqualTo(UserStatus.INACTIVE);
         }
     }

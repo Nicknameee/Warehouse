@@ -20,7 +20,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,12 +30,11 @@ class ProductServiceIT extends AbstractIT {
     private ProductService productService;
 
     private List<Tag> generateTags(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(ignore ->
-                        Tag.builder()
-                                .name(RandomStringUtils.secure().nextAlphanumeric(10))
-                                .isActive(true)
-                                .build())
+        return Stream.generate(() -> Tag.builder()
+                        .name(RandomStringUtils.secure().nextAlphanumeric(10))
+                        .isActive(true)
+                        .build())
+                .limit(count)
                 .toList();
     }
 

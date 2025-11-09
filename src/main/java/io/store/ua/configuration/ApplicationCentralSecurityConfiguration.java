@@ -33,13 +33,12 @@ public class ApplicationCentralSecurityConfiguration {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            UserDetailsSecurityService userDetailsSecurityService,
-            PasswordEncoder passwordEncoder,
-            InMemoryUserDetailsManager basicUserDetailsService) {
+    public AuthenticationManager authenticationManager(UserDetailsSecurityService userDetailsSecurityService,
+                                                       PasswordEncoder passwordEncoder,
+                                                       InMemoryUserDetailsManager basicUserDetailsService) {
         return new ProviderManager(List.of(
-                        new UserAuthenticationProvider(userDetailsSecurityService, passwordEncoder),
-                        new DaoAuthenticationProvider(basicUserDetailsService)));
+                new UserAuthenticationProvider(userDetailsSecurityService, passwordEncoder),
+                new DaoAuthenticationProvider(basicUserDetailsService)));
     }
 
     @Bean

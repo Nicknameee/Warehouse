@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,14 +31,8 @@ class BeneficiaryServiceIT extends AbstractIT {
     private BeneficiaryService beneficiaryService;
 
     private List<Beneficiary> generateBeneficiaries(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(ignore -> Beneficiary.builder()
-                        .name(RandomStringUtils.secure().nextAlphabetic(10))
-                        .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
-                        .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
-                        .card(RandomStringUtils.secure().nextNumeric(16))
-                        .isActive(true)
-                        .build())
+        return Stream.generate(this::generateBeneficiary)
+                .limit(count)
                 .toList();
     }
 

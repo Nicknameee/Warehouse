@@ -31,6 +31,8 @@ public class StockItemHistory {
     private Long stockItemId;
     @Column(name = "current_product_price", nullable = false, updatable = false)
     private BigInteger currentProductPrice;
+    @Column(name = "logged_at", nullable = false, updatable = false)
+    private LocalDateTime loggedAt;
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -11,6 +11,7 @@ import lombok.experimental.FieldNameConstants;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -53,6 +54,7 @@ public class StockItemHistoryDTO {
     private Boolean oldActivity;
     @NotNull(message = "Is active can't be null")
     private Boolean newActivity;
+    private LocalDateTime loggedAt;
     private boolean changeExpiration;
     private boolean changeSection;
 }

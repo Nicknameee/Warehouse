@@ -13,13 +13,13 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    User findRegularUserByUsername(String username);
+    User findUserByUsername(String username);
 
-    User findRegularUserByEmail(String email);
+    User findUserByEmail(String email);
 
-    List<User> findRegularUsersByRole(UserRole role, Pageable pageable);
+    List<User> findUsersByRole(UserRole role, Pageable pageable);
 
-    List<User> findRegularUsersByStatus(UserStatus status, Pageable pageable);
+    List<User> findUsersByStatus(UserStatus status, Pageable pageable);
 
     @Query("UPDATE User u SET u.loginTime = CURRENT_TIMESTAMP WHERE u.id = :id")
     @Modifying

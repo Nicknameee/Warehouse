@@ -1,11 +1,12 @@
 package io.store.ua;
 
 import io.store.ua.entity.*;
-import io.store.ua.enums.StockItemStatus;
-import io.store.ua.enums.UserRole;
-import io.store.ua.enums.UserStatus;
+import io.store.ua.entity.immutable.StockItemHistory;
+import io.store.ua.enums.*;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.data.WorkingHours;
+import io.store.ua.models.dto.LoginDTO;
+import io.store.ua.models.dto.LoginResponseDTO;
 import io.store.ua.models.dto.WarehouseDTO;
 import io.store.ua.repository.*;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
@@ -21,7 +22,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +42,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default"})
@@ -47,7 +53,8 @@ import java.util.List;
 @EnableRetry
 @WithUserDetails(value = AbstractIT.OWNER, userDetailsServiceBeanName = "userDetailsSecurityService", setupBefore = TestExecutionEvent.TEST_EXECUTION)
 public abstract class AbstractIT {
-    public static final String OWNER = "owner";
+    protected static final String OWNER = "owner";
+    protected static final RandomStringUtils GENERATOR = RandomStringUtils.secure();
 
     @ServiceConnection
     protected static final PostgreSQLContainer<?> postgres =
@@ -59,6 +66,8 @@ public abstract class AbstractIT {
     protected static final GenericContainer<?> redis =
             new GenericContainer<>("redis:7-alpine")
                     .withExposedPorts(6379);
+    @Autowired
+    protected TestRestTemplate restClient;
     @Autowired
     protected PasswordEncoder passwordEncoder;
     @Autowired
@@ -98,7 +107,7 @@ public abstract class AbstractIT {
     @MockitoBean
     protected CloudinaryAPIService cloudinaryAPIService;
 
-    protected User user;
+    protected User owner;
 
     @BeforeAll
     void setUp() {
@@ -139,9 +148,9 @@ public abstract class AbstractIT {
         currencyRateRepository.deleteAll();
 
         if (!userRepository.existsByUsername(OWNER)) {
-            user = userRepository.save(User.builder()
+            owner = userRepository.save(User.builder()
                     .username(OWNER)
-                    .password(passwordEncoder.encode(RandomStringUtils.secure().nextAlphanumeric(64)))
+                    .password(passwordEncoder.encode(OWNER))
                     .email(String.format(
                             "%s@%s.%s",
                             RandomStringUtils.secure().nextAlphabetic(8).toLowerCase(),
@@ -153,6 +162,45 @@ public abstract class AbstractIT {
                     .timezone("UTC")
                     .build());
         }
+    }
+
+    protected HttpHeaders generateAuthenticationHeaders() {
+        return generateAuthenticationHeaders(OWNER, OWNER);
+    }
+
+    protected HttpHeaders generateAuthenticationHeaders(String login, String password) {
+        if (!userRepository.existsByUsername(login)) {
+            userRepository.save(User.builder()
+                    .username(login)
+                    .password(passwordEncoder.encode(password))
+                    .email("%s@example.com".formatted(login))
+                    .role(UserRole.MANAGER)
+                    .status(UserStatus.ACTIVE)
+                    .timezone("UTC")
+                    .build());
+        }
+
+        HttpHeaders loginHeaders = new HttpHeaders();
+        loginHeaders.set(HttpHeaders.USER_AGENT, "JUnit-IT");
+        loginHeaders.set("X-Forwarded-For", "127.0.0.1");
+        loginHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<LoginResponseDTO> loginResponse = restClient.exchange("/login",
+                HttpMethod.POST,
+                new HttpEntity<>(new LoginDTO(login, password), loginHeaders),
+                LoginResponseDTO.class
+        );
+
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(loginResponse.getBody()).isNotNull();
+
+        HttpHeaders authHeaders = new HttpHeaders();
+        authHeaders.set(HttpHeaders.AUTHORIZATION, "Bearer " + loginResponse.getBody().getToken());
+        authHeaders.set(HttpHeaders.USER_AGENT, "JUnit-IT");
+        authHeaders.set("X-Forwarded-For", "127.0.0.1");
+        authHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        return authHeaders;
     }
 
     protected StockItem generateStockItem(Long productId, Long stockItemGroupId, Long warehouseId) {
@@ -213,7 +261,7 @@ public abstract class AbstractIT {
                 .address(warehouseDTO.getAddress())
                 .workingHours(warehouseDTO.getWorkingHours())
                 .phones(warehouseDTO.getPhones())
-                .managerId(user.getId())
+                .managerId(owner.getId())
                 .isActive(Boolean.TRUE.equals(warehouseDTO.getIsActive()))
                 .build());
     }
@@ -244,6 +292,47 @@ public abstract class AbstractIT {
         return storageSectionRepository.save(StorageSection.builder()
                 .warehouseId(warehouseId)
                 .code(RandomStringUtils.secure().nextAlphanumeric(8))
+                .build());
+    }
+
+    protected Transaction generateTransaction(Long beneficiaryId,
+                                              String currency,
+                                              BigInteger amount,
+                                              TransactionFlowType flow) {
+        return transactionRepository.save(Transaction.builder()
+                .transactionId(UUID.randomUUID().toString())
+                .reference(UUID.randomUUID().toString())
+                .flowType(flow)
+                .purpose(TransactionPurpose.STOCK_OUTBOUND_REVENUE)
+                .status(TransactionStatus.SETTLED)
+                .amount(amount)
+                .currency(currency)
+                .beneficiaryId(beneficiaryId)
+                .paymentProvider(PaymentProvider.CASH)
+                .build());
+    }
+
+    protected StockItemHistory insertHistoryRow(Long stockItemId,
+                                                BigInteger quantityBefore,
+                                                BigInteger quantityAfter,
+                                                BigInteger price,
+                                                LocalDate date) {
+        return stockItemHistoryRepository.save(StockItemHistory.builder()
+                .stockItemId(stockItemId)
+                .currentProductPrice(price)
+                .quantityBefore(quantityBefore)
+                .quantityAfter(quantityAfter)
+                .loggedAt(date.atTime(12, 0))
+                .build());
+    }
+
+    protected Beneficiary generateBeneficiary() {
+        return beneficiaryRepository.save(Beneficiary.builder()
+                .name(RandomStringUtils.secure().nextAlphabetic(10))
+                .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
+                .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
+                .card(RandomStringUtils.secure().nextNumeric(16))
+                .isActive(true)
                 .build());
     }
 }

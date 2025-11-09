@@ -79,14 +79,16 @@ public class AuthenticationService {
         blacklistedTokenRepository.save(blacklistedToken);
     }
 
+    public String extractToken(String authorizationHeader) {
+        return authorizationHeader.replace("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE), "");
+    }
+
     public String getUsernameFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
     public String authenticate(String username, String password, HttpServletRequest request) {
-        Authentication authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(username, password));
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
         if (authentication.isAuthenticated()) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -112,9 +114,7 @@ public class AuthenticationService {
 
     private String generateToken(UserDetails userDetails, HttpServletRequest request) {
         Map<String, String> claims = new HashMap<>();
-        claims.put(
-                UserSecurityStrategyService.CustomClaims.USER_AGENT,
-                request.getHeader(HttpHeaders.USER_AGENT));
+        claims.put(UserSecurityStrategyService.CustomClaims.USER_AGENT, request.getHeader(HttpHeaders.USER_AGENT));
         claims.put(UserSecurityStrategyService.CustomClaims.IP, request.getRemoteAddr());
 
         return Jwts.builder()
@@ -122,11 +122,9 @@ public class AuthenticationService {
                 .setId(RandomStringUtils.secure().nextAlphanumeric(16))
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(Date.from(LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.UTC)))
-                .setExpiration(
-                        Date.from(
-                                LocalDateTime.now(Clock.systemUTC())
-                                        .plusSeconds(tokenValidityDuration)
-                                        .toInstant(ZoneOffset.UTC)))
+                .setExpiration(Date.from(LocalDateTime.now(Clock.systemUTC())
+                        .plusSeconds(tokenValidityDuration)
+                        .toInstant(ZoneOffset.UTC)))
                 .signWith(key)
                 .compact();
     }

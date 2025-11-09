@@ -36,11 +36,7 @@ class StockItemGroupServiceIT extends AbstractIT {
     }
 
     private List<StockItemGroup> generateGroups(int count) {
-        return Stream.generate(() -> StockItemGroup.builder()
-                        .code(RandomStringUtils.secure().nextAlphanumeric(330))
-                        .name(RandomStringUtils.secure().nextAlphanumeric(33))
-                        .isActive(true)
-                        .build())
+        return Stream.generate(() -> generateStockItemGroup(true))
                 .limit(count)
                 .toList();
     }

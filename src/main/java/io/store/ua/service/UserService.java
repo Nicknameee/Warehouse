@@ -75,18 +75,21 @@ public class UserService {
                 .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
     }
 
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findByRole(@NotNull(message = "User role can't be null") UserRole role,
                                  @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                  @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
-        return userRepository.findRegularUsersByRole(role, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
+        return userRepository.findUsersByRole(role, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findByStatus(@NotNull(message = "User status can't be null") UserStatus status,
                                    @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                    @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
-        return userRepository.findRegularUsersByStatus(status, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
+        return userRepository.findUsersByStatus(status, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findBy(String usernamePrefix,
                              String emailPart,
                              List<UserRole> roles,
@@ -151,12 +154,12 @@ public class UserService {
     }
 
     public Optional<User> findByEmail(@NotBlank(message = "Email can't be blank") String email) {
-        return Optional.ofNullable(userRepository.findRegularUserByEmail(email));
+        return Optional.ofNullable(userRepository.findUserByEmail(email));
     }
 
     @PreAuthorize("permitAll()")
     public Optional<User> findByUsername(@NotBlank(message = "Username can't be blank") String username) {
-        return Optional.ofNullable(userRepository.findRegularUserByUsername(username));
+        return Optional.ofNullable(userRepository.findUserByUsername(username));
     }
 
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")

@@ -21,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -144,6 +145,12 @@ public class StockItemHistoryService {
             stockItemHistoryBuilder
                     .oldActivity(stockItemHistoryDTO.getOldActivity())
                     .newActivity(stockItemHistoryDTO.getNewActivity());
+        }
+
+        if (stockItemHistoryDTO.getLoggedAt() != null) {
+            stockItemHistoryBuilder.loggedAt(stockItemHistoryDTO.getLoggedAt());
+        } else {
+            stockItemHistoryBuilder.loggedAt(LocalDateTime.now(Clock.systemUTC()));
         }
 
         return stockItemHistoryRepository.save(stockItemHistoryBuilder.build());
