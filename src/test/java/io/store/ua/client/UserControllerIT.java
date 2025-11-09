@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Set;
@@ -26,51 +27,43 @@ class UserControllerIT extends AbstractIT {
     }
 
     @BeforeEach
-    void prepareAuthorizationAndSeedData() {
-        seedUsersForQueries();
+    void setUsers() {
+        generateUsers();
     }
 
-    private void seedUsersForQueries() {
-        userRepository.save(
-                User.builder()
-                        .username("alpha_mgr")
-                        .password(passwordEncoder.encode("x"))
-                        .email("alpha_mgr@example.com")
-                        .role(UserRole.MANAGER)
-                        .status(UserStatus.ACTIVE)
-                        .timezone("UTC")
-                        .build()
-        );
-        userRepository.save(
-                User.builder()
-                        .username("beta_user")
-                        .password(passwordEncoder.encode("x"))
-                        .email("beta_user@example.com")
-                        .role(UserRole.OPERATOR)
-                        .status(UserStatus.ACTIVE)
-                        .timezone("UTC")
-                        .build()
-        );
-        userRepository.save(
-                User.builder()
-                        .username("gamma_mgr_blocked")
-                        .password(passwordEncoder.encode("x"))
-                        .email("gamma_mgr_blocked@example.com")
-                        .role(UserRole.MANAGER)
-                        .status(UserStatus.INACTIVE)
-                        .timezone("UTC")
-                        .build()
-        );
-        userRepository.save(
-                User.builder()
-                        .username("alpha_user_blocked")
-                        .password(passwordEncoder.encode("x"))
-                        .email("alpha_user_blocked@example.com")
-                        .role(UserRole.OPERATOR)
-                        .status(UserStatus.INACTIVE)
-                        .timezone("UTC")
-                        .build()
-        );
+    private void generateUsers() {
+        userRepository.save(User.builder()
+                .username("alpha_mgr")
+                .password(passwordEncoder.encode("x"))
+                .email("alpha_mgr@example.com")
+                .role(UserRole.MANAGER)
+                .status(UserStatus.ACTIVE)
+                .timezone("UTC")
+                .build());
+        userRepository.save(User.builder()
+                .username("beta_user")
+                .password(passwordEncoder.encode("x"))
+                .email("beta_user@example.com")
+                .role(UserRole.OPERATOR)
+                .status(UserStatus.ACTIVE)
+                .timezone("UTC")
+                .build());
+        userRepository.save(User.builder()
+                .username("gamma_mgr_blocked")
+                .password(passwordEncoder.encode("x"))
+                .email("gamma_mgr_blocked@example.com")
+                .role(UserRole.MANAGER)
+                .status(UserStatus.INACTIVE)
+                .timezone("UTC")
+                .build());
+        userRepository.save(User.builder()
+                .username("alpha_user_blocked")
+                .password(passwordEncoder.encode("x"))
+                .email("alpha_user_blocked@example.com")
+                .role(UserRole.OPERATOR)
+                .status(UserStatus.INACTIVE)
+                .timezone("UTC")
+                .build());
     }
 
     private <T> ResponseEntity<T> get(String uri, Class<T> responseType) {
@@ -88,34 +81,34 @@ class UserControllerIT extends AbstractIT {
     class GetCurrentUserTests {
         @Test
         @DisplayName("returns currently authenticated User")
-        void returnsCurrentlyAuthenticatedUser() {
+        void getCurrentUser_success_returnsCurrentlyAuthenticatedUser() {
             ResponseEntity<User> getUserResponse = get("/api/v1/users", User.class);
 
             assertThat(getUserResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             User returnedUser = getUserResponse.getBody();
-
             assertThat(returnedUser).isNotNull();
             assertThat(returnedUser.getUsername()).isEqualTo(owner.getUsername());
         }
     }
 
     @Nested
-    @DisplayName("GET /api/v1/users/findBy/role (returns List<User>)")
+    @DisplayName("GET /api/v1/users/findBy/role")
     class FindByRoleTests {
         @Test
         @DisplayName("role = MANAGER returns only managers")
-        void returnsManagersOnly() {
-            String uri = "/api/v1/users/findBy/role?role=%s&pageSize=%d&page=%d"
-                    .formatted(UserRole.MANAGER.name(), 50, 1);
+        void findByRole_success_returnsManagersOnly() {
+            String uri = UriComponentsBuilder.fromPath("/api/v1/users/findBy/role")
+                    .queryParam("role", UserRole.MANAGER.name())
+                    .queryParam("pageSize", 50)
+                    .queryParam("page", 1)
+                    .build(true).toUriString();
 
             ResponseEntity<List<User>> response = getList(uri, new ParameterizedTypeReference<>() {
             });
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
             List<User> users = response.getBody();
-
             assertThat(users).isNotNull().isNotEmpty();
 
             for (User returnedUser : users) {
@@ -123,27 +116,27 @@ class UserControllerIT extends AbstractIT {
             }
 
             Set<String> usernames = users.stream().map(User::getUsername).collect(Collectors.toSet());
-
             assertThat(usernames).contains("alpha_mgr", "gamma_mgr_blocked");
         }
     }
 
     @Nested
-    @DisplayName("GET /api/v1/users/findBy/status (returns List<User>)")
+    @DisplayName("GET /api/v1/users/findBy/status")
     class FindByStatusTests {
         @Test
         @DisplayName("status = ACTIVE returns only active users")
-        void returnsActiveOnly() {
-            String uri = "/api/v1/users/findBy/status?status=%s&pageSize=%d&page=%d"
-                    .formatted(UserStatus.ACTIVE.name(), 200, 1);
+        void findByStatus_success_returnsActiveOnly() {
+            String uri = UriComponentsBuilder.fromPath("/api/v1/users/findBy/status")
+                    .queryParam("status", UserStatus.ACTIVE.name())
+                    .queryParam("pageSize", 200)
+                    .queryParam("page", 1)
+                    .build(true).toUriString();
 
             ResponseEntity<List<User>> response = getList(uri, new ParameterizedTypeReference<>() {
             });
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
             List<User> users = response.getBody();
-
             assertThat(users).isNotNull().isNotEmpty();
 
             for (User returnedUser : users) {
@@ -151,52 +144,54 @@ class UserControllerIT extends AbstractIT {
             }
 
             Set<String> usernames = users.stream().map(User::getUsername).collect(Collectors.toSet());
-
             assertThat(usernames).contains("alpha_mgr", "beta_user");
             assertThat(usernames).doesNotContain("gamma_mgr_blocked", "alpha_user_blocked");
         }
     }
 
     @Nested
-    @DisplayName("GET /api/v1/users/findBy (returns List<User>)")
+    @DisplayName("GET /api/v1/users/findBy")
     class FindByTests {
         @Test
         @DisplayName("filters by username prefix + roles + statuses")
-        void filtersByUsernameRoleStatus() {
-            String uri = "/api/v1/users/findBy?username=%s&roles=%s&statuses=%s&pageSize=%d&page=%d"
-                    .formatted("alpha", UserRole.MANAGER.name(), UserStatus.ACTIVE.name(), 50, 1);
+        void findBy_success_filtersByUsernameRoleStatus() {
+            String uri = UriComponentsBuilder.fromPath("/api/v1/users/findBy")
+                    .queryParam("username", "alpha")
+                    .queryParam("roles", UserRole.MANAGER.name())
+                    .queryParam("statuses", UserStatus.ACTIVE.name())
+                    .queryParam("pageSize", 50)
+                    .queryParam("page", 1)
+                    .build(true).toUriString();
 
             ResponseEntity<List<User>> response = getList(uri, new ParameterizedTypeReference<>() {
             });
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
             List<User> users = response.getBody();
-
             assertThat(users).isNotNull();
 
             Set<String> usernames = users.stream().map(User::getUsername).collect(Collectors.toSet());
-
             assertThat(usernames).containsExactlyInAnyOrder("alpha_mgr");
         }
 
         @Test
         @DisplayName("filters by email part + multiple roles + multiple statuses")
-        void filtersByEmailMultipleRolesStatuses() {
-            String uri = "/api/v1/users/findBy?email=%s&roles=%s&roles=%s&statuses=%s&statuses=%s&pageSize=%d&page=%d"
-                    .formatted("example.com",
-                            UserRole.MANAGER.name(), UserRole.OPERATOR.name(),
-                            UserStatus.ACTIVE.name(), UserStatus.INACTIVE.name(),
-                            500, 1
-                    );
+        void findBy_success_filtersByEmailMultipleRolesStatuses() {
+            String uri = UriComponentsBuilder.fromPath("/api/v1/users/findBy")
+                    .queryParam("email", "example.com")
+                    .queryParam("roles", UserRole.MANAGER.name())
+                    .queryParam("roles", UserRole.OPERATOR.name())
+                    .queryParam("statuses", UserStatus.ACTIVE.name())
+                    .queryParam("statuses", UserStatus.INACTIVE.name())
+                    .queryParam("pageSize", 500)
+                    .queryParam("page", 1)
+                    .build(true).toUriString();
 
             ResponseEntity<List<User>> response = getList(uri, new ParameterizedTypeReference<>() {
             });
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
             List<User> users = response.getBody();
-
             assertThat(users).isNotNull().isNotEmpty();
 
             Set<String> usernames = users.stream().map(User::getUsername).collect(Collectors.toSet());
@@ -205,11 +200,11 @@ class UserControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("POST /api/v1/users (save single)")
+    @DisplayName("POST /api/v1/users")
     class SaveUserTests {
         @Test
         @DisplayName("creates a user and encodes password")
-        void save_createsUser() {
+        void save_success_createsUser() {
             var user = UserDTO.builder()
                     .username(RandomStringUtils.secure().nextAlphabetic(10))
                     .email("%s@%s.%s".formatted(
@@ -222,7 +217,8 @@ class UserControllerIT extends AbstractIT {
                     .password(RandomStringUtils.secure().nextAlphanumeric(13))
                     .build();
 
-            ResponseEntity<User> saveResponse = restClient.exchange("/api/v1/users",
+            ResponseEntity<User> saveResponse = restClient.exchange(
+                    "/api/v1/users",
                     HttpMethod.POST,
                     new HttpEntity<>(user, authenticationHeaders),
                     User.class);
@@ -230,7 +226,6 @@ class UserControllerIT extends AbstractIT {
             assertThat(saveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             User actualUser = saveResponse.getBody();
-
             assertThat(actualUser).isNotNull();
             assertThat(actualUser.getUsername()).isEqualTo(user.getUsername());
             assertThat(actualUser.getRole().name()).isEqualTo(user.getRole());
@@ -238,21 +233,21 @@ class UserControllerIT extends AbstractIT {
             assertThat(actualUser.getTimezone()).isEqualTo(user.getTimezone());
 
             User fetchUser = userRepository.findUserByUsername(user.getUsername());
-
             assertThat(fetchUser).isNotNull();
             assertThat(passwordEncoder.matches(user.getPassword(), fetchUser.getPassword())).isTrue();
         }
     }
 
     @Nested
-    @DisplayName("POST /api/v1/users/all (save multiple)")
+    @DisplayName("POST /api/v1/users/all")
     class SaveAllUsersTests {
         @Test
         @DisplayName("creates multiple users")
-        void saveAll_createsUsers() {
+        void saveAll_success_createsUsers() {
             var firstUser = new UserDTO();
             firstUser.setUsername(RandomStringUtils.secure().nextAlphabetic(10));
-            firstUser.setEmail("%s@%s.%s".formatted(RandomStringUtils.secure().nextAlphabetic(10),
+            firstUser.setEmail("%s@%s.%s".formatted(
+                    RandomStringUtils.secure().nextAlphabetic(10),
                     RandomStringUtils.secure().nextAlphabetic(5),
                     RandomStringUtils.secure().nextAlphabetic(3)));
             firstUser.setRole(UserRole.MANAGER.name());
@@ -262,7 +257,8 @@ class UserControllerIT extends AbstractIT {
 
             var otherUser = new UserDTO();
             otherUser.setUsername(RandomStringUtils.secure().nextAlphabetic(10));
-            otherUser.setEmail("%s@%s.%s".formatted(RandomStringUtils.secure().nextAlphabetic(10),
+            otherUser.setEmail("%s@%s.%s".formatted(
+                    RandomStringUtils.secure().nextAlphabetic(10),
                     RandomStringUtils.secure().nextAlphabetic(5),
                     RandomStringUtils.secure().nextAlphabetic(3)));
             otherUser.setRole(UserRole.MANAGER.name());
@@ -270,7 +266,8 @@ class UserControllerIT extends AbstractIT {
             otherUser.setTimezone("UTC");
             otherUser.setPassword(RandomStringUtils.secure().nextAlphanumeric(13));
 
-            ResponseEntity<List<User>> response = restClient.exchange("/api/v1/users/all",
+            ResponseEntity<List<User>> response = restClient.exchange(
+                    "/api/v1/users/all",
                     HttpMethod.POST,
                     new HttpEntity<>(List.of(firstUser, otherUser), authenticationHeaders),
                     new ParameterizedTypeReference<>() {
@@ -300,15 +297,14 @@ class UserControllerIT extends AbstractIT {
             assertThat(savedSecond.getTimezone()).isEqualTo("UTC");
             assertThat(passwordEncoder.matches(otherUser.getPassword(), savedSecond.getPassword())).isTrue();
         }
-
     }
 
     @Nested
-    @DisplayName("PUT /api/v1/users (update single)")
+    @DisplayName("PUT /api/v1/users")
     class UpdateUserTests {
         @Test
         @DisplayName("updates role, status, timezone, and password")
-        void update_updatesSingle() {
+        void update_success_updatesSingle() {
             var actualUser = userRepository.save(User.builder()
                     .username(RandomStringUtils.secure().nextAlphabetic(10))
                     .email("%s@%s.%s".formatted(
@@ -333,12 +329,15 @@ class UserControllerIT extends AbstractIT {
                     .password(RandomStringUtils.secure().nextAlphanumeric(13))
                     .build();
 
-            ResponseEntity<User> response = restClient.exchange("/api/v1/users", HttpMethod.PUT, new HttpEntity<>(user, authenticationHeaders), User.class);
+            ResponseEntity<User> response = restClient.exchange(
+                    "/api/v1/users",
+                    HttpMethod.PUT,
+                    new HttpEntity<>(user, authenticationHeaders),
+                    User.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             User result = userRepository.findUserByUsername(user.getUsername());
-
             assertThat(result).isNotNull();
             assertThat(result.getRole().name()).isEqualTo(user.getRole());
             assertThat(result.getStatus().name()).isEqualTo(user.getStatus());
@@ -348,11 +347,11 @@ class UserControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("PUT /api/v1/users/all (update multiple)")
+    @DisplayName("PUT /api/v1/users/all")
     class UpdateAllUsersTests {
         @Test
         @DisplayName("updates multiple users with random data and returns ordered results; persists changes")
-        void updateMultipleUsers_persistsAndReturnsOrderedResults() {
+        void updateAll_success_persistsAndReturnsOrderedResults() {
             String firstUsername = RandomStringUtils.secure().nextAlphabetic(10);
             String secondUsername = RandomStringUtils.secure().nextAlphabetic(10);
 
@@ -404,8 +403,7 @@ class UserControllerIT extends AbstractIT {
                     HttpMethod.PUT,
                     new HttpEntity<>(List.of(firstUpdateDto, secondUpdateDto), authenticationHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
 
             assertThat(updateResponse.getStatusCode().is2xxSuccessful()).isTrue();
 
@@ -438,7 +436,5 @@ class UserControllerIT extends AbstractIT {
             assertThat(secondUserAfterUpdate.getTimezone()).isEqualTo("Europe/Kyiv");
             assertThat(passwordEncoder.matches(secondNewPlainPassword, secondUserAfterUpdate.getPassword())).isTrue();
         }
-
     }
 }
-

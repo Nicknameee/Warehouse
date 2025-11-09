@@ -36,20 +36,17 @@ class ResourcesControllerIT extends AbstractIT {
     }
 
     private ResponseEntity<List<String>> getAsStringList(String url) {
-        return restClient.exchange(
-                url,
+        return restClient.exchange(url,
                 HttpMethod.GET,
                 new HttpEntity<>(basicAuthHeaders()),
-                new ParameterizedTypeReference<>() {
-                });
+                new ParameterizedTypeReference<>() {});
     }
 
     private <T> ResponseEntity<T> get(String url, Class<T> type) {
         return restClient.exchange(url,
                 HttpMethod.GET,
                 new HttpEntity<>(basicAuthHeaders()),
-                type
-        );
+                type);
     }
 
     @Nested
@@ -58,108 +55,85 @@ class ResourcesControllerIT extends AbstractIT {
         @Test
         void userRoles_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/userRoles");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).containsExactlyElementsOf(enumNames(UserRole.values()));
         }
 
         @Test
         void userStatuses_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/userStatuses");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(UserStatus.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(UserStatus.values()));
         }
 
         @Test
         void securityType_exact() {
             ResponseEntity<String> response = get("/vars/securityType", String.class);
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .isEqualTo(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isEqualTo(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE);
         }
 
         @Test
         void cardTypes_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/cardTypes");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(CardType.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(CardType.values()));
         }
 
         @Test
         void currencies_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/currencies");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(Currency.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(Currency.values()));
         }
 
         @Test
         void paymentProviders_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/paymentProviders");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(PaymentProvider.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(PaymentProvider.values()));
         }
 
         @Test
         void shipmentDirections_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/shipmentDirections");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(ShipmentDirection.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(ShipmentDirection.values()));
         }
 
         @Test
         void shipmentStatuses_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/shipmentStatuses");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(ShipmentStatus.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(ShipmentStatus.values()));
         }
 
         @Test
         void stockItemStatuses_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/stockItemStatuses");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(StockItemStatus.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(StockItemStatus.values()));
         }
 
         @Test
         void transactionFlowTypes_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/transactionFlowTypes");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(TransactionFlowType.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(TransactionFlowType.values()));
         }
 
         @Test
         void transactionPurposes_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/transactionPurposes");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(TransactionPurpose.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(TransactionPurpose.values()));
         }
 
         @Test
         void transactionStatuses_exact() {
             ResponseEntity<List<String>> response = getAsStringList("/vars/transactionStatuses");
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .containsExactlyElementsOf(enumNames(TransactionStatus.values()));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsExactlyElementsOf(enumNames(TransactionStatus.values()));
         }
     }
 }
