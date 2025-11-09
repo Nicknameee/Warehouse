@@ -22,16 +22,10 @@ public class ApplicationSecurityActuatorConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(Customizer.withDefaults())
                 .addFilterBefore(authorizationBasicRequestFilter, BasicAuthenticationFilter.class)
-                .authorizeHttpRequests(
-                        auth ->
-                                auth.requestMatchers("/actuator/**")
-                                        .hasAnyRole("MONITOR", "DISCOVERY", "USER")
-                                        .anyRequest()
-                                        .denyAll());
+                .authorizeHttpRequests(authentication -> authentication.anyRequest().authenticated());
 
         return http.build();
     }

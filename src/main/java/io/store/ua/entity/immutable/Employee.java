@@ -1,7 +1,7 @@
 package io.store.ua.entity.immutable;
 
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,10 +26,10 @@ public class Employee {
     private String email;
     @Column(nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private UserRole role;
     @Column(nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private UserStatus status;
     @Column(nullable = false, updatable = false)
     private String timezone;
 

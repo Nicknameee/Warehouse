@@ -46,7 +46,7 @@ public class Transaction {
     private BigInteger amount;
     @Column(nullable = false)
     private String currency;
-    @Column(name = "beneficiary_id", updatable = false)
+    @Column(name = "beneficiary_id", nullable = false, updatable = false)
     private Long beneficiaryId;
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "external_references", columnDefinition = "json")

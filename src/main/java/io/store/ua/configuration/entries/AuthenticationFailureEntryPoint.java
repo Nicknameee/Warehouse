@@ -19,17 +19,13 @@ public class AuthenticationFailureEntryPoint implements AuthenticationEntryPoint
     @Override
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
-                         AuthenticationException authException)
-            throws IOException {
-        log.warn(authException.getMessage());
+                         AuthenticationException exception) throws IOException {
+        log.error(exception.getMessage());
 
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response
-                .getWriter()
-                .write(
-                        RegularObjectMapper.writeToString(new RegularAuthenticationException(authException.getMessage())));
+        response.getWriter().write(RegularObjectMapper.writeToString(new RegularAuthenticationException(exception.getMessage())));
         response.getWriter().flush();
     }
 }

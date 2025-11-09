@@ -1,6 +1,6 @@
 package io.store.ua.models.dto;
 
-import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserActionResultDTO {
-    private RegularUser regularUser;
+    private User user;
     private Boolean success;
     private Throwable error;
 }

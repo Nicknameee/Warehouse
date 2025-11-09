@@ -2,8 +2,8 @@ package io.store.ua.entity;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +26,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegularUser implements UserDetails {
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,10 +42,10 @@ public class RegularUser implements UserDetails {
     private ZonedDateTime logoutTime;
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private UserRole role;
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private UserStatus status;
     @Column(name = "timezone", nullable = false)
     private String timezone;
 
@@ -70,25 +70,25 @@ public class RegularUser implements UserDetails {
     @JsonIgnore
     @Override
     public boolean isAccountNonExpired() {
-        return status == Status.ACTIVE;
+        return status == UserStatus.ACTIVE;
     }
 
     @JsonIgnore
     @Override
     public boolean isAccountNonLocked() {
-        return status == Status.ACTIVE;
+        return status == UserStatus.ACTIVE;
     }
 
     @JsonIgnore
     @Override
     public boolean isCredentialsNonExpired() {
-        return status == Status.ACTIVE;
+        return status == UserStatus.ACTIVE;
     }
 
     @JsonIgnore
     @Override
     public boolean isEnabled() {
-        return status == Status.ACTIVE;
+        return status == UserStatus.ACTIVE;
     }
 
     @JsonGetter("loginTime")

@@ -27,8 +27,7 @@ public class ApplicationCrossOriginFilter implements Filter {
         String requestURI = httpRequest.getRequestURI();
         String originHeader = httpRequest.getHeader(HttpHeaders.ORIGIN);
 
-        httpResponse.setHeader(
-                HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
+        httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
                 "%s, %s, %s, %s, %s"
                         .formatted(
                                 HttpMethod.GET.name(),
@@ -36,20 +35,18 @@ public class ApplicationCrossOriginFilter implements Filter {
                                 HttpMethod.PUT.name(),
                                 HttpMethod.DELETE.name(),
                                 HttpMethod.OPTIONS.name()));
-        httpResponse.setHeader(
-                HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+        httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
                 "%s, %s".formatted(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE));
-        httpResponse.setHeader(
-                HttpHeaders.ACCESS_CONTROL_MAX_AGE, String.valueOf(Duration.ofHours(1L).toSeconds()));
+        httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, String.valueOf(Duration.ofHours(1L).toSeconds()));
 
-        if (requestURI.startsWith("/stomp") && originHeader != null) {
+        if (requestURI.startsWith("/socket") && originHeader != null) {
             httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, originHeader);
             httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
         } else {
             httpResponse.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         }
 
-        if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
+        if (HttpMethod.OPTIONS.name().equalsIgnoreCase(httpRequest.getMethod())) {
             httpResponse.setStatus(HttpServletResponse.SC_OK);
         } else {
             chain.doFilter(request, response);

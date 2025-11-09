@@ -1,8 +1,8 @@
 package io.store.ua.service;
 
-import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.User;
 import io.store.ua.entity.Warehouse;
-import io.store.ua.enums.Role;
+import io.store.ua.enums.UserRole;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.WarehouseDTO;
@@ -50,16 +50,16 @@ public class WarehouseService {
                 .address(warehouseDTO.getAddress())
                 .workingHours(warehouseDTO.getWorkingHours())
                 .phones(warehouseDTO.getPhones())
-                .managerId(RegularUserService.getCurrentlyAuthenticatedUserID())
+                .managerId(UserService.getCurrentlyAuthenticatedUserID())
                 .isActive(warehouseDTO.getIsActive()).build()));
     }
 
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public Warehouse update(WarehouseDTO warehouseDTO) {
-        RegularUser regularUser =
-                RegularUserService.getCurrentlyAuthenticatedUser()
-                        .filter(user -> List.of(Role.OWNER, Role.MANAGER).contains(user.getRole()))
-                        .orElseThrow(() -> new BusinessException("Action is allowed for [%s] only".formatted(List.of(Role.OWNER, Role.MANAGER))));
+        User user =
+                UserService.getCurrentlyAuthenticatedUser()
+                        .filter(authentication -> List.of(UserRole.OWNER, UserRole.MANAGER).contains(authentication.getRole()))
+                        .orElseThrow(() -> new BusinessException("Action is allowed for [%s] only".formatted(List.of(UserRole.OWNER, UserRole.MANAGER))));
 
         fieldValidator.validateObject(warehouseDTO, WarehouseDTO.Fields.code, true);
         Warehouse warehouse =
@@ -88,10 +88,10 @@ public class WarehouseService {
         }
 
         if (warehouseDTO.getManagerId() != null) {
-            if (regularUser.getRole().equals(Role.OWNER)) {
+            if (user.getRole().equals(UserRole.OWNER)) {
                 warehouse.setManagerId(warehouseDTO.getManagerId());
             } else {
-                throw new BusinessException("Updating manager for warehouse is allowed for %s only".formatted(Role.OWNER.name()));
+                throw new BusinessException("Updating manager for warehouse is allowed for %s only".formatted(UserRole.OWNER.name()));
             }
         }
 

@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,11 +41,11 @@ class StorageSectionServiceIT extends AbstractIT {
     }
 
     private List<StorageSection> generateSections(long warehouseId, int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(ignore -> StorageSection.builder()
+        return Stream.generate(() -> StorageSection.builder()
                         .warehouseId(warehouseId)
                         .code(RandomStringUtils.secure().nextAlphanumeric(8))
                         .build())
+                .limit(count)
                 .toList();
     }
 

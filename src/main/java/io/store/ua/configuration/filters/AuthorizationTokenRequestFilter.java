@@ -30,14 +30,12 @@ public class AuthorizationTokenRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain chain)
-            throws ServletException, IOException {
+                                    @NonNull FilterChain chain) throws ServletException, IOException {
         String authorizationHeaderValue = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (authorizationHeaderValue != null && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE))) {
-            String authorizationToken =
-                    authorizationHeaderValue.substring(
-                            UserSecurityStrategyService.USER_AUTHENTICATION_TYPE.length() + 1);
+        if (authorizationHeaderValue != null
+                && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE))) {
+            String authorizationToken = authorizationHeaderValue.substring(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE.length() + 1);
             try {
                 String username = authenticationService.getUsernameFromToken(authorizationToken);
 

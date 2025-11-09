@@ -1,7 +1,7 @@
 package io.store.ua.configuration;
 
 import io.store.ua.configuration.provider.UserAuthenticationProvider;
-import io.store.ua.service.security.RegularUserDetailsService;
+import io.store.ua.service.security.UserDetailsSecurityService;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,7 +21,7 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 import java.util.List;
 
 @Configuration
-public class                                                                                                                                                                                                       ApplicationCentralSecurityConfiguration {
+public class ApplicationCentralSecurityConfiguration {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
@@ -34,12 +34,11 @@ public class                                                                    
 
     @Bean
     public AuthenticationManager authenticationManager(
-            RegularUserDetailsService regularUserDetailsService,
+            UserDetailsSecurityService userDetailsSecurityService,
             PasswordEncoder passwordEncoder,
             InMemoryUserDetailsManager basicUserDetailsService) {
-        return new ProviderManager(
-                List.of(
-                        new UserAuthenticationProvider(regularUserDetailsService, passwordEncoder),
+        return new ProviderManager(List.of(
+                        new UserAuthenticationProvider(userDetailsSecurityService, passwordEncoder),
                         new DaoAuthenticationProvider(basicUserDetailsService)));
     }
 
@@ -49,8 +48,7 @@ public class                                                                    
     }
 
     @Bean
-    public InMemoryUserDetailsManager basicUserDetailsService(
-            @Qualifier("defaultUser") SpringSecurityUser defaultUser) {
+    public InMemoryUserDetailsManager basicUserDetailsService(@Qualifier("defaultUser") SpringSecurityUser defaultUser) {
         return new InMemoryUserDetailsManager(
                 User.withUsername(defaultUser.getName())
                         .password(defaultUser.getPassword())

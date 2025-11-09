@@ -28,6 +28,7 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
             throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
+
         if (request.getRequestURI().equals("/logout")) {
             String authorizationHeaderValue = request.getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -36,8 +37,7 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
                 String username = authenticationService.getUsernameFromToken(authorizationToken);
                 UserDetails userDetails = authenticationService.loadUserByUsername(username);
 
-                if (authorizationToken.isEmpty()
-                        || !authenticationService.validateToken(authorizationToken, userDetails, request)) {
+                if (authorizationToken.isEmpty() || !authenticationService.validateToken(authorizationToken, userDetails, request)) {
                     processNonAuthenticatedExceptionResponse((HttpServletResponse) servletResponse);
                 }
             } else {
@@ -48,8 +48,7 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
         filterChain.doFilter(servletRequest, servletResponse);
     }
 
-    private void processNonAuthenticatedExceptionResponse(HttpServletResponse servletResponse)
-            throws IOException {
+    private void processNonAuthenticatedExceptionResponse(HttpServletResponse servletResponse) throws IOException {
         servletResponse.setContentType("application/json");
         servletResponse.setCharacterEncoding(StandardCharsets.UTF_8.name());
         servletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());

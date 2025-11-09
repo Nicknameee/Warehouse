@@ -1,6 +1,6 @@
 package io.store.ua.enums;
 
-public enum Status {
+public enum UserStatus {
     ACTIVE,
     INACTIVE;
 

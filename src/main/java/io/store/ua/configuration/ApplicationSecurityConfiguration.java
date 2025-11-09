@@ -17,21 +17,18 @@ public class ApplicationSecurityConfiguration {
 
     @Bean
     public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/serve/**", "/login")
+        http.securityMatcher("/socket/**", "/login")
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(
-                        auth ->
-                                auth.requestMatchers(HttpMethod.POST, "/login")
-                                        .permitAll()
-                                        .requestMatchers("/serve/**")
-                                        .permitAll()
-                                        .anyRequest()
-                                        .denyAll())
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationFailureEntryPoint));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authentication -> authentication.requestMatchers(HttpMethod.POST, "/login")
+                        .permitAll()
+                        .requestMatchers("/socket/**")
+                        .permitAll()
+                        .anyRequest()
+                        .denyAll())
+                .exceptionHandling(configurer -> configurer.authenticationEntryPoint(authenticationFailureEntryPoint));
 
         return http.build();
     }

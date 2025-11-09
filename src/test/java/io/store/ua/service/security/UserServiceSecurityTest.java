@@ -1,10 +1,10 @@
 package io.store.ua.service.security;
 
-import io.store.ua.entity.RegularUser;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.entity.User;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import io.store.ua.exceptions.RegularAuthenticationException;
-import io.store.ua.service.RegularUserService;
+import io.store.ua.service.UserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
-class RegularUserServiceSecurityTest {
+class UserServiceSecurityTest {
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
@@ -32,16 +32,16 @@ class RegularUserServiceSecurityTest {
         @Test
         @DisplayName("getCurrentlyAuthenticatedUser_success: returns user when principal is RegularUser and authentication is authenticated")
         void getCurrentlyAuthenticatedUser_success() {
-            var user = RegularUser.builder()
+            var user = User.builder()
                     .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                    .role(Role.MANAGER)
-                    .status(Status.ACTIVE)
+                    .role(UserRole.MANAGER)
+                    .status(UserStatus.ACTIVE)
                     .build();
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
             SecurityContextHolder.setContext(securityContext);
 
-            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+            Optional<User> result = UserService.getCurrentlyAuthenticatedUser();
 
             assertThat(result).isPresent();
             assertThat(result.get().getUsername()).isEqualTo(user.getUsername());
@@ -56,7 +56,7 @@ class RegularUserServiceSecurityTest {
             securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(null, null, null));
             SecurityContextHolder.setContext(securityContext);
 
-            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+            Optional<User> result = UserService.getCurrentlyAuthenticatedUser();
 
             assertThat(result).isEmpty();
         }
@@ -70,7 +70,7 @@ class RegularUserServiceSecurityTest {
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
 
-            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+            Optional<User> result = UserService.getCurrentlyAuthenticatedUser();
 
             assertThat(result).isEmpty();
         }
@@ -80,7 +80,7 @@ class RegularUserServiceSecurityTest {
         void getCurrentlyAuthenticatedUser_fail_returnsEmpty_whenNoAuthentication() {
             SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
 
-            Optional<RegularUser> result = RegularUserService.getCurrentlyAuthenticatedUser();
+            Optional<User> result = UserService.getCurrentlyAuthenticatedUser();
 
             assertThat(result).isEmpty();
         }
@@ -92,26 +92,26 @@ class RegularUserServiceSecurityTest {
         @Test
         @DisplayName("assertAuthenticatedUserRoles: does not throw when user's role is in the allowed list")
         void assertAuthenticatedUserRoles_success() {
-            var user = RegularUser.builder()
+            var user = User.builder()
                     .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                    .role(Role.MANAGER)
-                    .status(Status.ACTIVE)
+                    .role(UserRole.MANAGER)
+                    .status(UserStatus.ACTIVE)
                     .build();
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
             SecurityContextHolder.setContext(securityContext);
 
-            assertThatCode(() -> RegularUserService.assertAuthenticatedUserRoles(List.of(Role.OPERATOR, Role.MANAGER)))
+            assertThatCode(() -> UserService.assertAuthenticatedUserRoles(List.of(UserRole.OPERATOR, UserRole.MANAGER)))
                     .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("assertAuthenticatedUserRoles: throws BusinessException when user's role is not in the allowed list")
         void assertAuthenticatedUserRoles_fail_whenRoleNotAllowed() {
-            var user = RegularUser.builder()
+            var user = User.builder()
                     .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                    .role(Role.OPERATOR)
-                    .status(Status.ACTIVE)
+                    .role(UserRole.OPERATOR)
+                    .status(UserStatus.ACTIVE)
                     .build();
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
@@ -119,7 +119,7 @@ class RegularUserServiceSecurityTest {
             SecurityContextHolder.setContext(securityContext);
 
             assertThatThrownBy(() ->
-                    RegularUserService.assertAuthenticatedUserRoles(List.of(Role.MANAGER, Role.OWNER))
+                    UserService.assertAuthenticatedUserRoles(List.of(UserRole.MANAGER, UserRole.OWNER))
             ).isInstanceOf(RegularAuthenticationException.class)
                     .hasMessageContaining("User role has to be one of");
         }
@@ -130,7 +130,7 @@ class RegularUserServiceSecurityTest {
             SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
 
             assertThatThrownBy(() ->
-                    RegularUserService.assertAuthenticatedUserRoles(List.of(Role.MANAGER))
+                    UserService.assertAuthenticatedUserRoles(List.of(UserRole.MANAGER))
             ).isInstanceOf(RegularAuthenticationException.class)
                     .hasMessageContaining("User role has to be one of");
         }

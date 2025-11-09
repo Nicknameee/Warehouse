@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import okhttp3.FormBody;
 import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -39,7 +38,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 
 @Service
-@Profile("external")
 @RequiredArgsConstructor
 @Validated
 public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService {

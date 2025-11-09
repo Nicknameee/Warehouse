@@ -39,27 +39,19 @@ public class AuthorizationBasicRequestFilter extends OncePerRequestFilter {
             try {
                 String[] credentials = extractAndDecodeHeader(authorizationToken);
 
-                if (!credentials[0].isEmpty()
-                        && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (!credentials[0].isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = basicUserDetailsService.loadUserByUsername(credentials[0]);
 
                     if (userDetails.getPassword().equals(credentials[1])) {
                         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
-                                new UsernamePasswordAuthenticationToken(
-                                        userDetails, null, userDetails.getAuthorities());
-                        usernamePasswordAuthenticationToken.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext()
-                                .setAuthentication(usernamePasswordAuthenticationToken);
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
                     } else {
                         response.setContentType("application/json");
                         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response
-                                .getWriter()
-                                .write(
-                                        RegularObjectMapper.writeToString(
-                                                new RegularAuthenticationException("Invalid credentials")));
+                        response.getWriter().write(RegularObjectMapper.writeToString(new RegularAuthenticationException("Invalid credentials")));
                         response.getWriter().flush();
                     }
                 }

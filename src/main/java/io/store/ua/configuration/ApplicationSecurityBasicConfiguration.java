@@ -26,9 +26,8 @@ public class ApplicationSecurityBasicConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authentication -> authentication.anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .addFilterBefore(authorizationBasicRequestFilter, BasicAuthenticationFilter.class)
                 .userDetailsService(basicUserDetailsService)

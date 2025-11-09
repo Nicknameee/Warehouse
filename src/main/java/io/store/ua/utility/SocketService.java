@@ -1,13 +1,13 @@
 package io.store.ua.utility;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@Profile("rabbitmq")
+@ConditionalOnProperty(name = "spring.rabbitmq.host")
 public class SocketService {
     private final SimpMessagingTemplate messagingTemplate;
 

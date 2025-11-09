@@ -1,9 +1,9 @@
 package io.store.ua;
 
 import io.store.ua.entity.*;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
 import io.store.ua.enums.StockItemStatus;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.data.WorkingHours;
 import io.store.ua.models.dto.WarehouseDTO;
@@ -40,20 +40,20 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-@SpringBootTest(classes = io.store.ua.WarehouseStarter.class)
-@ActiveProfiles({"actuator", "database", "users", "redis", "external", "default"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default"})
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnableRetry
-@WithUserDetails(value = AbstractIT.OWNER, userDetailsServiceBeanName = "regularUserDetailsService", setupBefore = TestExecutionEvent.TEST_EXECUTION)
+@WithUserDetails(value = AbstractIT.OWNER, userDetailsServiceBeanName = "userDetailsSecurityService", setupBefore = TestExecutionEvent.TEST_EXECUTION)
 public abstract class AbstractIT {
     public static final String OWNER = "owner";
 
     @ServiceConnection
     protected static final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withConnectTimeoutSeconds(1)
-                    .withStartupTimeoutSeconds(10);
+                    .withConnectTimeoutSeconds(5)
+                    .withStartupTimeoutSeconds(30);
 
     @ServiceConnection
     protected static final GenericContainer<?> redis =
@@ -74,7 +74,7 @@ public abstract class AbstractIT {
     @Autowired
     protected ProductRepository productRepository;
     @Autowired
-    protected RegularUserRepository userRepository;
+    protected UserRepository userRepository;
     @Autowired
     protected StockItemGroupRepository stockItemGroupRepository;
     @Autowired
@@ -98,7 +98,7 @@ public abstract class AbstractIT {
     @MockitoBean
     protected CloudinaryAPIService cloudinaryAPIService;
 
-    protected RegularUser user;
+    protected User user;
 
     @BeforeAll
     void setUp() {
@@ -139,7 +139,7 @@ public abstract class AbstractIT {
         currencyRateRepository.deleteAll();
 
         if (!userRepository.existsByUsername(OWNER)) {
-            user = userRepository.save(RegularUser.builder()
+            user = userRepository.save(User.builder()
                     .username(OWNER)
                     .password(passwordEncoder.encode(RandomStringUtils.secure().nextAlphanumeric(64)))
                     .email(String.format(
@@ -148,8 +148,8 @@ public abstract class AbstractIT {
                             RandomStringUtils.secure().nextAlphabetic(6).toLowerCase(),
                             RandomStringUtils.secure().nextAlphabetic(3).toLowerCase()
                     ))
-                    .role(Role.OWNER)
-                    .status(Status.ACTIVE)
+                    .role(UserRole.OWNER)
+                    .status(UserStatus.ACTIVE)
                     .timezone("UTC")
                     .build());
         }

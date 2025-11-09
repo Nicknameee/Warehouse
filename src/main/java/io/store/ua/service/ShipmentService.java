@@ -48,7 +48,7 @@ public class ShipmentService {
 
         Shipment.ShipmentBuilder shipmentBuilder = Shipment.builder();
         shipmentBuilder.code(CodeGenerator.ShipmentCodeGenerator.generate());
-        shipmentBuilder.initiatorId(RegularUserService.getCurrentlyAuthenticatedUserID());
+        shipmentBuilder.initiatorId(UserService.getCurrentlyAuthenticatedUserID());
 
         if (StringUtils.isNoneBlank(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode())) {
             fieldValidator.validate(shipmentDTO, true, ShipmentDTO.Fields.senderCode, ShipmentDTO.Fields.recipientCode);

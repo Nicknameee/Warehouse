@@ -1,11 +1,20 @@
 package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
+import io.store.ua.entity.Beneficiary;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.StockItem;
+import io.store.ua.entity.Transaction;
 import io.store.ua.entity.immutable.StockItemHistory;
+import io.store.ua.enums.PaymentProvider;
+import io.store.ua.enums.TransactionFlowType;
+import io.store.ua.enums.TransactionPurpose;
+import io.store.ua.enums.TransactionStatus;
+import io.store.ua.models.data.BeneficiaryFinancialFlowStatistic;
+import io.store.ua.models.data.FinancialStatistic;
 import io.store.ua.models.data.ItemSellingStatistic;
 import jakarta.validation.ConstraintViolationException;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +39,7 @@ class AnalyticsServiceIT extends AbstractIT {
     private Product product;
     private StockItem stockItem;
     private StockItem otherStockItem;
-
+    private Beneficiary beneficiary;
 
     private static BigInteger calculateQuantity(List<ItemSellingStatistic> statistics) {
         return statistics.stream()
@@ -58,12 +68,47 @@ class AnalyticsServiceIT extends AbstractIT {
         return expectedQuantity(history).multiply(price == null ? BigInteger.ZERO : price);
     }
 
+    private static FinancialStatistic findByCurrency(BeneficiaryFinancialFlowStatistic statistic, String currency) {
+        return statistic.getFinancialStatistic().stream()
+                .filter(financialStatistic -> currency.equals(financialStatistic.getCurrency()))
+                .findFirst()
+                .orElse(null);
+    }
+
     private StockItemHistory insertHistoryRow(Long stockItemId, BigInteger quantityBefore, BigInteger quantityAfter) {
         return stockItemHistoryRepository.save(StockItemHistory.builder()
                 .stockItemId(stockItemId)
                 .currentProductPrice(product.getPrice())
                 .quantityBefore(quantityBefore)
                 .quantityAfter(quantityAfter)
+                .build());
+    }
+
+    @BeforeEach
+    void setupBeneficiary() {
+        beneficiary = beneficiaryRepository.save(Beneficiary.builder()
+                .name(RandomStringUtils.secure().nextAlphabetic(10))
+                .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
+                .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
+                .card(RandomStringUtils.secure().nextNumeric(16))
+                .isActive(true)
+                .build());
+    }
+
+    private Transaction generateTransaction(Long beneficiaryId,
+                                            String currency,
+                                            BigInteger amount,
+                                            TransactionFlowType flow) {
+        return transactionRepository.save(Transaction.builder()
+                .transactionId(UUID.randomUUID().toString())
+                .reference(UUID.randomUUID().toString())
+                .flowType(flow)
+                .purpose(TransactionPurpose.STOCK_OUTBOUND_REVENUE)
+                .status(TransactionStatus.SETTLED)
+                .amount(amount)
+                .currency(currency)
+                .beneficiaryId(beneficiaryId)
+                .paymentProvider(PaymentProvider.CASH)
                 .build());
     }
 
@@ -78,7 +123,7 @@ class AnalyticsServiceIT extends AbstractIT {
 
     @Nested
     @DisplayName("fetchItemSellingStatistic(stockItemId, from, to, pageSize, page)")
-    class FetchTests {
+    class FetchItemSellingStatisticTests {
         @Test
         @DisplayName("success_daily_aggregation")
         void success_daily_aggregation() {
@@ -200,6 +245,111 @@ class AnalyticsServiceIT extends AbstractIT {
                     10,
                     page))
                     .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("")
+    class FetchBeneficiaryFinancialStatisticTest {
+        @Test
+        @DisplayName("calculates_totals_per_currency_for_beneficiary")
+        void calculates_totals_per_currency_for_beneficiary() {
+            List<Transaction> usdTx = List.of(
+                    generateTransaction(beneficiary.getId(), "USD", BigInteger.valueOf(100), TransactionFlowType.DEBIT),
+                    generateTransaction(beneficiary.getId(), "USD", BigInteger.valueOf(200), TransactionFlowType.DEBIT),
+                    generateTransaction(beneficiary.getId(), "USD", BigInteger.valueOf(50), TransactionFlowType.CREDIT),
+                    generateTransaction(beneficiary.getId(), "USD", BigInteger.valueOf(30), TransactionFlowType.CREDIT)
+            );
+
+            List<Transaction> eurTx = List.of(
+                    generateTransaction(beneficiary.getId(), "EUR", BigInteger.valueOf(70), TransactionFlowType.DEBIT),
+                    generateTransaction(beneficiary.getId(), "EUR", BigInteger.valueOf(10), TransactionFlowType.DEBIT),
+                    generateTransaction(beneficiary.getId(), "EUR", BigInteger.valueOf(25), TransactionFlowType.CREDIT)
+            );
+
+            List<Transaction> uahTx = List.of(
+                    generateTransaction(beneficiary.getId(), "UAH", BigInteger.valueOf(40), TransactionFlowType.CREDIT),
+                    generateTransaction(beneficiary.getId(), "UAH", BigInteger.valueOf(60), TransactionFlowType.CREDIT)
+            );
+
+            var statistic = analyticsService.fetchBeneficiaryFinancialStatistic(
+                    beneficiary.getId(), null, null, 100, 1);
+
+            assertThat(statistic).isNotNull();
+            assertThat(statistic.getBeneficiary()).isNotNull();
+            assertThat(statistic.getBeneficiary().getId()).isEqualTo(beneficiary.getId());
+            assertThat(statistic.getFinancialStatistic()).hasSize(3);
+
+            var usdExpectedDebit = usdTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.DEBIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var usdExpectedCredit = usdTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.CREDIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var eurExpectedDebit = eurTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.DEBIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var eurExpectedCredit = eurTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.CREDIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var uahExpectedDebit = uahTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.DEBIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var uahExpectedCredit = uahTx.stream()
+                    .filter(t -> t.getFlowType() == TransactionFlowType.CREDIT)
+                    .map(Transaction::getAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            var usd = findByCurrency(statistic, "USD");
+            var eur = findByCurrency(statistic, "EUR");
+            var uah = findByCurrency(statistic, "UAH");
+
+            assertThat(usd).isNotNull();
+            assertThat(usd.getTotalDebit()).isEqualTo(usdExpectedDebit);
+            assertThat(usd.getTotalCredit()).isEqualTo(usdExpectedCredit);
+
+            assertThat(eur).isNotNull();
+            assertThat(eur.getTotalDebit()).isEqualTo(eurExpectedDebit);
+            assertThat(eur.getTotalCredit()).isEqualTo(eurExpectedCredit);
+
+            assertThat(uah).isNotNull();
+            assertThat(uah.getTotalDebit()).isEqualTo(uahExpectedDebit);
+            assertThat(uah.getTotalCredit()).isEqualTo(uahExpectedCredit);
+        }
+
+        @ParameterizedTest(name = "fail_invalid_pageSize={0}")
+        @ValueSource(ints = {0, -1})
+        void fail_invalid_pageSize(int pageSize) {
+            assertThatThrownBy(() -> analyticsService.fetchBeneficiaryFinancialStatistic(
+                    beneficiary.getId(), null, null, pageSize, 1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "fail_invalid_page={0}")
+        @ValueSource(ints = {0, -1})
+        void fail_invalid_page(int page) {
+            assertThatThrownBy(() -> analyticsService.fetchBeneficiaryFinancialStatistic(
+                    beneficiary.getId(), null, null, 10, page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @Test
+        @DisplayName("fail_from_after_to")
+        void fail_from_after_to() {
+            assertThatThrownBy(() -> analyticsService.fetchBeneficiaryFinancialStatistic(
+                    beneficiary.getId(), LocalDate.now().plusDays(1), LocalDate.now(), 10, 1))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("'from' must not be after 'to'");
         }
     }
 }

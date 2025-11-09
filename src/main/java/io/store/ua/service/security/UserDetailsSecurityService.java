@@ -1,10 +1,9 @@
 package io.store.ua.service.security;
 
-import io.store.ua.service.RegularUserService;
+import io.store.ua.service.UserService;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,11 +13,10 @@ import org.springframework.validation.annotation.Validated;
 
 @Service
 @RequiredArgsConstructor
-@Profile("users")
 @Validated
 @PreAuthorize("permitAll()")
-public class RegularUserDetailsService implements UserDetailsService {
-    private final RegularUserService regularUserService;
+public class UserDetailsSecurityService implements UserDetailsService {
+    private final UserService userService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -26,7 +24,7 @@ public class RegularUserDetailsService implements UserDetailsService {
             throw new ValidationException("Username can't be blank");
         }
 
-        return regularUserService
+        return userService
                 .findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }

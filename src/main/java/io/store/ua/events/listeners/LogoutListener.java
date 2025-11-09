@@ -1,23 +1,21 @@
 package io.store.ua.events.listeners;
 
-import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.User;
 import io.store.ua.events.LogoutEvent;
-import io.store.ua.repository.RegularUserRepository;
+import io.store.ua.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@Profile("users")
 public class LogoutListener implements ApplicationListener<LogoutEvent> {
-  private final RegularUserRepository regularUserRepository;
+    private final UserRepository userRepository;
 
-  @Override
-  public void onApplicationEvent(LogoutEvent event) {
-    RegularUser userDetails = (RegularUser) event.getUserDetails();
+    @Override
+    public void onApplicationEvent(LogoutEvent event) {
+        User userDetails = (User) event.getUserDetails();
 
-    regularUserRepository.updateLogoutTime(userDetails.getId());
-  }
+        userRepository.updateLogoutTime(userDetails.getId());
+    }
 }

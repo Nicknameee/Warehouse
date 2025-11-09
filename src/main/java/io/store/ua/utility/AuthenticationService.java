@@ -8,13 +8,12 @@ import io.store.ua.events.LoginEvent;
 import io.store.ua.events.publishers.GenericEventPublisher;
 import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
-import io.store.ua.service.security.RegularUserDetailsService;
+import io.store.ua.service.security.UserDetailsSecurityService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,9 +38,8 @@ import java.util.function.Function;
 @Service
 @PropertySource("classpath:token.properties")
 @RequiredArgsConstructor
-@Profile("users")
 public class AuthenticationService {
-    private final RegularUserDetailsService userDetailsService;
+    private final UserDetailsSecurityService userDetailsService;
     private final GenericEventPublisher<LoginEvent> loginEventPublisher;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final AuthenticationManager authenticationManager;

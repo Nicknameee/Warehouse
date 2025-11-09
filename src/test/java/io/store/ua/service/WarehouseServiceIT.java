@@ -1,15 +1,14 @@
 package io.store.ua.service;
 
 import io.store.ua.AbstractIT;
-import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.User;
 import io.store.ua.entity.Warehouse;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.data.WorkingHours;
 import io.store.ua.models.dto.WarehouseDTO;
-import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -27,7 +26,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,25 +34,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WarehouseServiceIT extends AbstractIT {
     @Autowired
     private WarehouseService warehouseService;
-
-    protected List<Warehouse> generateWarehouses(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(ignore -> {
-                    WarehouseDTO warehouseDTO = buildWarehouseDTO();
-                    String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
-
-                    return Warehouse.builder()
-                            .code(code)
-                            .name(warehouseDTO.getName())
-                            .address(warehouseDTO.getAddress())
-                            .workingHours(warehouseDTO.getWorkingHours())
-                            .phones(warehouseDTO.getPhones())
-                            .managerId(user.getId())
-                            .isActive(Boolean.TRUE.equals(warehouseDTO.getIsActive()))
-                            .build();
-                })
-                .toList();
-    }
 
     @Nested
     @DisplayName("save(warehouse: WarehouseDTO)")
@@ -90,7 +70,7 @@ class WarehouseServiceIT extends AbstractIT {
         @ParameterizedTest(name = "findAll_success: returns a paged slice")
         @CsvSource({"1, 1", "3, 3", "5, 5"})
         void findAll_success(int pageSize, int page) {
-            var warehouses = warehouseRepository.saveAll(generateWarehouses(pageSize * page));
+            var warehouses = Stream.generate(WarehouseServiceIT.this::generateWarehouse).limit((long) pageSize * page).toList();
 
             var result = warehouseService.findAll(pageSize, page);
 
@@ -125,12 +105,12 @@ class WarehouseServiceIT extends AbstractIT {
         @DisplayName("findByCode_success: loads by code")
         @Transactional
         void findByCode_success() {
-            Warehouse w = warehouseRepository.saveAll(generateWarehouses(1)).getFirst();
+            Warehouse warehouse = generateWarehouse();
 
-            Warehouse found = warehouseService.findByCode(w.getCode());
+            Warehouse fetchWarehouse = warehouseService.findByCode(warehouse.getCode());
 
-            assertThat(found.getId()).isNotNull();
-            assertThat(found.getCode()).isEqualTo(w.getCode());
+            assertThat(fetchWarehouse.getId()).isNotNull();
+            assertThat(fetchWarehouse.getCode()).isEqualTo(warehouse.getCode());
         }
 
         @ParameterizedTest(name = "findByCode_fail_whenInvalidCode: ''{0}''")
@@ -214,12 +194,12 @@ class WarehouseServiceIT extends AbstractIT {
         @DisplayName("update_success: reassignWarehouseManagement=true sets current user as manager")
         void update_success_reassignManagement() {
             Warehouse result = warehouseService.save(buildWarehouseDTO());
-            var extraUser = userRepository.save(RegularUser.builder()
+            var extraUser = userRepository.save(User.builder()
                     .username(RandomStringUtils.secure().nextAlphanumeric(64))
                     .password(passwordEncoder.encode(RandomStringUtils.secure().nextAlphanumeric(64)))
                     .email(RandomStringUtils.secure().nextAlphanumeric(32))
-                    .role(Role.OWNER)
-                    .status(Status.ACTIVE)
+                    .role(UserRole.OWNER)
+                    .status(UserStatus.ACTIVE)
                     .timezone("UTC")
                     .build());
 
@@ -297,13 +277,13 @@ class WarehouseServiceIT extends AbstractIT {
         @Test
         @DisplayName("toggleState_success: flips isActive and persists")
         void toggleState_success() {
-            Warehouse warehouse = warehouseRepository.save(generateWarehouses(1).getFirst());
+            Warehouse warehouse = generateWarehouse();
 
-            Warehouse result = warehouseService.toggleState(warehouse.getCode());
+            Warehouse fetchWarehouse = warehouseService.toggleState(warehouse.getCode());
 
-            assertThat(result.getIsActive()).isEqualTo(!warehouse.getIsActive());
+            assertThat(fetchWarehouse.getIsActive()).isEqualTo(!warehouse.getIsActive());
             Warehouse reloaded = warehouseRepository.findByCode(warehouse.getCode()).orElseThrow();
-            assertThat(reloaded.getIsActive()).isEqualTo(result.getIsActive());
+            assertThat(reloaded.getIsActive()).isEqualTo(fetchWarehouse.getIsActive());
         }
 
         @Test

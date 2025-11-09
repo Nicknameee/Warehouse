@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,14 +36,12 @@ class StockItemGroupServiceIT extends AbstractIT {
     }
 
     private List<StockItemGroup> generateGroups(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(
-                        ignore ->
-                                StockItemGroup.builder()
-                                        .code(RandomStringUtils.secure().nextAlphanumeric(330))
-                                        .name(RandomStringUtils.secure().nextAlphanumeric(33))
-                                        .isActive(true)
-                                        .build())
+        return Stream.generate(() -> StockItemGroup.builder()
+                        .code(RandomStringUtils.secure().nextAlphanumeric(330))
+                        .name(RandomStringUtils.secure().nextAlphanumeric(33))
+                        .isActive(true)
+                        .build())
+                .limit(count)
                 .toList();
     }
 

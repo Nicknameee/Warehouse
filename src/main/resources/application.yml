@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:@$t0r@g0}
+    name: ${SPRING_APPLICATION_NAME:@@@@@}
 
   servlet:
     multipart:
@@ -14,7 +14,7 @@ spring:
     user:
       name: ${SPRING_SECURITY_USER_NAME:user}
       password: ${SPRING_SECURITY_USER_PASSWORD:user}
-      roles: USER
+      roles: INTERNAL
 
   jpa:
     show-sql: ${SPRING_JPA_SHOW_SQL:false}

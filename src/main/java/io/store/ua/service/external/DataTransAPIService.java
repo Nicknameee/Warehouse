@@ -28,7 +28,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -45,7 +44,6 @@ import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@Profile("external")
 @RequiredArgsConstructor
 @FieldNameConstants
 @Validated

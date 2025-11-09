@@ -1,6 +1,6 @@
 package io.store.ua.enums;
 
-public enum Role {
+public enum UserRole {
     OPERATOR,
     MANAGER,
     OWNER;

@@ -3,7 +3,7 @@ package io.store.ua.configuration;
 import io.store.ua.configuration.filters.AuthorizationTokenRequestFilter;
 import io.store.ua.configuration.filters.PreLogoutTokenBasedFilter;
 import io.store.ua.configuration.handlers.AuthenticationLogoutSecurityHandler;
-import io.store.ua.service.security.RegularUserDetailsService;
+import io.store.ua.service.security.UserDetailsSecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +29,7 @@ public class ApplicationSecurityUsersConfiguration {
     private final AuthenticationLogoutSecurityHandler authenticationLogoutSecurityHandler;
     private final AuthorizationTokenRequestFilter authorizationTokenRequestFilter;
     private final PreLogoutTokenBasedFilter preLogoutTokenBasedFilter;
-    private final RegularUserDetailsService regularUserDetailsService;
+    private final UserDetailsSecurityService userDetailsSecurityService;
     private final AuthenticationManager authenticationManager;
 
     @Bean
@@ -39,28 +39,19 @@ public class ApplicationSecurityUsersConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
-                .sessionManagement(
-                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(
-                        authorizationTokenRequestFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(authorizationTokenRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(preLogoutTokenBasedFilter, LogoutFilter.class)
-                .authorizeHttpRequests(
-                        auth -> auth.requestMatchers("/api/**").authenticated().anyRequest().denyAll())
-                .logout(
-                        logout ->
-                                logout
-                                        .logoutRequestMatcher(
-                                                request ->
-                                                        request.getRequestURI().equals("/logout")
-                                                                && request.getMethod().equals(HttpMethod.POST.name()))
-                                        .logoutSuccessHandler(authenticationLogoutSecurityHandler)
-                                        .invalidateHttpSession(true)
-                                        .clearAuthentication(true)
-                                        .deleteCookies(
-                                                "JSESSIONID",
-                                                AbstractRememberMeServices.SPRING_SECURITY_REMEMBER_ME_COOKIE_KEY))
+                .authorizeHttpRequests(authentication -> authentication.requestMatchers("/api/**").authenticated().anyRequest().denyAll())
+                .logout(logout -> logout
+                        .logoutRequestMatcher(request -> request.getRequestURI().equals("/logout")
+                                && request.getMethod().equals(HttpMethod.POST.name()))
+                        .logoutSuccessHandler(authenticationLogoutSecurityHandler)
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID", AbstractRememberMeServices.SPRING_SECURITY_REMEMBER_ME_COOKIE_KEY))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationFailureEntryPoint))
-                .userDetailsService(regularUserDetailsService)
+                .userDetailsService(userDetailsSecurityService)
                 .authenticationManager(authenticationManager)
                 .build();
     }

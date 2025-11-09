@@ -1,9 +1,9 @@
 package io.store.ua.service.security;
 
 import io.store.ua.AbstractIT;
-import io.store.ua.entity.RegularUser;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.entity.User;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +19,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
-class RegularUserDetailsServiceIT extends AbstractIT {
+class UserDetailsSecurityServiceIT extends AbstractIT {
     @Autowired
-    private RegularUserDetailsService regularUserDetailsService;
+    private UserDetailsSecurityService userDetailsSecurityService;
 
     @BeforeEach
     void setUp() {
@@ -32,17 +32,17 @@ class RegularUserDetailsServiceIT extends AbstractIT {
     @DisplayName("loads user by username when user exists")
     void loadUserByUsername_success() {
         var user = userRepository.save(
-                RegularUser.builder()
+                User.builder()
                         .username(RandomStringUtils.secure().nextAlphanumeric(333))
                         .email("any@gmail.com")
                         .password(RandomStringUtils.secure().nextAlphanumeric(333))
-                        .status(Status.ACTIVE)
-                        .role(Role.OWNER)
+                        .status(UserStatus.ACTIVE)
+                        .role(UserRole.OWNER)
                         .timezone("UTC")
                         .build()
         );
 
-        UserDetails userDetails = regularUserDetailsService.loadUserByUsername(user.getUsername());
+        UserDetails userDetails = userDetailsSecurityService.loadUserByUsername(user.getUsername());
 
         assertNotNull(userDetails);
         assertEquals(user.getUsername(), userDetails.getUsername());
@@ -56,13 +56,13 @@ class RegularUserDetailsServiceIT extends AbstractIT {
     @DisplayName("throws UsernameNotFoundException when user not found")
     void loadUserByUsername_fail_shouldThrowException_whenUserNotFound() {
         assertThrows(UsernameNotFoundException.class,
-                () -> regularUserDetailsService.loadUserByUsername(RandomStringUtils.secure().nextAlphanumeric(333)));
+                () -> userDetailsSecurityService.loadUserByUsername(RandomStringUtils.secure().nextAlphanumeric(333)));
     }
 
     @ParameterizedTest(name = "rejects blank username: \"{0}\"")
     @NullAndEmptySource
     void loadUserByUsername_fail_shouldRejectBlankUsername(String username) {
-        assertThatThrownBy(() -> regularUserDetailsService.loadUserByUsername(username))
+        assertThatThrownBy(() -> userDetailsSecurityService.loadUserByUsername(username))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("Username can't be blank");
     }

@@ -14,7 +14,6 @@ import lombok.experimental.FieldNameConstants;
 import okhttp3.Request;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@Profile("external")
 @RequiredArgsConstructor
 @FieldNameConstants
 @Validated

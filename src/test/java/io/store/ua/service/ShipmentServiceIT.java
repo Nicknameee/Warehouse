@@ -364,7 +364,7 @@ class ShipmentServiceIT extends AbstractIT {
             assertThat(updatedShipment.getWarehouseIdRecipient()).isEqualTo(newRecipientWarehouse.getId());
             assertThat(updatedShipment.getStockItemQuantity()).isEqualTo(7L);
             assertThat(updatedShipment.getStatus()).isEqualTo(ShipmentStatus.SENT);
-            assertThat(updatedShipment.getInitiatorId()).isEqualTo(RegularUserService.getCurrentlyAuthenticatedUserID());
+            assertThat(updatedShipment.getInitiatorId()).isEqualTo(UserService.getCurrentlyAuthenticatedUserID());
         }
 
         @Test

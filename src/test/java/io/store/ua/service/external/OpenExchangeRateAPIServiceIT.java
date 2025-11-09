@@ -1,10 +1,10 @@
 package io.store.ua.service.external;
 
 import io.store.ua.configuration.ApplicationExecutorConfiguration;
-import io.store.ua.entity.RegularUser;
+import io.store.ua.entity.User;
 import io.store.ua.entity.cache.CurrencyRate;
-import io.store.ua.enums.Role;
-import io.store.ua.enums.Status;
+import io.store.ua.enums.UserRole;
+import io.store.ua.enums.UserStatus;
 import io.store.ua.utility.HttpRequestService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,10 +39,10 @@ class OpenExchangeRateAPIServiceIT {
 
     @BeforeEach
     void setUp() {
-        var user = RegularUser.builder()
+        var user = User.builder()
                 .username(RandomStringUtils.secure().nextAlphanumeric(333))
-                .role(Role.OWNER)
-                .status(Status.ACTIVE)
+                .role(UserRole.OWNER)
+                .status(UserStatus.ACTIVE)
                 .build();
 
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
