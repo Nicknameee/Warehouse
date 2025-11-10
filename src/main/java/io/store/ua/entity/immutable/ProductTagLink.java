@@ -23,6 +23,7 @@ public class ProductTagLink {
     private Long tagId;
 
     @PreUpdate
+    @PreRemove
     private void notSupported() {
         throw new UnsupportedOperationException();
     }

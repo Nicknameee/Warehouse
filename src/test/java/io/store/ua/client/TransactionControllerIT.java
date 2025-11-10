@@ -71,7 +71,7 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("GET /api/v1/transactions/findAll")
     class FindAllTransactionsTests {
         @Test
-        @DisplayName("returns paginated list")
+        @DisplayName("findAll_success_returnsPaginatedList: returns paginated list")
         void findAll_success_returnsPaginatedList() {
             Transaction transaction = transactionRepository.save(Transaction.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
@@ -99,9 +99,14 @@ class TransactionControllerIT extends AbstractIT {
                     }
             );
 
-            assertThat(firstPage.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(firstPage.getBody()).isNotNull().hasSize(1);
-            assertThat(firstPage.getBody().getFirst().getTransactionId())
+            assertThat(firstPage.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(firstPage.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+            assertThat(firstPage.getBody()
+                    .getFirst()
+                    .getTransactionId())
                     .isNotNull()
                     .isEqualTo(transaction.getTransactionId());
 
@@ -111,14 +116,13 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> invalid = restClient.exchange(
-                    invalidUrl,
+            ResponseEntity<String> response = restClient.exchange(invalidUrl,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
-                    String.class
-            );
+                    String.class);
 
-            assertThat(invalid.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
         }
     }
 
@@ -126,7 +130,7 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("GET /api/v1/transactions/findBy")
     class FindByTransactionsTests {
         @Test
-        @DisplayName("filters by id/ref/currency/amount/time/enums/provider")
+        @DisplayName("findBy_success_filtersByAll: filters by id/ref/currency/amount/time/enums/provider")
         void findBy_success_filtersByAll() {
             LocalDateTime now = LocalDateTime.now();
             String code = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.DATA_TRANS);
@@ -156,10 +160,9 @@ class TransactionControllerIT extends AbstractIT {
                             .beneficiaryId(beneficiary.getId())
                             .paymentProvider(PaymentProvider.LIQ_PAY)
                             .createdAt(now.minusDays(2))
-                            .build()
-            ));
+                            .build()));
 
-            String requestUrl = UriComponentsBuilder.fromPath("/api/v1/transactions/findBy")
+            String url = UriComponentsBuilder.fromPath("/api/v1/transactions/findBy")
                     .queryParam("transaction_id", code)
                     .queryParam("reference", code)
                     .queryParam("currency", Currency.USD.name().toLowerCase())
@@ -179,21 +182,25 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<Transaction>> response = restClient.exchange(
-                    requestUrl,
+            ResponseEntity<List<Transaction>> response = restClient.exchange(url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull().hasSize(1);
-            assertThat(response.getBody().getFirst().getTransactionId()).isEqualTo(code);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+            assertThat(response.getBody()
+                    .getFirst()
+                    .getTransactionId())
+                    .isEqualTo(code);
         }
 
         @Test
-        @DisplayName("empty when no filters match")
+        @DisplayName("findBy_success_emptyWhenNoFiltersMatch: empty when no filters match")
         void findBy_success_emptyWhenNoFiltersMatch() {
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/findBy")
                     .queryParam("pageSize", 50)
@@ -201,20 +208,21 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<Transaction>> response = restClient.exchange(
-                    url,
+            ResponseEntity<List<Transaction>> response = restClient.exchange(url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull().isEmpty();
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull()
+                    .isEmpty();
         }
 
         @Test
-        @DisplayName("invalid pagination → 400")
+        @DisplayName("findBy_fails_invalidPagination: invalid pagination → 400")
         void findBy_fails_invalidPagination() {
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/findBy")
                     .queryParam("pageSize", 0)
@@ -222,14 +230,13 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url,
+            ResponseEntity<String> response = restClient.exchange(url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
-                    String.class
-            );
+                    String.class);
 
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
         }
     }
 
@@ -237,100 +244,115 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("POST /api/v1/transactions/incoming/initiate")
     class InitiateIncomingPaymentTests {
         @Test
-        @DisplayName("DATA_TRANS with auto_settle=true → SETTLED and checkout info")
+        @DisplayName("initiateIncoming_success_dataTransWithAutoSettle: DATA_TRANS with auto_settle=true → SETTLED and checkout info")
         void initiateIncoming_success_dataTransWithAutoSettle() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
-            when(dataTransService.initiateIncomingPayment(any(Transaction.class), eq(true))).thenCallRealMethod();
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.initiateIncomingPayment(any(Transaction.class), eq(true)))
+                    .thenCallRealMethod();
 
-            DataTransTransaction providerResult = DataTransTransaction.builder()
+            DataTransTransaction transTransaction = DataTransTransaction.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(30))
                     .reference(RandomStringUtils.secure().nextAlphanumeric(30))
                     .build();
 
             when(dataTransService.initiateIncomingPaymentAPICall(anyString(), any(BigInteger.class), eq(true)))
-                    .thenReturn(providerResult);
+                    .thenReturn(transTransaction);
 
             long beforeCount = transactionRepository.count();
 
-            TransactionDTO requestDto = buildTransactionDTO(
-                    PaymentProvider.DATA_TRANS,
+            TransactionDTO transactionDTO = buildTransactionDTO(PaymentProvider.DATA_TRANS,
                     TransactionPurpose.STOCK_OUTBOUND_REVENUE.name(),
                     BigInteger.valueOf(RandomUtils.secure().randomInt(100_000, 900_000)),
                     Currency.USD.name(),
-                    beneficiary.getId()
-            );
+                    beneficiary.getId());
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/incoming/initiate")
                     .queryParam("auto_settle", true)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<CheckoutFinancialInformation> response = restClient.exchange(
-                    url,
+            ResponseEntity<CheckoutFinancialInformation> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(requestDto, ownerHeaders),
-                    CheckoutFinancialInformation.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    CheckoutFinancialInformation.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getPaymentProvider()).isEqualTo(PaymentProvider.DATA_TRANS);
-            assertThat(response.getBody().getTransactionId()).isNotBlank();
-            assertThat(response.getBody().getReference()).isNotBlank();
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getPaymentProvider())
+                    .isEqualTo(PaymentProvider.DATA_TRANS);
+            assertThat(response.getBody().getTransactionId())
+                    .isNotBlank();
+            assertThat(response.getBody().getReference())
+                    .isNotBlank();
 
             assertThat(transactionRepository.count()).isEqualTo(beforeCount + 1);
-            Transaction persisted = transactionRepository.findByTransactionId(providerResult.getTransactionId()).orElseThrow();
-            assertThat(persisted.getStatus()).isEqualTo(TransactionStatus.SETTLED);
 
-            verify(dataTransService, times(1)).initiateIncomingPayment(any(Transaction.class), eq(true));
-            verify(liqPayService, never()).initiateIncomingPayment(any(), anyBoolean());
+            Transaction transaction = transactionRepository.findByTransactionId(transTransaction.getTransactionId())
+                    .orElseThrow();
+
+            assertThat(transaction.getStatus())
+                    .isEqualTo(TransactionStatus.SETTLED);
+
+            verify(dataTransService, times(1))
+                    .initiateIncomingPayment(any(Transaction.class), eq(true));
+            verify(liqPayService, never())
+                    .initiateIncomingPayment(any(), anyBoolean());
         }
 
         @Test
-        @DisplayName("LIQ_PAY with auto_settle=false → INITIATED and checkout info")
+        @DisplayName("initiateIncoming_success_liqpayWithoutAutoSettle: LIQ_PAY with auto_settle=false → INITIATED and checkout info")
         void initiateIncoming_success_liqpayWithoutAutoSettle() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
-            when(liqPayService.initiateIncomingPayment(any(Transaction.class), eq(false))).thenCallRealMethod();
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
+            when(liqPayService.initiateIncomingPayment(any(Transaction.class), eq(false)))
+                    .thenCallRealMethod();
             when(liqPayService.initiateIncomingPaymentAPICall(any(LPInitiatePaymentRequestDTO.class)))
                     .thenReturn(new LPInitiatePaymentResponse());
 
             long beforeCount = transactionRepository.count();
 
-            TransactionDTO requestDto = buildTransactionDTO(
-                    PaymentProvider.LIQ_PAY,
+            TransactionDTO transactionDTO = buildTransactionDTO(PaymentProvider.LIQ_PAY,
                     TransactionPurpose.FEE.name(),
                     BigInteger.valueOf(RandomUtils.secure().randomInt(50_000, 300_000)),
                     Currency.EUR.name(),
-                    beneficiary.getId()
-            );
+                    beneficiary.getId());
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/incoming/initiate")
                     .queryParam("auto_settle", false)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<CheckoutFinancialInformation> response = restClient.exchange(
-                    url,
+            ResponseEntity<CheckoutFinancialInformation> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(requestDto, ownerHeaders),
-                    CheckoutFinancialInformation.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    CheckoutFinancialInformation.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getPaymentProvider()).isEqualTo(PaymentProvider.LIQ_PAY);
-            assertThat(transactionRepository.count()).isEqualTo(beforeCount + 1);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getPaymentProvider())
+                    .isEqualTo(PaymentProvider.LIQ_PAY);
+            assertThat(transactionRepository.count())
+                    .isEqualTo(beforeCount + 1);
 
-            verify(liqPayService, times(1)).initiateIncomingPayment(any(Transaction.class), eq(false));
-            verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
+            verify(liqPayService, times(1))
+                    .initiateIncomingPayment(any(Transaction.class), eq(false));
+            verify(dataTransService, never())
+                    .initiateIncomingPayment(any(), anyBoolean());
         }
 
         @Test
-        @DisplayName("invalid DTO → 4xx and no provider calls")
-        void initiateIncoming_fails_invalidDto() {
-            TransactionDTO invalid = TransactionDTO.builder()
+        @DisplayName("initiateIncoming_fails_invalidDTO: invalid DTO → 4xx and no provider calls")
+        void initiateIncoming_fails_invalidDTO() {
+            TransactionDTO transactionDTO = TransactionDTO.builder()
                     .currency(Currency.USD.name())
                     .build();
 
@@ -338,14 +360,14 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url,
+            ResponseEntity<String> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(invalid, ownerHeaders),
-                    String.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
+
             verifyNoInteractions(dataTransService, liqPayService);
         }
     }
@@ -354,17 +376,20 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("POST /api/v1/transactions/outgoing/initiate")
     class InitiateOutgoingPaymentTests {
         @Test
-        @DisplayName("delegates to LIQ_PAY (auto_settle=false), persists INITIATED")
+        @DisplayName("initiateOutcoming_success_liqpayWithoutAutoSettle: delegates to LIQ_PAY (auto_settle=false), persists INITIATED")
         void initiateOutcoming_success_liqpayWithoutAutoSettle() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
-            when(liqPayService.initiateOutcomingPayment(any(Transaction.class), eq(false))).thenCallRealMethod();
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
+            when(liqPayService.initiateOutcomingPayment(any(Transaction.class), eq(false)))
+                    .thenCallRealMethod();
             when(liqPayService.initiateOutcomingPaymentAPICall(any(LPInitiatePaymentRequestDTO.class)))
                     .thenReturn(LPResponse.builder().status(LPResponse.Status.UNKNOWN).build());
 
             long beforeCount = transactionRepository.count();
 
-            TransactionDTO requestDto = buildTransactionDTO(
+            TransactionDTO transactionDTO = buildTransactionDTO(
                     PaymentProvider.LIQ_PAY,
                     TransactionPurpose.SHIPPING.name(),
                     BigInteger.valueOf(RandomUtils.secure().randomInt(100_000, 500_000)),
@@ -377,27 +402,32 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Transaction> response = restClient.exchange(
-                    url,
+            ResponseEntity<Transaction> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(requestDto, ownerHeaders),
-                    Transaction.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    Transaction.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getStatus()).isEqualTo(TransactionStatus.INITIATED);
-            assertThat(response.getBody().getFlowType()).isEqualTo(TransactionFlowType.DEBIT);
-            assertThat(transactionRepository.count()).isEqualTo(beforeCount + 1);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getStatus())
+                    .isEqualTo(TransactionStatus.INITIATED);
+            assertThat(response.getBody().getFlowType())
+                    .isEqualTo(TransactionFlowType.DEBIT);
+            assertThat(transactionRepository.count())
+                    .isEqualTo(beforeCount + 1);
 
-            verify(liqPayService, times(1)).initiateOutcomingPayment(any(Transaction.class), eq(false));
-            verify(dataTransService, never()).initiateOutcomingPayment(any(), anyBoolean());
+            verify(liqPayService, times(1))
+                    .initiateOutcomingPayment(any(Transaction.class), eq(false));
+            verify(dataTransService, never())
+                    .initiateOutcomingPayment(any(), anyBoolean());
         }
 
         @Test
-        @DisplayName("invalid DTO → 4xx and no provider calls")
-        void initiateOutcoming_fails_invalidDto() {
-            TransactionDTO invalid = TransactionDTO.builder()
+        @DisplayName("initiateOutcoming_fails_invalidDTO: invalid DTO → 4xx and no provider calls")
+        void initiateOutcoming_fails_invalidDTO() {
+            TransactionDTO transactionDTO = TransactionDTO.builder()
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .currency("usd")
                     .build();
@@ -406,14 +436,14 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url,
+            ResponseEntity<String> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(invalid, ownerHeaders),
-                    String.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
+
             verifyNoInteractions(dataTransService, liqPayService);
         }
     }
@@ -422,17 +452,20 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("POST /api/v1/transactions/settle")
     class SettlePaymentTests {
         @Test
-        @DisplayName("settles via DATA_TRANS → SETTLED")
+        @DisplayName("settle_success_dataTrans: settles via DATA_TRANS → SETTLED")
         void settle_success_dataTrans() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
-            when(dataTransService.settlePayment(any(Transaction.class))).thenCallRealMethod();
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.settlePayment(any(Transaction.class)))
+                    .thenCallRealMethod();
             when(dataTransService.settlePaymentAPICall(anyString(), any(BigInteger.class), anyString(), anyString()))
                     .thenReturn(new DataTransTransaction());
 
             String reference = RandomStringUtils.secure().nextAlphanumeric(28);
 
-            Transaction initial = transactionRepository.save(Transaction.builder()
+            Transaction transaction = transactionRepository.save(Transaction.builder()
                     .transactionId(reference)
                     .reference(reference)
                     .flowType(TransactionFlowType.CREDIT)
@@ -448,8 +481,8 @@ class TransactionControllerIT extends AbstractIT {
                             .build())
                     .build());
 
-            TransactionDTO settleDto = TransactionDTO.builder()
-                    .transactionId(initial.getTransactionId())
+            TransactionDTO transactionDTO = TransactionDTO.builder()
+                    .transactionId(transaction.getTransactionId())
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .build();
 
@@ -457,30 +490,37 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Transaction> response = restClient.exchange(
-                    url,
+            ResponseEntity<Transaction> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(settleDto, ownerHeaders),
-                    Transaction.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    Transaction.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getStatus()).isEqualTo(TransactionStatus.SETTLED);
-            assertThat(transactionRepository.findById(initial.getId()).orElseThrow().getStatus())
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getStatus())
+                    .isEqualTo(TransactionStatus.SETTLED);
+            assertThat(transactionRepository.findById(transaction.getId())
+                    .orElseThrow()
+                    .getStatus())
                     .isEqualTo(TransactionStatus.SETTLED);
 
-            verify(dataTransService, times(1)).settlePayment(any(Transaction.class));
-            verify(liqPayService, never()).settlePayment(any());
+            verify(dataTransService, times(1))
+                    .settlePayment(any(Transaction.class));
+            verify(liqPayService, never())
+                    .settlePayment(any());
         }
 
         @Test
-        @DisplayName("unknown transactionId → 4xx")
+        @DisplayName("settle_fails_unknownTransactionId: unknown transactionId → 4xx")
         void settle_fails_unknownTransactionId() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
-            TransactionDTO settleDto = TransactionDTO.builder()
+            TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(20))
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .build();
@@ -489,14 +529,13 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url,
+            ResponseEntity<String> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(settleDto, ownerHeaders),
-                    String.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
             verifyNoMoreInteractions(dataTransService, liqPayService);
         }
     }
@@ -505,9 +544,9 @@ class TransactionControllerIT extends AbstractIT {
     @DisplayName("POST /api/v1/transactions/cancel")
     class CancelPaymentTests {
         @Test
-        @DisplayName("cancels INITIATED locally (no provider calls)")
+        @DisplayName("cancel_success_initiatedLocally: cancels INITIATED locally (no provider calls)")
         void cancel_success_initiatedLocally() {
-            Transaction initial = transactionRepository.save(Transaction.builder()
+            Transaction transaction = transactionRepository.save(Transaction.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
                     .reference(RandomStringUtils.secure().nextAlphanumeric(16))
                     .flowType(TransactionFlowType.DEBIT)
@@ -519,8 +558,8 @@ class TransactionControllerIT extends AbstractIT {
                     .paymentProvider(PaymentProvider.LIQ_PAY)
                     .build());
 
-            TransactionDTO cancelDto = TransactionDTO.builder()
-                    .transactionId(initial.getTransactionId())
+            TransactionDTO transactionDTO = TransactionDTO.builder()
+                    .transactionId(transaction.getTransactionId())
                     .paymentProvider(PaymentProvider.LIQ_PAY)
                     .build();
 
@@ -528,24 +567,27 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Transaction> response = restClient.exchange(
-                    url,
+            ResponseEntity<Transaction> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(cancelDto, ownerHeaders),
-                    Transaction.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    Transaction.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getStatus()).isEqualTo(TransactionStatus.CANCELLED);
-            assertThat(transactionRepository.findById(initial.getId()).orElseThrow().getStatus())
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getStatus())
+                    .isEqualTo(TransactionStatus.CANCELLED);
+            assertThat(transactionRepository.findById(transaction.getId())
+                    .orElseThrow()
+                    .getStatus())
                     .isEqualTo(TransactionStatus.CANCELLED);
 
             verifyNoInteractions(dataTransService, liqPayService);
         }
 
         @Test
-        @DisplayName("finalized transaction → 4xx")
+        @DisplayName("cancel_fails_finalizedTransaction: finalized transaction → 4xx")
         void cancel_fails_finalizedTransaction() {
             Transaction settled = transactionRepository.save(Transaction.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
@@ -559,7 +601,7 @@ class TransactionControllerIT extends AbstractIT {
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .build());
 
-            TransactionDTO cancelDto = TransactionDTO.builder()
+            TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(settled.getTransactionId())
                     .paymentProvider(PaymentProvider.DATA_TRANS)
                     .build();
@@ -568,14 +610,13 @@ class TransactionControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url,
+            ResponseEntity<String> response = restClient.exchange(url,
                     HttpMethod.POST,
-                    new HttpEntity<>(cancelDto, ownerHeaders),
-                    String.class
-            );
+                    new HttpEntity<>(transactionDTO, ownerHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
         }
     }
 }

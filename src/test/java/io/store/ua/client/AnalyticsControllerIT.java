@@ -34,12 +34,15 @@ class AnalyticsControllerIT extends AbstractIT {
                 ? BigInteger.ZERO : history.getQuantityBefore();
         BigInteger quantityAfter = history.getQuantityAfter() == null
                 ? BigInteger.ZERO : history.getQuantityAfter();
-        return quantityBefore.compareTo(quantityAfter) > 0 ? quantityBefore.subtract(quantityAfter) : BigInteger.ZERO;
+
+        return quantityBefore.compareTo(quantityAfter) > 0
+                ? quantityBefore.subtract(quantityAfter) : BigInteger.ZERO;
     }
 
     private static BigInteger computeRevenue(StockItemHistory history) {
         BigInteger currentPrice = history.getCurrentProductPrice() == null
                 ? BigInteger.ZERO : history.getCurrentProductPrice();
+
         return computeSoldQuantity(history).multiply(currentPrice);
     }
 
@@ -65,14 +68,26 @@ class AnalyticsControllerIT extends AbstractIT {
             LocalDate today = LocalDate.now();
 
             StockItemHistory historyForPast = insertHistoryRow(item.getId(),
-                    BigInteger.valueOf(10), BigInteger.valueOf(7), BigInteger.valueOf(5), dateInPast);
+                    BigInteger.valueOf(10),
+                    BigInteger.valueOf(7),
+                    BigInteger.valueOf(5),
+                    dateInPast);
             StockItemHistory historyForYesterday = insertHistoryRow(item.getId(),
-                    BigInteger.valueOf(7), BigInteger.valueOf(6), BigInteger.valueOf(5), yesterday);
+                    BigInteger.valueOf(7),
+                    BigInteger.valueOf(6),
+                    BigInteger.valueOf(5),
+                    yesterday);
             StockItemHistory historyForToday = insertHistoryRow(item.getId(),
-                    BigInteger.valueOf(9), BigInteger.valueOf(3), BigInteger.valueOf(5), today);
+                    BigInteger.valueOf(9),
+                    BigInteger.valueOf(3),
+                    BigInteger.valueOf(5),
+                    today);
 
             insertHistoryRow(otherItem.getId(),
-                    BigInteger.valueOf(10), BigInteger.valueOf(8), BigInteger.valueOf(9), yesterday);
+                    BigInteger.valueOf(10),
+                    BigInteger.valueOf(8),
+                    BigInteger.valueOf(9),
+                    yesterday);
 
             String requestUrl = UriComponentsBuilder.fromPath("/api/v1/analytics/itemSelling")
                     .queryParam("stock_item_id", item.getId())
@@ -83,12 +98,11 @@ class AnalyticsControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<ItemSellingStatistic>> response = restClient.exchange(
-                    requestUrl,
+            ResponseEntity<List<ItemSellingStatistic>> response = restClient.exchange(requestUrl,
                     HttpMethod.GET,
                     new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {}
-            );
+                    new ParameterizedTypeReference<>() {
+                    });
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull().isNotEmpty();
@@ -119,35 +133,57 @@ class AnalyticsControllerIT extends AbstractIT {
             var warehouse = generateWarehouse();
             StockItem stockItem = generateStockItem(generateProduct().getId(), stockItemGroup.getId(), warehouse.getId());
 
-            insertHistoryRow(stockItem.getId(), BigInteger.valueOf(10), BigInteger.valueOf(9), BigInteger.ONE, LocalDate.now().minusDays(3));
-            insertHistoryRow(stockItem.getId(), BigInteger.valueOf(9), BigInteger.valueOf(7), BigInteger.ONE, LocalDate.now().minusDays(2));
-            insertHistoryRow(stockItem.getId(), BigInteger.valueOf(7), BigInteger.valueOf(6), BigInteger.ONE, LocalDate.now().minusDays(1));
+            insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(10),
+                    BigInteger.valueOf(9),
+                    BigInteger.ONE,
+                    LocalDate.now().minusDays(3));
+            insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(9),
+                    BigInteger.valueOf(7),
+                    BigInteger.ONE,
+                    LocalDate.now().minusDays(2));
+            insertHistoryRow(stockItem.getId(),
+                    BigInteger.valueOf(7),
+                    BigInteger.valueOf(6),
+                    BigInteger.ONE,
+                    LocalDate.now().minusDays(1));
 
-            String p1 = UriComponentsBuilder.fromPath("/api/v1/analytics/itemSelling")
+            String firstURL = UriComponentsBuilder.fromPath("/api/v1/analytics/itemSelling")
                     .queryParam("stock_item_id", stockItem.getId())
                     .queryParam("pageSize", 1)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            String p2 = UriComponentsBuilder.fromPath("/api/v1/analytics/itemSelling")
+            String otherURL = UriComponentsBuilder.fromPath("/api/v1/analytics/itemSelling")
                     .queryParam("stock_item_id", stockItem.getId())
                     .queryParam("pageSize", 1)
                     .queryParam("page", 2)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<ItemSellingStatistic[]> firstPageResponse = restClient.exchange(
-                    p1, HttpMethod.GET, new HttpEntity<>(authenticationHeaders), ItemSellingStatistic[].class);
-            ResponseEntity<ItemSellingStatistic[]> secondPageResponse = restClient.exchange(
-                    p2, HttpMethod.GET, new HttpEntity<>(authenticationHeaders), ItemSellingStatistic[].class);
+            ResponseEntity<ItemSellingStatistic[]> firstResponse = restClient.exchange(firstURL,
+                    HttpMethod.GET,
+                    new HttpEntity<>(authenticationHeaders),
+                    ItemSellingStatistic[].class);
+            ResponseEntity<ItemSellingStatistic[]> secondResponse = restClient.exchange(otherURL,
+                    HttpMethod.GET,
+                    new HttpEntity<>(authenticationHeaders),
+                    ItemSellingStatistic[].class);
 
-            assertThat(firstPageResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(secondPageResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(firstPageResponse.getBody()).isNotNull().hasSize(1);
-            assertThat(secondPageResponse.getBody()).isNotNull().hasSize(1);
-            assertThat(firstPageResponse.getBody()[0].getStartDate())
-                    .isNotEqualTo(secondPageResponse.getBody()[0].getStartDate());
+            assertThat(firstResponse.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(secondResponse.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(firstResponse.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+            assertThat(secondResponse.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+            assertThat(firstResponse.getBody()[0].getStartDate())
+                    .isNotEqualTo(secondResponse.getBody()[0].getStartDate());
         }
 
         @Test
@@ -159,10 +195,13 @@ class AnalyticsControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(authenticationHeaders), String.class);
+            ResponseEntity<String> response = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(authenticationHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -176,15 +215,27 @@ class AnalyticsControllerIT extends AbstractIT {
             LocalDate fromDate = LocalDate.now().minusDays(3);
             LocalDate toDate = LocalDate.now();
 
-            var debitUsd = generateTransaction(beneficiary.getId(), Currency.USD.name(), BigInteger.valueOf(1000), TransactionFlowType.DEBIT);
-            var creditUsd = generateTransaction(beneficiary.getId(), Currency.USD.name(), BigInteger.valueOf(300), TransactionFlowType.CREDIT);
+            var debitUsd = generateTransaction(beneficiary.getId(),
+                    Currency.USD.name(),
+                    BigInteger.valueOf(1000),
+                    TransactionFlowType.DEBIT);
+            var creditUsd = generateTransaction(beneficiary.getId(),
+                    Currency.USD.name(),
+                    BigInteger.valueOf(300),
+                    TransactionFlowType.CREDIT);
 
-            Transaction failedNoise = generateTransaction(beneficiary.getId(), Currency.UAH.name(), BigInteger.valueOf(999), TransactionFlowType.CREDIT);
+            Transaction failedNoise = generateTransaction(beneficiary.getId(),
+                    Currency.UAH.name(),
+                    BigInteger.valueOf(999),
+                    TransactionFlowType.CREDIT);
             failedNoise.setStatus(TransactionStatus.FAILED);
 
             transactionRepository.save(failedNoise);
 
-            var creditEur = generateTransaction(beneficiary.getId(), Currency.EUR.name(), BigInteger.valueOf(300), TransactionFlowType.CREDIT);
+            var creditEur = generateTransaction(beneficiary.getId(),
+                    Currency.EUR.name(),
+                    BigInteger.valueOf(300),
+                    TransactionFlowType.CREDIT);
 
             String url = UriComponentsBuilder.fromPath("/api/v1/analytics/beneficiary/financialFlow")
                     .queryParam("beneficiary_id", beneficiary.getId())
@@ -195,26 +246,45 @@ class AnalyticsControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<BeneficiaryFinancialFlowStatistic> response = restClient.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(authenticationHeaders), BeneficiaryFinancialFlowStatistic.class);
+            ResponseEntity<BeneficiaryFinancialFlowStatistic> response = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(authenticationHeaders),
+                    BeneficiaryFinancialFlowStatistic.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
 
-            BeneficiaryFinancialFlowStatistic body = response.getBody();
-            assertThat(body).isNotNull();
-            assertThat(body.getBeneficiary()).isNotNull();
-            assertThat(body.getBeneficiary().getId()).isEqualTo(beneficiary.getId());
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getBeneficiary())
+                    .isNotNull();
+            assertThat(response.getBody().getBeneficiary().getId())
+                    .isEqualTo(beneficiary.getId());
 
-            var stats = body.getFinancialStatistic();
-            assertThat(stats).isNotNull().isNotEmpty();
+            var statistic = response.getBody().getFinancialStatistic();
 
-            var usd = stats.stream().filter(s -> Currency.USD.name().equals(s.getCurrency())).findFirst().orElseThrow();
-            var eur = stats.stream().filter(s -> Currency.EUR.name().equals(s.getCurrency())).findFirst().orElseThrow();
+            assertThat(statistic)
+                    .isNotNull()
+                    .isNotEmpty();
 
-            assertThat(usd.getTotalDebit()).isEqualTo(debitUsd.getAmount());
-            assertThat(usd.getTotalCredit()).isEqualTo(creditUsd.getAmount());
-            assertThat(eur.getTotalDebit()).isEqualTo(BigInteger.ZERO);
-            assertThat(eur.getTotalCredit()).isEqualTo(creditEur.getAmount());
+            var usd = statistic.stream().filter(financialStatistic ->
+                            Currency.USD.name().equals(financialStatistic.getCurrency()))
+                    .findFirst()
+                    .orElseThrow();
+
+            var eur = statistic.stream().filter(financialStatistic ->
+                            Currency.EUR.name().equals(financialStatistic.getCurrency()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(usd.getTotalDebit())
+                    .isEqualTo(debitUsd.getAmount());
+            assertThat(usd.getTotalCredit())
+                    .isEqualTo(creditUsd.getAmount());
+            assertThat(eur.getTotalDebit())
+                    .isEqualTo(BigInteger.ZERO);
+            assertThat(eur.getTotalCredit())
+                    .isEqualTo(creditEur.getAmount());
         }
 
         @Test
@@ -226,10 +296,13 @@ class AnalyticsControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<String> response = restClient.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(authenticationHeaders), String.class);
+            ResponseEntity<String> response = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(authenticationHeaders),
+                    String.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 }

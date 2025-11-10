@@ -29,7 +29,7 @@ public class Tag {
     private String name;
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.EAGER)
     @JoinColumn(
             name = "tag_id",
             referencedColumnName = "id",

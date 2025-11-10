@@ -24,7 +24,8 @@ class AuthenticationControllerIT extends AbstractIT {
                     new LoginDTO(OWNER, OWNER),
                     LoginResponseDTO.class);
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
             assertNotNull(response.getBody());
 
             var content = response.getBody();
@@ -48,7 +49,9 @@ class AuthenticationControllerIT extends AbstractIT {
             ResponseEntity<String> response = restClient.postForEntity("/login",
                     new LoginDTO(OWNER, "wrong-pass"),
                     String.class);
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
         }
     }
 

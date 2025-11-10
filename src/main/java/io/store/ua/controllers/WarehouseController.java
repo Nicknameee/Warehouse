@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 public class WarehouseController {
     private final WarehouseService warehouseService;
 
-    @GetMapping
+    @GetMapping("/findAll")
     public ResponseEntity<?> findAll(@RequestParam(name = "pageSize") int pageSize,
                                      @RequestParam(name = "page") int page) {
         return ResponseEntity.ok(warehouseService.findAll(pageSize, page));

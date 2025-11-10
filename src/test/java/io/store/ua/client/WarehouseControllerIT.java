@@ -24,7 +24,7 @@ class WarehouseControllerIT extends AbstractIT {
     private User manager;
 
     @BeforeAll
-    void setupAuth() {
+    void setupAuthentication() {
         ownerHeaders = generateAuthenticationHeaders();
         managerHeaders = generateAuthenticationHeaders(MANAGER, MANAGER);
     }
@@ -42,7 +42,7 @@ class WarehouseControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/warehouses")
+    @DisplayName("GET /api/v1/warehouses/findAll")
     class FindAllWarehousesTests {
         @Test
         @DisplayName("returns paginated list for OWNER/MANAGER")
@@ -51,13 +51,13 @@ class WarehouseControllerIT extends AbstractIT {
             generateWarehouse();
             Warehouse third = generateWarehouse();
 
-            String firstPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses")
+            String firstPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
                     .queryParam("pageSize", 1)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            String otherPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses")
+            String otherPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
                     .queryParam("pageSize", 2)
                     .queryParam("page", 2)
                     .build(true)
@@ -90,7 +90,7 @@ class WarehouseControllerIT extends AbstractIT {
 
             assertThat(codes).contains(first.getCode(), third.getCode());
 
-            String managerPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses")
+            String managerPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
                     .queryParam("pageSize", 5)
                     .queryParam("page", 1)
                     .build(true)
