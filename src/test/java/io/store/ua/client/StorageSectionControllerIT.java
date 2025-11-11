@@ -24,15 +24,6 @@ class StorageSectionControllerIT extends AbstractIT {
         authenticationHeaders = generateAuthenticationHeaders();
     }
 
-    private String generateFindAllURL(int pageSize, int page) {
-        return UriComponentsBuilder
-                .fromPath("/api/v1/storage/sections/findAll")
-                .queryParam("pageSize", pageSize)
-                .queryParam("page", page)
-                .build(true)
-                .toUriString();
-    }
-
     private String buildFindByURL(Long warehouseId, int pageSize, int page) {
         UriComponentsBuilder builder = UriComponentsBuilder
                 .fromPath("/api/v1/storage/sections/findBy")
@@ -64,61 +55,6 @@ class StorageSectionControllerIT extends AbstractIT {
                 .queryParam("code", newCode)
                 .build(true)
                 .toUriString();
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/storage/sections/findAll")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success_returnsPaginatedList: returns paginated list")
-        void findAll_success_returnsPaginatedList() {
-            Warehouse warehouse = generateWarehouse();
-            StorageSection section = generateStorageSection(warehouse.getId());
-            StorageSection otherSection = generateStorageSection(warehouse.getId());
-            StorageSection anotherSection = generateStorageSection(warehouse.getId());
-
-            String firstPageUrl = generateFindAllURL(1, 1);
-            String otherPageUrl = generateFindAllURL(1, 2);
-
-            ResponseEntity<List<StorageSection>> firstPageResponse = restClient.exchange(firstPageUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
-
-            ResponseEntity<List<StorageSection>> otherPageResponse = restClient.exchange(otherPageUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
-
-            assertThat(firstPageResponse.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(otherPageResponse.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-
-            assertThat(firstPageResponse.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-            assertThat(otherPageResponse.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-
-            assertThat(List.of(section.getId(), otherSection.getId(), anotherSection.getId()))
-                    .contains(firstPageResponse.getBody().getFirst().getId(), otherPageResponse.getBody().getFirst().getId());
-        }
-
-        @Test
-        @DisplayName("findAll_fails_invalidPagination: invalid pagination → 4xx")
-        void findAll_fails_invalidPagination() {
-            ResponseEntity<String> response = restClient.exchange(generateFindAllURL(0, -1),
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    String.class);
-
-            assertThat(response.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
     }
 
     @Nested
@@ -237,6 +173,7 @@ class StorageSectionControllerIT extends AbstractIT {
             storageSectionRepository.save(StorageSection.builder()
                     .warehouseId(warehouse.getId())
                     .code(duplicateCode)
+                    .isActive(true)
                     .build());
 
             String url = buildSaveUrl(warehouse.getId(), duplicateCode);
@@ -260,6 +197,7 @@ class StorageSectionControllerIT extends AbstractIT {
             storageSectionRepository.save(StorageSection.builder()
                     .warehouseId(firstWarehouse.getId())
                     .code(code)
+                    .isActive(true)
                     .build());
 
             ResponseEntity<StorageSection> response = restClient.exchange(buildSaveUrl(otherWarehouse.getId(), code),
@@ -285,10 +223,13 @@ class StorageSectionControllerIT extends AbstractIT {
         @DisplayName("update_success_updatesCode: updates code")
         void update_success_updatesCode() {
             Warehouse warehouse = generateWarehouse();
+
             StorageSection section = storageSectionRepository.save(StorageSection.builder()
                     .warehouseId(warehouse.getId())
                     .code(RandomStringUtils.secure().nextAlphanumeric(8))
+                    .isActive(true)
                     .build());
+
             String newCode = RandomStringUtils.secure().nextAlphanumeric(8);
 
             ResponseEntity<StorageSection> response = restClient.exchange(buildUpdateUrl(section.getId(), newCode),
@@ -332,11 +273,13 @@ class StorageSectionControllerIT extends AbstractIT {
             StorageSection original = storageSectionRepository.save(StorageSection.builder()
                     .warehouseId(warehouse.getId())
                     .code("A")
+                    .isActive(true)
                     .build());
 
             StorageSection conflict = storageSectionRepository.save(StorageSection.builder()
                     .warehouseId(warehouse.getId())
                     .code("B")
+                    .isActive(true)
                     .build());
 
             ResponseEntity<String> response = restClient.exchange(buildUpdateUrl(original.getId(), conflict.getCode()),

@@ -7,6 +7,4 @@ import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     Optional<Transaction> findByTransactionId(String transactionId);
-
-    boolean existsByTransactionIdOrReference(String transactionId, String reference);
 }

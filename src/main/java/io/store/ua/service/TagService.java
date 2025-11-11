@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -25,7 +24,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class TagService {
     private final TagRepository tagRepository;
     private final JdbcTemplate jdbcTemplate;
@@ -93,7 +91,6 @@ public class TagService {
         return tagRepository.save(tag);
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public void emptyTags() {
         jdbcTemplate.execute(SqlResourceReader.getSQL("removeOrphanTags"));
     }

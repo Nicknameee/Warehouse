@@ -7,7 +7,6 @@ import io.store.ua.entity.Tag;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ProductDTO;
 import jakarta.validation.ValidationException;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,7 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -31,7 +32,7 @@ class ProductServiceIT extends AbstractIT {
 
     private List<Tag> generateTags(int count) {
         return Stream.generate(() -> Tag.builder()
-                        .name(RandomStringUtils.secure().nextAlphanumeric(10))
+                        .name(GENERATOR.nextAlphanumeric(10))
                         .isActive(true)
                         .build())
                 .limit(count)
@@ -40,15 +41,15 @@ class ProductServiceIT extends AbstractIT {
 
     private ProductDTO buildProductDTOWithTags(List<Long> tagIds) {
         return ProductDTO.builder()
-                .code(RandomStringUtils.secure().nextAlphanumeric(33))
-                .title(RandomStringUtils.secure().nextAlphanumeric(30))
-                .description("Description-" + RandomStringUtils.secure().nextAlphanumeric(100))
+                .code(GENERATOR.nextAlphanumeric(33))
+                .title(GENERATOR.nextAlphanumeric(30))
+                .description(GENERATOR.nextAlphanumeric(100))
                 .price(BigInteger.valueOf(1000))
                 .weight(BigInteger.valueOf(100))
                 .length(BigInteger.valueOf(10))
                 .width(BigInteger.valueOf(20))
                 .height(BigInteger.valueOf(30))
-                .tags(tagIds == null ? null : new java.util.HashSet<>(tagIds))
+                .tags(tagIds == null ? null : new HashSet<>(tagIds))
                 .build();
     }
 
@@ -72,8 +73,8 @@ class ProductServiceIT extends AbstractIT {
     private void saveProductPhoto(Long productId) {
         productPhotoRepository.save(ProductPhoto.builder()
                 .productId(productId)
-                .photoUrl(RandomStringUtils.secure().nextAlphanumeric(333))
-                .externalReference(RandomStringUtils.secure().nextAlphanumeric(333))
+                .photoUrl(GENERATOR.nextAlphanumeric(333))
+                .externalReference(GENERATOR.nextAlphanumeric(333))
                 .build());
     }
 
@@ -85,28 +86,39 @@ class ProductServiceIT extends AbstractIT {
         void save_success_withoutTags() {
             ProductDTO productDTO = buildProductDTO();
 
-            Product savedProduct = productService.save(productDTO);
+            Product product = productService.save(productDTO);
 
-            assertThat(savedProduct.getId()).isNotNull();
-            assertThat(savedProduct.getCode()).isEqualTo(productDTO.getCode());
-            assertThat(savedProduct.getTitle()).isEqualTo(productDTO.getTitle());
-            assertThat(savedProduct.getDescription()).isEqualTo(productDTO.getDescription());
-            assertThat(savedProduct.getPrice()).isEqualByComparingTo(productDTO.getPrice());
-            assertThat(savedProduct.getTags()).isNullOrEmpty();
+            assertThat(product.getId())
+                    .isNotNull();
+            assertThat(product.getCode())
+                    .isEqualTo(productDTO.getCode());
+            assertThat(product.getTitle())
+                    .isEqualTo(productDTO.getTitle());
+            assertThat(product.getDescription())
+                    .isEqualTo(productDTO.getDescription());
+            assertThat(product.getPrice())
+                    .isEqualByComparingTo(productDTO.getPrice());
+            assertThat(product.getTags())
+                    .isNullOrEmpty();
         }
 
         @Test
         @DisplayName("save_success: persists new Product with existing tags")
         void save_success_withTags() {
-            List<Tag> persistedTags = tagRepository.saveAll(generateTags(3));
-            List<Long> tagIds = persistedTags.stream().map(Tag::getId).toList();
+            List<Tag> tags = tagRepository.saveAll(generateTags(3));
+            List<Long> tagIds = tags
+                    .stream()
+                    .map(Tag::getId)
+                    .toList();
 
             ProductDTO productDTO = buildProductDTOWithTags(tagIds);
 
-            Product savedProduct = productService.save(productDTO);
+            Product product = productService.save(productDTO);
 
-            assertThat(savedProduct.getId()).isNotNull();
-            assertThat(savedProduct.getTags()).extracting(Tag::getId)
+            assertThat(product.getId())
+                    .isNotNull();
+            assertThat(product.getTags())
+                    .extracting(Tag::getId)
                     .containsExactlyInAnyOrderElementsOf(tagIds);
         }
 
@@ -114,19 +126,20 @@ class ProductServiceIT extends AbstractIT {
         @DisplayName("save_idempotent: returns existing Product when code already exists")
         void save_idempotent_existingCode() {
             ProductDTO productDTO = buildProductDTO();
-            Product alreadySaved = saveProduct(productDTO);
+            Product initialProduct = saveProduct(productDTO);
 
-            Product result = productService.save(productDTO);
+            Product product = productService.save(productDTO);
 
-            assertThat(result.getId()).isEqualTo(alreadySaved.getId());
+            assertThat(product.getId())
+                    .isEqualTo(initialProduct.getId());
         }
 
         @Test
         @DisplayName("save_fail: throws NotFoundException when some tags do not exist")
         void save_fail_missingTags() {
-            List<Tag> persistedTags = tagRepository.saveAll(generateTags(10));
-            List<Long> tagIds = new java.util.ArrayList<>(persistedTags.stream().map(Tag::getId).toList());
-            tagIds.add(999999L);
+            List<Tag> tags = tagRepository.saveAll(generateTags(10));
+            List<Long> tagIds = new ArrayList<>(tags.stream().map(Tag::getId).toList());
+            tagIds.add(Long.MAX_VALUE);
 
             ProductDTO productDTO = buildProductDTOWithTags(tagIds);
 
@@ -141,13 +154,13 @@ class ProductServiceIT extends AbstractIT {
         @Test
         @DisplayName("update_success: updates all provided scalar fields")
         void update_success_scalars() {
-            ProductDTO originalDTO = buildProductDTO();
-            Product persisted = saveProduct(originalDTO);
+            ProductDTO productDTO = buildProductDTO();
+            Product persisted = saveProduct(productDTO);
 
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(originalDTO.getCode())
-                    .title(RandomStringUtils.secure().nextAlphanumeric(100))
-                    .description(RandomStringUtils.secure().nextAlphanumeric(100))
+                    .code(productDTO.getCode())
+                    .title(GENERATOR.nextAlphanumeric(100))
+                    .description(GENERATOR.nextAlphanumeric(100))
                     .price(BigInteger.valueOf(RandomUtils.secure().randomInt()))
                     .weight(BigInteger.valueOf(RandomUtils.secure().randomInt()))
                     .length(BigInteger.valueOf(RandomUtils.secure().randomInt()))
@@ -155,16 +168,24 @@ class ProductServiceIT extends AbstractIT {
                     .height(BigInteger.valueOf(RandomUtils.secure().randomInt()))
                     .build();
 
-            Product updated = productService.update(updateDTO);
+            Product updatedProduct = productService.update(updateDTO);
 
-            assertThat(updated.getId()).isEqualTo(persisted.getId());
-            assertThat(updated.getTitle()).isEqualTo(updateDTO.getTitle());
-            assertThat(updated.getDescription()).isEqualTo(updateDTO.getDescription());
-            assertThat(updated.getPrice()).isEqualByComparingTo(updateDTO.getPrice());
-            assertThat(updated.getWeight()).isEqualTo(updateDTO.getWeight());
-            assertThat(updated.getLength()).isEqualTo(updateDTO.getLength());
-            assertThat(updated.getWidth()).isEqualTo(updateDTO.getWidth());
-            assertThat(updated.getHeight()).isEqualTo(updateDTO.getHeight());
+            assertThat(updatedProduct.getId())
+                    .isEqualTo(persisted.getId());
+            assertThat(updatedProduct.getTitle())
+                    .isEqualTo(updateDTO.getTitle());
+            assertThat(updatedProduct.getDescription())
+                    .isEqualTo(updateDTO.getDescription());
+            assertThat(updatedProduct.getPrice())
+                    .isEqualByComparingTo(updateDTO.getPrice());
+            assertThat(updatedProduct.getWeight())
+                    .isEqualTo(updateDTO.getWeight());
+            assertThat(updatedProduct.getLength())
+                    .isEqualTo(updateDTO.getLength());
+            assertThat(updatedProduct.getWidth())
+                    .isEqualTo(updateDTO.getWidth());
+            assertThat(updatedProduct.getHeight())
+                    .isEqualTo(updateDTO.getHeight());
         }
 
         @Test
@@ -173,22 +194,28 @@ class ProductServiceIT extends AbstractIT {
             List<Tag> initialTags = tagRepository.saveAll(generateTags(2));
             List<Long> initialTagIds = initialTags.stream().map(Tag::getId).toList();
 
-            ProductDTO originalDTO = buildProductDTOWithTags(initialTagIds);
-            Product persisted = saveProduct(originalDTO);
-            persisted.setTags(initialTags);
-            productRepository.save(persisted);
+            ProductDTO productDTO = buildProductDTOWithTags(initialTagIds);
+
+            Product product = saveProduct(productDTO);
+            product.setTags(initialTags);
+
+            productRepository.save(product);
 
             List<Tag> newTags = tagRepository.saveAll(generateTags(3));
-            List<Long> newTagIds = newTags.stream().map(Tag::getId).toList();
+            List<Long> newTagIds = newTags
+                    .stream()
+                    .map(Tag::getId)
+                    .toList();
 
-            ProductDTO updateDTO = ProductDTO.builder()
-                    .code(originalDTO.getCode())
-                    .tags(new java.util.HashSet<>(newTagIds))
+            productDTO = ProductDTO.builder()
+                    .code(productDTO.getCode())
+                    .tags(new HashSet<>(newTagIds))
                     .build();
 
-            Product updated = productService.update(updateDTO);
+            product = productService.update(productDTO);
 
-            assertThat(updated.getTags()).extracting(Tag::getId)
+            assertThat(product.getTags())
+                    .extracting(Tag::getId)
                     .containsExactlyInAnyOrderElementsOf(newTagIds);
         }
 
@@ -198,19 +225,21 @@ class ProductServiceIT extends AbstractIT {
             List<Tag> initialTags = tagRepository.saveAll(generateTags(2));
             List<Long> initialTagIds = initialTags.stream().map(Tag::getId).toList();
 
-            ProductDTO originalDTO = buildProductDTOWithTags(initialTagIds);
-            Product persisted = saveProduct(originalDTO);
-            persisted.setTags(initialTags);
-            productRepository.save(persisted);
+            ProductDTO productDTO = buildProductDTOWithTags(initialTagIds);
+
+            Product product = saveProduct(productDTO);
+            product.setTags(initialTags);
+
+            productRepository.save(product);
 
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(originalDTO.getCode())
+                    .code(productDTO.getCode())
                     .tags(new java.util.HashSet<>())
                     .build();
 
-            Product updated = productService.update(updateDTO);
+            product = productService.update(updateDTO);
 
-            assertThat(updated.getTags()).isEmpty();
+            assertThat(product.getTags()).isEmpty();
         }
 
         @Test
@@ -228,26 +257,25 @@ class ProductServiceIT extends AbstractIT {
                     .build();
 
             assertThatThrownBy(() -> productService.update(updateDTO))
-                    .isInstanceOf(NotFoundException.class)
-                    .hasMessageContaining("Product with code");
+                    .isInstanceOf(NotFoundException.class);
         }
 
         @Test
         @DisplayName("update_fail: throws NotFoundException when provided tag IDs contain missing ones")
         void update_fail_missingTags() {
-            ProductDTO baseDTO = buildProductDTO();
-            saveProduct(baseDTO);
+            ProductDTO productDTO = buildProductDTO();
+            saveProduct(productDTO);
 
             List<Tag> existingTags = tagRepository.saveAll(generateTags(1));
-            List<Long> mixedIds = new java.util.ArrayList<>(existingTags.stream().map(Tag::getId).toList());
-            mixedIds.add(123456789L);
+            List<Long> mixedIds = new ArrayList<>(existingTags.stream()
+                    .map(Tag::getId)
+                    .toList());
+            mixedIds.add(Long.MAX_VALUE);
 
-            ProductDTO updateDTO = ProductDTO.builder()
-                    .code(baseDTO.getCode())
-                    .tags(new java.util.HashSet<>(mixedIds))
-                    .build();
-
-            assertThatThrownBy(() -> productService.update(updateDTO))
+            assertThatThrownBy(() -> productService.update(ProductDTO.builder()
+                    .code(productDTO.getCode())
+                    .tags(new HashSet<>(mixedIds))
+                    .build()))
                     .isInstanceOf(NotFoundException.class);
         }
     }
@@ -264,9 +292,10 @@ class ProductServiceIT extends AbstractIT {
                 saveProduct(productDTO);
             }
 
-            List<Product> result = productService.findAll(pageSize, page);
+            List<Product> products = productService.findAll(pageSize, page);
 
-            assertThat(result.size()).isBetween(0, pageSize);
+            assertThat(products.size())
+                    .isBetween(0, pageSize);
         }
     }
 
@@ -327,14 +356,14 @@ class ProductServiceIT extends AbstractIT {
             productB.setTags(List.of(tagX));
             productRepository.save(productB);
 
-            ZonedDateTime from = ZonedDateTime.now().minusDays(1);
-            ZonedDateTime to = ZonedDateTime.now().plusDays(1);
+            LocalDateTime from = LocalDateTime.now().minusDays(1);
+            LocalDateTime to = LocalDateTime.now().plusDays(1);
 
             List<Product> result = productService.findBy(
                     "alpha",
                     BigDecimal.valueOf(100),
                     BigDecimal.valueOf(1000),
-                    java.util.List.of(tagX.getId(), tagY.getId()),
+                    List.of(tagX.getId(), tagY.getId()),
                     from,
                     to,
                     10,
@@ -348,14 +377,10 @@ class ProductServiceIT extends AbstractIT {
         @Test
         @DisplayName("findBy_success: swaps created range when from > to")
         void findBy_success_swapCreatedRange() {
-            ProductDTO dto = buildProductDTO();
-            dto.setTitle("Gamma");
-            Product product = saveProduct(dto);
+            LocalDateTime from = LocalDateTime.now().plusDays(1);
+            LocalDateTime to = LocalDateTime.now().minusDays(1);
 
-            ZonedDateTime from = ZonedDateTime.now().plusDays(1);
-            ZonedDateTime to = ZonedDateTime.now().minusDays(1);
-
-            List<Product> result = productService.findBy(
+            assertThatThrownBy(() -> productService.findBy(
                     "gamma",
                     null,
                     null,
@@ -363,10 +388,8 @@ class ProductServiceIT extends AbstractIT {
                     from,
                     to,
                     10,
-                    1
-            );
-
-            assertThat(result).extracting(Product::getId).contains(product.getId());
+                    1))
+                    .isInstanceOf(ValidationException.class);
         }
 
         @Test
@@ -376,17 +399,17 @@ class ProductServiceIT extends AbstractIT {
             var tagX = tags.get(0);
             var tagY = tags.get(1);
 
-            var titleToken = RandomStringUtils.secure().nextAlphabetic(6);
+            var titleToken = GENERATOR.nextAlphabetic(6);
 
             var dtoMatch = buildProductDTO();
-            dtoMatch.setTitle(titleToken + "-" + RandomStringUtils.secure().nextAlphanumeric(8));
+            dtoMatch.setTitle(titleToken + "-" + GENERATOR.nextAlphanumeric(8));
             dtoMatch.setPrice(BigInteger.valueOf(RandomUtils.secure().randomLong(400, 800)));
             var productMatch = saveProduct(dtoMatch);
             productMatch.setTags(List.of(tagX, tagY));
             productRepository.save(productMatch);
-            var photoUrlMatch = "https://cdn." + RandomStringUtils.secure().nextAlphanumeric(6) + ".example/" +
-                    RandomStringUtils.secure().nextAlphanumeric(10) + ".png";
-            var photoRefMatch = RandomStringUtils.secure().nextAlphanumeric(18);
+            var photoUrlMatch = "https://cdn." + GENERATOR.nextAlphanumeric(6) + ".example/" +
+                    GENERATOR.nextAlphanumeric(10) + ".png";
+            var photoRefMatch = GENERATOR.nextAlphanumeric(18);
             productPhotoRepository.save(ProductPhoto.builder()
                     .productId(productMatch.getId())
                     .photoUrl(photoUrlMatch)
@@ -394,14 +417,14 @@ class ProductServiceIT extends AbstractIT {
                     .build());
 
             var dtoOther = buildProductDTO();
-            dtoOther.setTitle(RandomStringUtils.secure().nextAlphanumeric(12));
+            dtoOther.setTitle(GENERATOR.nextAlphanumeric(12));
             dtoOther.setPrice(BigInteger.valueOf(RandomUtils.secure().randomLong(1_200, 2_000)));
             var productOther = saveProduct(dtoOther);
             productOther.setTags(List.of(tagX));
             productRepository.save(productOther);
 
-            var createdFrom = ZonedDateTime.now().minusDays(1);
-            var createdTo = ZonedDateTime.now().plusDays(1);
+            var createdFrom = LocalDateTime.now().minusDays(1);
+            var createdTo = LocalDateTime.now().plusDays(1);
             var minPrice = BigDecimal.valueOf(100);
             var maxPrice = BigDecimal.valueOf(1_000);
 

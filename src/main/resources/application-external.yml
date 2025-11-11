@@ -1,8 +1,8 @@
 cloudinary:
-  cloud: ${CLOUDINARY_CLOUD_NAME}
+  cloud: ${CLOUDINARY_CLOUD_NAME:any}
   credentials:
-    apiKey: ${CLOUDINARY_API_KEY}
-    apiSecret: ${CLOUDINARY_API_SECRET}
+    apiKey: ${CLOUDINARY_API_KEY:any}
+    apiSecret: ${CLOUDINARY_API_SECRET:any}
   limit: 10
   folder: warehouse
 
@@ -26,5 +26,5 @@ transaction:
 
 
 exchange:
-  appId: ${EXCHANGE_APP_ID}
+  appId: ${EXCHANGE_APP_ID:any}
   url: ${EXCHANGE_URL:https://openexchangerates.org/api/latest.json}

@@ -30,27 +30,27 @@ services:
       timeout: 5s
       retries: 10
     networks: [ backend ]
-
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-      - "61613:61613"
-    environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=admin
-    command: >
-      bash -c "rabbitmq-plugins enable --offline rabbitmq_stomp &&
-               rabbitmq-server"
-    healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "check_running", "--quiet" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    networks: [ backend ]
+#
+#  rabbitmq:
+#    image: rabbitmq:3.13-management
+#    container_name: rabbitmq
+#    ports:
+#      - "5672:5672"
+#      - "15672:15672"
+#      - "61613:61613"
+#    environment:
+#      - RABBITMQ_DEFAULT_USER=admin
+#      - RABBITMQ_DEFAULT_PASS=admin
+#    command: >
+#      bash -c "rabbitmq-plugins enable --offline rabbitmq_stomp &&
+#               rabbitmq-server"
+#    healthcheck:
+#      test: [ "CMD", "rabbitmq-diagnostics", "check_running", "--quiet" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 20s
+#    networks: [ backend ]
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -117,6 +117,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - ELASTIC_PASSWORD=sdhjkfhj4jh54hjdsf
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -180,32 +181,18 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
       kafka: { condition: service_healthy }
       logstash: { condition: service_healthy }
     ports:
-      - "9000:9000"
+      - "9009:9009"
     environment:
-      SERVER_PORT: "9000"
+      SERVER_PORT: "9009"
       SPRING_APPLICATION_NAME: "warehouse"
-      SPRING_PROFILES_ACTIVE: "default, actuator, database, kafka, rabbitmq, redis"
-
+      SPRING_PROFILES_ACTIVE: "default, actuator, database, external, kafka, redis"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/warehouse"
       SPRING_DATASOURCE_USERNAME: "postgres"
       SPRING_DATASOURCE_PASSWORD: "1904"
-
-      SPRING_FLYWAY_ENABLED: "true"
-      SPRING_FLYWAY_LOCATIONS: "classpath:migrations"
-      USER_OWNER_USERNAME: "user"
-
-      SPRING_RABBITMQ_HOST: "rabbitmq"
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: "admin"
-      SPRING_RABBITMQ_PASSWORD: "admin"
-      SPRING_RABBITMQ_SOCKET_PORT: "61613"
-
       SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-
       SPRING_REDIS_HOST: "redis"
       SPRING_REDIS_PORT: "6379"
       SPRING_REDIS_PASSWORD: "1904"

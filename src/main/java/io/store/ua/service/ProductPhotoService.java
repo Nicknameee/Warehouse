@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,7 +19,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class ProductPhotoService {
     private final ProductPhotoRepository productPhotoRepository;
     private final ProductRepository productRepository;
@@ -29,7 +27,9 @@ public class ProductPhotoService {
     public List<ProductPhoto> saveAll(@NotNull(message = "A productId can't be null")
                                       @Min(value = 1, message = "A productId can't be less than 1")
                                       Long productId,
-                                      @NotEmpty(message = "A list of photos can't be empty") List<@NotNull(message = "A photo can't be null") MultipartFile> photos) {
+                                      @NotNull(message = "A list of photos can't be null")
+                                      @NotEmpty(message = "A list of photos can't be empty")
+                                      List<@NotNull(message = "A photo can't be null") MultipartFile> photos) {
         if (!productRepository.existsById(productId)) {
             throw new NotFoundException("Product with ID '%s' was not found".formatted(productId));
         }
@@ -45,5 +45,17 @@ public class ProductPhotoService {
                 .toList();
 
         return productPhotoRepository.saveAll(entities);
+    }
+
+    public void removeAll(@NotNull(message = "Photo IDs can't be null")
+                          @NotEmpty(message = "Photo IDs can't be empty")
+                          List<@NotNull(message = "Photo ID can't be null")
+                          @Min(value = 1, message = "Photo ID can't be less than 1")
+                                  Long> photoIDs) {
+        List<ProductPhoto> photos = productPhotoRepository.findAllById(photoIDs);
+
+        cloudinaryAPIService.deleteAllImages(photos.stream().map(ProductPhoto::getExternalReference).toList());
+
+        productPhotoRepository.deleteAll(photos);
     }
 }

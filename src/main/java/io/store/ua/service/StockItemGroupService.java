@@ -13,7 +13,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -23,7 +22,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class StockItemGroupService {
     private final StockItemGroupRepository stockItemGroupRepository;
     private final FieldValidator fieldValidator;
@@ -42,7 +40,7 @@ public class StockItemGroupService {
                         () -> new NotFoundException("Stock group with code: %s was not found".formatted(code)));
     }
 
-    public StockItemGroup save(StockItemGroupDTO stockItemGroupDTO) {
+    public StockItemGroup save(@NotNull(message = "Stock item group can't be null") StockItemGroupDTO stockItemGroupDTO) {
         if (stockItemGroupDTO.getCode() == null) {
             if (stockItemGroupDTO.getName() == null) {
                 throw new ValidationException("Stock group can't be created without name");

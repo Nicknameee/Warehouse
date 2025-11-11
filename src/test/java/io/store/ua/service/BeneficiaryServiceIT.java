@@ -7,7 +7,6 @@ import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.BeneficiaryDTO;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,8 +43,9 @@ class BeneficiaryServiceIT extends AbstractIT {
         @Transactional
         void save_success() {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(10))
-                    .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
+                    .name(GENERATOR.nextAlphabetic(10))
+                    .IBAN("UA" + GENERATOR.nextNumeric(27))
+                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .build();
 
             Beneficiary beneficiary = beneficiaryService.save(beneficiaryDTO);
@@ -53,7 +53,7 @@ class BeneficiaryServiceIT extends AbstractIT {
             assertThat(beneficiary.getId()).isNotNull();
             assertThat(beneficiary.getName()).isEqualTo(beneficiaryDTO.getName());
             assertThat(beneficiary.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
-            assertThat(beneficiary.getSWIFT()).isNull();
+            assertThat(beneficiary.getSWIFT()).isEqualTo(beneficiaryDTO.getSWIFT());
             assertThat(beneficiary.getCard()).isNull();
             assertThat(beneficiaryRepository.count()).isEqualTo(1);
         }
@@ -62,7 +62,7 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("save_fail_whenNoBankInfo: save fails when no financial information is present")
         void save_fail_whenNoBankInfo() {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(10))
+                    .name(GENERATOR.nextAlphabetic(10))
                     .build();
 
             assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTO))
@@ -73,22 +73,22 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("save_fail_whenDuplicateIBANOrCard: save fails when card or IBAN information is already taken")
         @Transactional
         void save_fail_whenDuplicateIBANOrCard() {
-            String iban = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            String card = RandomStringUtils.secure().nextNumeric(16);
+            String iban = "UA" + GENERATOR.nextNumeric(27);
+            String card = GENERATOR.nextNumeric(16);
 
             beneficiaryRepository.save(Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(10))
+                    .name(GENERATOR.nextAlphabetic(10))
                     .IBAN(iban)
                     .card(card)
                     .isActive(true)
                     .build());
 
             BeneficiaryDTO beneficiaryDTOWithWrongIban = BeneficiaryDTO.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(10))
+                    .name(GENERATOR.nextAlphabetic(10))
                     .IBAN(iban)
                     .build();
             BeneficiaryDTO beneficiaryDTOWithWrongCardNumber = BeneficiaryDTO.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(10))
+                    .name(GENERATOR.nextAlphabetic(10))
                     .card(card)
                     .build();
 
@@ -143,23 +143,23 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("findBy_success: filters correctly by prefixes")
         @Transactional
         void findBy_success() {
-            String ibanPrefix = "UA12" + RandomStringUtils.secure().nextNumeric(23);
-            String swiftPrefix = RandomStringUtils.secure().nextAlphabetic(4).toUpperCase();
-            String cardPrefix = RandomStringUtils.secure().nextNumeric(4);
+            String ibanPrefix = "UA12%s".formatted(GENERATOR.nextNumeric(23));
+            String swiftPrefix = GENERATOR.nextAlphabetic(4).toUpperCase();
+            String cardPrefix = GENERATOR.nextNumeric(4);
 
             Beneficiary firstBeneficiary = Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
-                    .IBAN(ibanPrefix + RandomStringUtils.secure().nextNumeric(4))
-                    .SWIFT(swiftPrefix + RandomStringUtils.secure().nextAlphabetic(4).toUpperCase())
-                    .card(cardPrefix + RandomStringUtils.secure().nextNumeric(12))
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .IBAN("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .SWIFT("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
                     .isActive(true)
                     .build();
             Beneficiary otherBeneficiary = Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
-                    .IBAN(ibanPrefix + RandomStringUtils.secure().nextNumeric(4))
-                    .SWIFT(swiftPrefix + RandomStringUtils.secure().nextAlphabetic(4).toUpperCase())
-                    .card(cardPrefix + RandomStringUtils.secure().nextNumeric(12))
-                    .isActive(true)
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .IBAN("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .SWIFT("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
+                    .isActive(false)
                     .build();
 
             List<Beneficiary> beneficiaries = new ArrayList<>(generateBeneficiaries(5));
@@ -173,13 +173,18 @@ class BeneficiaryServiceIT extends AbstractIT {
                     swiftPrefix,
                     cardPrefix,
                     "",
+                    true,
                     5,
                     1);
 
-            assertThat(beneficiaries).isNotEmpty();
-            assertThat(beneficiaries).allMatch(beneficiary -> beneficiary.getIBAN().startsWith(ibanPrefix)
-                    || beneficiary.getSWIFT().startsWith(swiftPrefix)
-                    || beneficiary.getCard().startsWith(cardPrefix));
+            assertThat(beneficiaries)
+                    .isNotEmpty();
+            assertThat(beneficiaries)
+                    .allMatch(beneficiary -> beneficiary.getIBAN().startsWith(ibanPrefix)
+                            || beneficiary.getSWIFT().startsWith(swiftPrefix)
+                            || beneficiary.getCard().startsWith(cardPrefix));
+            assertThat(beneficiaries)
+                    .allMatch(Beneficiary::getIsActive);
         }
     }
 
@@ -191,34 +196,45 @@ class BeneficiaryServiceIT extends AbstractIT {
         @Transactional
         void update_success() {
             Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
-                    .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
-                    .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
-                    .card(RandomStringUtils.secure().nextNumeric(16))
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
+                    .card(GENERATOR.nextNumeric(16))
                     .isActive(true)
                     .build());
 
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .id(beneficiary.getId())
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
-                    .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
-                    .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
-                    .card(RandomStringUtils.secure().nextNumeric(16))
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
+                    .card(GENERATOR.nextNumeric(16))
+                    .isActive(false)
                     .build();
+
+            long initialCount = beneficiaryRepository.count();
 
             beneficiary = beneficiaryService.update(beneficiaryDTO);
 
-            assertThat(beneficiary.getName()).isEqualTo(beneficiaryDTO.getName());
-            assertThat(beneficiary.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
-            assertThat(beneficiary.getSWIFT()).isEqualTo(beneficiaryDTO.getSWIFT());
-            assertThat(beneficiary.getCard()).isEqualTo(beneficiaryDTO.getCard());
+            assertThat(beneficiary.getName())
+                    .isEqualTo(beneficiaryDTO.getName());
+            assertThat(beneficiary.getIBAN())
+                    .isEqualTo(beneficiaryDTO.getIBAN());
+            assertThat(beneficiary.getSWIFT())
+                    .isEqualTo(beneficiaryDTO.getSWIFT());
+            assertThat(beneficiary.getCard())
+                    .isEqualTo(beneficiaryDTO.getCard());
+            assertThat(beneficiary.getIsActive())
+                    .isEqualTo(beneficiaryDTO.getIsActive());
+            assertThat(beneficiaryRepository.count())
+                    .isEqualTo(initialCount);
         }
 
         @Test
         @DisplayName("update_fail_whenMissingId: update fails when no beneficiary ID is present")
         void update_fail_whenMissingId() {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(909))
+                    .name(GENERATOR.nextAlphabetic(909))
                     .build();
 
             assertThatThrownBy(() -> beneficiaryService.update(beneficiaryDTO))
@@ -230,7 +246,7 @@ class BeneficiaryServiceIT extends AbstractIT {
         void update_fail_whenNotFound() {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .id(RandomUtils.secure().randomLong(1, 100_000))
-                    .name(RandomStringUtils.secure().nextAlphabetic(99))
+                    .name(GENERATOR.nextAlphabetic(99))
                     .build();
 
             assertThatThrownBy(() -> beneficiaryService.update(beneficiaryDTO))
@@ -241,20 +257,20 @@ class BeneficiaryServiceIT extends AbstractIT {
         @DisplayName("update_fail_whenDuplicateIBANOrCard: update fails when suggested new financial info already registered in the system")
         @Transactional
         void update_fail_whenDuplicateIBANOrCard() {
-            String initialIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            String initialCard = RandomStringUtils.secure().nextNumeric(16);
-            String newIBAN = "UA" + RandomStringUtils.secure().nextNumeric(27);
-            String newCard = RandomStringUtils.secure().nextNumeric(16);
+            String initialIBAN = "UA%s".formatted(GENERATOR.nextNumeric(27));
+            String initialCard = GENERATOR.nextNumeric(16);
+            String newIBAN = "UA%s".formatted(GENERATOR.nextNumeric(27));
+            String newCard = GENERATOR.nextNumeric(16);
 
             Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
+                    .name(GENERATOR.nextAlphabetic(8))
                     .IBAN(initialIBAN)
                     .card(initialCard)
                     .isActive(true)
                     .build());
 
             beneficiaryRepository.save(Beneficiary.builder()
-                    .name(RandomStringUtils.secure().nextAlphabetic(8))
+                    .name(GENERATOR.nextAlphabetic(8))
                     .IBAN(newIBAN)
                     .card(newCard)
                     .isActive(true)

@@ -4,10 +4,11 @@ import io.store.ua.entity.User;
 import io.store.ua.enums.UserRole;
 import io.store.ua.enums.UserStatus;
 import io.store.ua.exceptions.ApplicationException;
+import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.RegularAuthenticationException;
 import io.store.ua.mappers.UserMapper;
-import io.store.ua.models.dto.UserDTO;
 import io.store.ua.models.dto.UserActionResultDTO;
+import io.store.ua.models.dto.UserDTO;
 import io.store.ua.repository.UserRepository;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
@@ -22,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,7 +40,6 @@ import java.util.TimeZone;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -75,21 +74,18 @@ public class UserService {
                 .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findByRole(@NotNull(message = "User role can't be null") UserRole role,
                                  @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                  @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
         return userRepository.findUsersByRole(role, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findByStatus(@NotNull(message = "User status can't be null") UserStatus status,
                                    @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                    @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
         return userRepository.findUsersByStatus(status, Pageable.ofSize(pageSize).withPage(pageNumber - 1));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'OWNER')")
     public List<User> findBy(String usernamePrefix,
                              String emailPart,
                              List<UserRole> roles,
@@ -157,18 +153,23 @@ public class UserService {
         return Optional.ofNullable(userRepository.findUserByEmail(email));
     }
 
-    @PreAuthorize("permitAll()")
     public Optional<User> findByUsername(@NotBlank(message = "Username can't be blank") String username) {
         return Optional.ofNullable(userRepository.findUserByUsername(username));
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public List<User> saveAll(List<UserDTO> regularUsers) {
         List<User> users = new ArrayList<>();
+
+        var currentUser = getCurrentlyAuthenticatedUser()
+                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
 
         for (UserDTO regularUser : regularUsers) {
             fieldValidator.validate(regularUser, true, UserDTO.Fields.email, UserDTO.Fields.username, UserDTO.Fields.role);
             User user = userMapper.toUser(regularUser);
+
+            if (currentUser.getRole() == UserRole.MANAGER && user.getRole() != UserRole.OPERATOR) {
+                throw new BusinessException("Only operator can be created by manager");
+            }
 
             if (regularUser.getStatus() != null) {
                 fieldValidator.validate(regularUser, UserDTO.Fields.status, true);
@@ -191,7 +192,6 @@ public class UserService {
         return userRepository.saveAll(users);
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public User save(UserDTO regularUser) {
         fieldValidator.validate(regularUser, true,
                 UserDTO.Fields.email,
@@ -200,6 +200,13 @@ public class UserService {
                 UserDTO.Fields.status);
 
         User user = userMapper.toUser(regularUser);
+
+        var currentUser = getCurrentlyAuthenticatedUser()
+                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+
+        if (currentUser.getRole() == UserRole.MANAGER && user.getRole() != UserRole.OPERATOR) {
+            throw new BusinessException("Only operator can be created by manager");
+        }
 
         if (regularUser.getTimezone() != null) {
             fieldValidator.validate(regularUser, UserDTO.Fields.timezone, true);
@@ -214,10 +221,11 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public List<UserActionResultDTO> updateAll(List<UserDTO> regularUsers) {
         List<UserActionResultDTO> results = new ArrayList<>();
         List<User> users = new ArrayList<>();
+        var currentUser = getCurrentlyAuthenticatedUser()
+                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
 
         for (UserDTO regularUser : regularUsers) {
             fieldValidator.validateObject(regularUser, UserDTO.Fields.username, true);
@@ -248,6 +256,10 @@ public class UserService {
                 }
 
                 if (regularUser.getRole() != null) {
+                    if (currentUser.getRole() != UserRole.OWNER) {
+                        throw new BusinessException("Only owner can change user roles");
+                    }
+
                     fieldValidator.validateObject(regularUser, UserDTO.Fields.role, true);
                     user.setRole(UserRole.valueOf(regularUser.getRole()));
                 }
@@ -263,7 +275,6 @@ public class UserService {
         return results;
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'OPERATOR')")
     public User update(UserDTO regularUser) {
         fieldValidator.validateObject(regularUser, UserDTO.Fields.username, true);
         Optional<User> userOptional = findByUsername(regularUser.getUsername());
@@ -275,6 +286,9 @@ public class UserService {
 
         User user = userOptional.get();
 
+        var currentUser = getCurrentlyAuthenticatedUser()
+                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+
         if (regularUser.getPassword() != null) {
             fieldValidator.validate(regularUser, UserDTO.Fields.password, true);
             user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
@@ -285,16 +299,18 @@ public class UserService {
             user.setTimezone(regularUser.getTimezone());
         }
 
-        if (List.of(UserRole.OWNER, UserRole.MANAGER).contains(getCurrentlyAuthenticatedUser().map(User::getRole).orElse(null))) {
-            if (regularUser.getStatus() != null) {
-                fieldValidator.validate(regularUser, UserDTO.Fields.status, true);
-                user.setStatus(UserStatus.valueOf(regularUser.getStatus()));
+        if (regularUser.getStatus() != null) {
+            fieldValidator.validate(regularUser, UserDTO.Fields.status, true);
+            user.setStatus(UserStatus.valueOf(regularUser.getStatus()));
+        }
+
+        if (regularUser.getRole() != null) {
+            if (currentUser.getRole() != UserRole.OWNER) {
+                throw new BusinessException("Only owner can change user roles");
             }
 
-            if (regularUser.getRole() != null) {
-                fieldValidator.validate(regularUser, UserDTO.Fields.role, true);
-                user.setRole(UserRole.valueOf(regularUser.getRole()));
-            }
+            fieldValidator.validate(regularUser, UserDTO.Fields.role, true);
+            user.setRole(UserRole.valueOf(regularUser.getRole()));
         }
 
         return userRepository.save(user);

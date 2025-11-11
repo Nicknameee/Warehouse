@@ -3,12 +3,15 @@ package io.store.ua.service;
 import io.store.ua.entity.StockItem;
 import io.store.ua.entity.StockItemGroup;
 import io.store.ua.enums.StockItemStatus;
+import io.store.ua.enums.WebSocketTopic;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
+import io.store.ua.models.data.ItemOutOfStockMessage;
 import io.store.ua.models.dto.StockItemDTO;
 import io.store.ua.models.dto.StockItemHistoryDTO;
 import io.store.ua.repository.StockItemRepository;
 import io.store.ua.repository.StorageSectionRepository;
+import io.store.ua.utility.SocketService;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
@@ -17,7 +20,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -28,13 +30,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class StockItemService {
     private final StockItemRepository stockItemRepository;
     private final StorageSectionRepository storageSectionRepository;
     private final FieldValidator fieldValidator;
     private final EntityManager entityManager;
     private final StockItemHistoryService stockItemHistoryService;
+    private final SocketService socketService;
 
     public List<StockItem> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                    @Min(value = 1, message = "A page number can't be less than 1") int page) {
@@ -141,6 +143,7 @@ public class StockItemService {
 
         StockItemHistoryDTO.StockItemHistoryDTOBuilder stockItemHistoryDTOBuilder = StockItemHistoryDTO.builder();
         stockItemHistoryDTOBuilder.stockItemId(stockItemDTO.getStockItemId());
+        boolean outOfStock = false;
 
         if (stockItemDTO.getStockItemGroupId() != null) {
             fieldValidator.validate(stockItemDTO, StockItemDTO.Fields.stockItemGroupId, true);
@@ -189,6 +192,13 @@ public class StockItemService {
             stockItemHistoryDTOBuilder.quantityAfter(stockItemDTO.getAvailableQuantity());
 
             current.setAvailableQuantity(stockItemDTO.getAvailableQuantity());
+
+            if (current.getAvailableQuantity().compareTo(BigInteger.ZERO) == 0 && current.getStatus() == StockItemStatus.AVAILABLE) {
+                current.setStatus(StockItemStatus.OUT_OF_STOCK);
+                stockItemHistoryDTOBuilder.oldStatus(current.getStatus().name());
+                stockItemHistoryDTOBuilder.newStatus(StockItemStatus.OUT_OF_STOCK.name());
+                outOfStock = true;
+            }
         }
 
         if (stockItemDTO.getIsActive() != null) {
@@ -234,7 +244,16 @@ public class StockItemService {
 
         stockItemHistoryService.save(stockItemHistoryDTOBuilder.build());
 
-        return stockItemRepository.save(current);
+        var stockItem = stockItemRepository.save(current);
+
+        if (outOfStock) {
+            socketService.pushToTopic(WebSocketTopic.STOCK_ITEM_OUT_OF_STOCK.getTopic(), ItemOutOfStockMessage.builder()
+                    .stockItemId(stockItem.getId())
+                    .message("Stock item with ID '%s' is out of stock".formatted(stockItem.getId()))
+                    .build());
+        }
+
+        return stockItem;
     }
 
     private StockItemStatus determineStatus(BigInteger availableQuantity) {

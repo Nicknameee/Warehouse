@@ -14,7 +14,6 @@ import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -27,7 +26,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class AnalyticsService {
     private final EntityManager entityManager;
 
@@ -101,7 +99,7 @@ public class AnalyticsService {
                                                                                 @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                                                                 @Min(value = 1, message = "A page number can't be less than 1") int page) {
         if (from != null && to != null && from.isAfter(to)) {
-            throw new IllegalArgumentException("'from' must not be after 'to'");
+            throw new IllegalArgumentException("A 'from' must not be after 'to'");
         }
 
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();

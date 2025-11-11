@@ -4,10 +4,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.kafka.KafkaConnectionDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
@@ -15,18 +17,17 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
+@ConditionalOnBean(KafkaConnectionDetails.class)
+@Profile("kafka")
 public class ApplicationKafkaConfiguration {
-    @Value("${spring.kafka.bootstrap-servers}")
-    private String bootstrapServers;
-
     @Bean
-    public KafkaTemplate<String, ?> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+    public KafkaTemplate<String, ?> kafkaTemplate(ProducerFactory<String, ?> producerFactory) {
+        return new KafkaTemplate<>(producerFactory);
     }
 
     @Bean
-    public ProducerFactory<String, ?> producerFactory() {
+    public ProducerFactory<String, ?> producerFactory(Environment environment) {
+        String bootstrapServers = environment.getRequiredProperty("spring.kafka.bootstrap-servers");
         return new DefaultKafkaProducerFactory<>(
                 Map.ofEntries(
                         Map.entry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
@@ -46,7 +47,8 @@ public class ApplicationKafkaConfiguration {
     }
 
     @Bean
-    public ConsumerFactory<String, ?> consumerFactory() {
+    public ConsumerFactory<String, ?> consumerFactory(Environment environment) {
+        String bootstrapServers = environment.getRequiredProperty("spring.kafka.bootstrap-servers");
         return new DefaultKafkaConsumerFactory<>(
                 Map.ofEntries(
                         Map.entry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),

@@ -17,12 +17,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -30,7 +29,6 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class ProductService {
     private final ProductRepository productRepository;
     private final EntityManager entityManager;
@@ -65,10 +63,14 @@ public class ProductService {
                                 BigDecimal minimumPrice,
                                 BigDecimal maximumPrice,
                                 List<@NotNull(message = "Tag ID can't be null") Long> tagIds,
-                                ZonedDateTime createdFromInclusive,
-                                ZonedDateTime createdToInclusive,
+                                LocalDateTime from,
+                                LocalDateTime to,
                                 @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
                                 @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
+        if (to != null && from != null && to.isBefore(from)) {
+            throw new ValidationException("A 'to' can't be before 'from'");
+        }
+
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
         Root<Product> productRoot = criteriaQuery.from(Product.class);
@@ -93,17 +95,11 @@ public class ProductService {
         if (maximumPrice != null) {
             predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.price), maximumPrice));
         }
-
-        if (createdFromInclusive != null && createdToInclusive != null && createdFromInclusive.isAfter(createdToInclusive)) {
-            ZonedDateTime swap = createdFromInclusive;
-            createdFromInclusive = createdToInclusive;
-            createdToInclusive = swap;
+        if (from != null) {
+            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.createdAt), from));
         }
-        if (createdFromInclusive != null) {
-            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.createdAt), createdFromInclusive));
-        }
-        if (createdToInclusive != null) {
-            predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.createdAt), createdToInclusive));
+        if (to != null) {
+            predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.createdAt), to));
         }
 
         Join<Product, Tag> tagsJoin;
@@ -161,6 +157,7 @@ public class ProductService {
 
         if (productDTO.getTags() != null && !productDTO.getTags().isEmpty()) {
             var foundTags = tagRepository.findDistinctByIdIn(productDTO.getTags());
+
             if (foundTags.size() != productDTO.getTags().size()) {
                 throw new NotFoundException("Certain tags were not found, IDs: [%s], found IDs: [%s]"
                         .formatted(productDTO.getTags(), foundTags.stream().map(Tag::getId).toList()));

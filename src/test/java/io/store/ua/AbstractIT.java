@@ -47,7 +47,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default"})
+@ActiveProfiles({"actuator", "database", "external", "redis", "default"})
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnableRetry
@@ -292,6 +292,7 @@ public abstract class AbstractIT {
         return storageSectionRepository.save(StorageSection.builder()
                 .warehouseId(warehouseId)
                 .code(RandomStringUtils.secure().nextAlphanumeric(8))
+                .isActive(true)
                 .build());
     }
 

@@ -27,6 +27,7 @@ public class UserController {
     }
 
     @GetMapping("/findBy/role")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> findByRole(@RequestParam("role") UserRole role,
                                         @RequestParam(value = "pageSize") int pageSize,
                                         @RequestParam(value = "page") int page) {
@@ -34,6 +35,7 @@ public class UserController {
     }
 
     @GetMapping("/findBy/status")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> findByStatus(@RequestParam("status") UserStatus status,
                                           @RequestParam(value = "pageSize") int pageSize,
                                           @RequestParam(value = "page") int page) {
@@ -41,6 +43,7 @@ public class UserController {
     }
 
     @GetMapping("/findBy")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> findBy(@RequestParam(value = "username", required = false) String usernamePrefix,
                                     @RequestParam(value = "email", required = false) String emailPart,
                                     @RequestParam(value = "roles", required = false) List<UserRole> roles,
@@ -52,16 +55,19 @@ public class UserController {
     }
 
     @PostMapping("/all")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> saveAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.saveAll(userDTOS));
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> save(@RequestBody UserDTO regularUser) {
         return ResponseEntity.ok(userService.save(regularUser));
     }
 
     @PutMapping("/all")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.updateAll(userDTOS));
     }

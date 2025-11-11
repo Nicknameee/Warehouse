@@ -21,7 +21,7 @@ public class TagController {
 
     @GetMapping("/findBy")
     public ResponseEntity<?> findBy(@RequestParam(name = "names", required = false) List<String> names,
-                                    @RequestParam(name = "is_active", required = false) Boolean isActive,
+                                    @RequestParam(name = "isActive", required = false) Boolean isActive,
                                     @RequestParam(name = "pageSize") int pageSize,
                                     @RequestParam(name = "page") int page) {
         return ResponseEntity.ok(tagService.findBy(names, isActive, pageSize, page));
@@ -35,7 +35,7 @@ public class TagController {
     @PutMapping
     public ResponseEntity<?> update(@RequestParam(name = "id") Long tagId,
                                     @RequestParam(name = "name", required = false) String tagName,
-                                    @RequestParam(name = "is_active", required = false) Boolean isActive) {
+                                    @RequestParam(name = "isActive", required = false) Boolean isActive) {
         return ResponseEntity.ok(tagService.update(tagId, tagName, isActive));
     }
 

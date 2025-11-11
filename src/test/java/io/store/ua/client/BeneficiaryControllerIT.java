@@ -1,0 +1,373 @@
+package io.store.ua.client;
+
+import io.store.ua.AbstractIT;
+import io.store.ua.entity.Beneficiary;
+import io.store.ua.models.dto.BeneficiaryDTO;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class BeneficiaryControllerIT extends AbstractIT {
+    private HttpHeaders ownerAuthenticationHeaders;
+
+    @BeforeAll
+    void setupAuthentication() {
+        ownerAuthenticationHeaders = generateAuthenticationHeaders();
+    }
+
+    private Beneficiary generateBeneficiary(String name, String IBAN, String SWIFT, String card, boolean isActive) {
+        return beneficiaryRepository.save(Beneficiary.builder()
+                .name(name)
+                .IBAN(IBAN)
+                .SWIFT(SWIFT)
+                .card(card)
+                .isActive(isActive)
+                .build());
+    }
+
+    private BeneficiaryDTO generateBeneficiaryDTO() {
+        return BeneficiaryDTO.builder()
+                .name(GENERATOR.nextAlphanumeric(10))
+                .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                .SWIFT("SW%s".formatted(GENERATOR.nextAlphanumeric(6).toUpperCase()))
+                .card(GENERATOR.nextNumeric(16))
+                .isActive(true)
+                .build();
+    }
+
+    private HttpHeaders generateHeaders(HttpHeaders original) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(original);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        return headers;
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/beneficiaries/findAll")
+    class FindAllTests {
+        @Test
+        @DisplayName("findAll_success_returnsPaged")
+        void findAll_success_returnsPaged() {
+            generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "5375%s".formatted(GENERATOR.nextNumeric(12)),
+                    true);
+            generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4149%s".formatted(GENERATOR.nextNumeric(12)),
+                    false);
+
+            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findAll")
+                    .queryParam("pageSize", 1)
+                    .queryParam("page", 1)
+                    .build(true)
+                    .toUriString();
+
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    });
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/beneficiaries/findBy")
+    class FindByTests {
+        @Test
+        @DisplayName("findBy_success_appliesAllFilters")
+        void findBy_success_appliesAllFilters() {
+            var beneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "5375%s".formatted(GENERATOR.nextNumeric(12)),
+                    true);
+            generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4149%s".formatted(GENERATOR.nextNumeric(12)),
+                    false);
+
+            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findBy")
+                    .queryParam("IBANPrefix", beneficiary.getIBAN().substring(0, 3))
+                    .queryParam("SWIFTPrefix", beneficiary.getSWIFT().substring(0, 3))
+                    .queryParam("cardPrefix", beneficiary.getCard().substring(0, 4))
+                    .queryParam("name", beneficiary.getName().substring(0, 5))
+                    .queryParam("isActive", beneficiary.getIsActive())
+                    .queryParam("pageSize", 5)
+                    .queryParam("page", 1)
+                    .build(true)
+                    .toUriString();
+
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    });
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull()
+                    .extracting(Beneficiary::getId)
+                    .containsExactly(beneficiary.getId());
+        }
+
+        @Test
+        @DisplayName("findBy_success_noFiltersReturnsPaged")
+        void findBy_success_noFiltersReturnsPaged() {
+            var firstBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4000%s".formatted(GENERATOR.nextNumeric(12)),
+                    true);
+            var otherBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4000%s".formatted(GENERATOR.nextNumeric(12)),
+                    false);
+
+            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findBy")
+                    .queryParam("pageSize", 10)
+                    .queryParam("page", 1)
+                    .build(true)
+                    .toUriString();
+
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    });
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull()
+                    .extracting(Beneficiary::getId)
+                    .contains(firstBeneficiary.getId(), otherBeneficiary.getId());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/beneficiaries")
+    class SaveTests {
+        @Test
+        @DisplayName("save_success_persistsEntity")
+        void save_success_persistsEntity() {
+            var beneficiaryDTO = generateBeneficiaryDTO();
+
+            ResponseEntity<Beneficiary> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.POST,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    Beneficiary.class);
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull();
+            assertThat(beneficiaryRepository.findById(responseEntity.getBody().getId()).isPresent())
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("save_fail_duplicateIban_returns4xx")
+        void save_fail_duplicateIban_returns4xx() {
+            String IBAN = "UA%s".formatted(GENERATOR.nextNumeric(27));
+            generateBeneficiary(GENERATOR.nextAlphanumeric(10),
+                    IBAN,
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    null,
+                    true);
+
+            var beneficiaryDTO = BeneficiaryDTO.builder()
+                    .name(GENERATOR.nextAlphanumeric(10))
+                    .IBAN(IBAN)
+                    .SWIFT(GENERATOR.nextAlphanumeric(6).toUpperCase())
+                    .card(null)
+                    .isActive(true)
+                    .build();
+
+            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.POST,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    String.class);
+
+            assertThat(responseEntity.getStatusCode().is4xxClientError())
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("save_fail_noBankData_returns4xx")
+        void save_fail_noBankData_returns4xx() {
+            var beneficiaryDTO = BeneficiaryDTO.builder()
+                    .name(GENERATOR.nextAlphanumeric(10))
+                    .isActive(true)
+                    .build();
+
+            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.POST,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    String.class);
+
+            assertThat(responseEntity.getStatusCode().is4xxClientError())
+                    .isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/beneficiaries")
+    class UpdateTests {
+        @Test
+        @DisplayName("update_success_updatesSelectedFields")
+        void update_success_updatesSelectedFields() {
+            var beneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4149%s".formatted(GENERATOR.nextNumeric(12)),
+                    true);
+            var beneficiaryDTO = BeneficiaryDTO.builder()
+                    .id(beneficiary.getId())
+                    .name(GENERATOR.nextAlphabetic(30))
+                    .SWIFT(GENERATOR.nextAlphanumeric(6).toUpperCase())
+                    .build();
+
+            ResponseEntity<Beneficiary> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.PUT,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    Beneficiary.class);
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull();
+            assertThat(responseEntity.getBody().getName())
+                    .isEqualTo(beneficiaryDTO.getName());
+            assertThat(responseEntity.getBody().getSWIFT())
+                    .isEqualTo(beneficiaryDTO.getSWIFT());
+        }
+
+        @Test
+        @DisplayName("update_fail_missingId_returns4xx")
+        void update_fail_missingId_returns4xx() {
+            var beneficiaryDTO = BeneficiaryDTO.builder()
+                    .name(GENERATOR.nextAlphabetic(30))
+                    .build();
+
+            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.PUT,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    String.class);
+
+            assertThat(responseEntity.getStatusCode().is4xxClientError())
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("update_fail_duplicateCard_returns4xx")
+        void update_fail_duplicateCard_returns4xx() {
+            var beneficiary = generateBeneficiary(GENERATOR.nextAlphanumeric(30),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "400000000000%s".formatted(GENERATOR.nextNumeric(4)),
+                    true);
+            var otherBeneficiary = generateBeneficiary("Target",
+                    "UA" + GENERATOR.nextNumeric(27),
+                    "TARGETSW",
+                    "400000000000%s".formatted(GENERATOR.nextNumeric(4)),
+                    true);
+            var beneficiaryDTO = BeneficiaryDTO.builder()
+                    .id(otherBeneficiary.getId())
+                    .card(beneficiary.getCard())
+                    .build();
+
+            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+                    HttpMethod.PUT,
+                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
+                    String.class);
+
+            assertThat(responseEntity.getStatusCode().is4xxClientError())
+                    .isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/beneficiaries/changeState")
+    class ChangeStateTests {
+        @Test
+        @DisplayName("changeState_success_updatesFlags")
+        void changeState_success_updatesFlags() {
+            var beneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "40000000%s".formatted(GENERATOR.nextNumeric(8)),
+                    false);
+            var otherBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4%s".formatted(GENERATOR.nextNumeric(15)),
+                    false);
+            var anotherBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
+                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
+                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
+                    "4%s".formatted(GENERATOR.nextNumeric(1)),
+                    false);
+
+            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/changeState")
+                    .queryParam("beneficiaryID", beneficiary.getId())
+                    .queryParam("beneficiaryID", otherBeneficiary.getId())
+                    .queryParam("beneficiaryID", anotherBeneficiary.getId())
+                    .queryParam("isActive", true)
+                    .build(true)
+                    .toUriString();
+
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+                    HttpMethod.PUT,
+                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new ParameterizedTypeReference<>() {
+                    });
+
+            assertThat(responseEntity.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(responseEntity.getBody())
+                    .isNotNull()
+                    .hasSize(3);
+            assertThat(responseEntity.getBody())
+                    .allSatisfy(beneficiaryAccount -> assertThat(beneficiaryAccount.getIsActive())
+                            .isTrue());
+        }
+
+        @Test
+        @DisplayName("changeState_fail_emptyIds_returns4xx")
+        void changeState_fail_emptyIds_returns4xx() {
+            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/changeState")
+                    .queryParam("isActive", false)
+                    .build(true)
+                    .toUriString();
+
+            ResponseEntity<String> responseEntity = restClient.exchange(url,
+                    HttpMethod.PUT,
+                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    String.class);
+
+            assertThat(responseEntity.getStatusCode().is4xxClientError())
+                    .isTrue();
+        }
+    }
+}

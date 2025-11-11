@@ -153,7 +153,7 @@ class TagControllerIT extends AbstractIT {
             String url = UriComponentsBuilder.fromPath("/api/v1/tags/findBy")
                     .queryParam("names", fooActive.getName())
                     .queryParam("names", barActive.getName())
-                    .queryParam("is_active", true)
+                    .queryParam("isActive", true)
                     .queryParam("pageSize", 50)
                     .queryParam("page", 1)
                     .build(true)
@@ -283,7 +283,7 @@ class TagControllerIT extends AbstractIT {
             String url = UriComponentsBuilder.fromPath("/api/v1/tags")
                     .queryParam("id", existing.getId())
                     .queryParam("name", updatedName)
-                    .queryParam("is_active", false)
+                    .queryParam("isActive", false)
                     .build(true)
                     .toUriString();
 

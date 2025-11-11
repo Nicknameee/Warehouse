@@ -26,13 +26,13 @@ public class StockItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "product_id", nullable = false, insertable = false, updatable = false)
     private Product product;
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "group_id", nullable = false, insertable = false, updatable = false)
     private StockItemGroup stockItemGroup;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "storage_section_id", insertable = false, updatable = false)
     private StorageSection storageSection;
     @Column(name = "product_id", nullable = false)
@@ -46,7 +46,7 @@ public class StockItem {
     private LocalDate expiryDate;
     @Column(name = "available_quantity", nullable = false)
     private BigInteger availableQuantity;
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private StockItemStatus status;
     @Column(name = "is_active", nullable = false)

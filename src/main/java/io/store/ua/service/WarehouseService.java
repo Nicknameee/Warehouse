@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -23,12 +22,10 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class WarehouseService {
     private final WarehouseRepository warehouseRepository;
     private final FieldValidator fieldValidator;
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public List<Warehouse> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                    @Min(value = 1, message = "A page number can't be less than 1") int page) {
         return warehouseRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
@@ -39,7 +36,6 @@ public class WarehouseService {
                 .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(code)));
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER')")
     public Warehouse save(WarehouseDTO warehouseDTO) {
         String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
 
@@ -54,7 +50,6 @@ public class WarehouseService {
                 .isActive(warehouseDTO.getIsActive()).build()));
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public Warehouse update(WarehouseDTO warehouseDTO) {
         User user =
                 UserService.getCurrentlyAuthenticatedUser()
@@ -98,7 +93,6 @@ public class WarehouseService {
         return warehouseRepository.save(warehouse);
     }
 
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public Warehouse toggleState(@NotBlank(message = "Warehouse code can't be blank") String code) {
         Warehouse warehouse = warehouseRepository.findByCode(code)
                 .orElseThrow(() -> new NotFoundException(("Warehouse with code: %s was not found").formatted(code)));

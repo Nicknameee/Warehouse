@@ -33,7 +33,7 @@ public class Shipment {
     @Column(name = "warehouse_id_recipient")
     private Long warehouseIdRecipient;
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
+    @Column(name = "address", columnDefinition = "json")
     private Address address;
     @Column(name = "stock_item_id")
     private Long stockItemId;
@@ -41,7 +41,7 @@ public class Shipment {
     private Long stockItemQuantity;
     @Column(name = "initiator_id")
     private Long initiatorId;
-    @Column
+    @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private ShipmentStatus status;
     @Column(name = "created_at")

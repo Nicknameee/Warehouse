@@ -6,7 +6,6 @@ import io.store.ua.entity.ProductPhoto;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
 import jakarta.validation.ConstraintViolationException;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,7 +41,7 @@ class ProductPhotoServiceIT extends AbstractIT {
 
     private MockMultipartFile generateMockFile(String name, int size) {
         return new MockMultipartFile(
-                RandomStringUtils.secure().nextAlphanumeric(10),
+                GENERATOR.nextAlphanumeric(10),
                 name,
                 "image/png",
                 new byte[Math.max(size, 0)]
@@ -51,7 +50,7 @@ class ProductPhotoServiceIT extends AbstractIT {
 
     private MockMultipartFile generateMockTextFile(String name, String content) {
         return new MockMultipartFile(
-                RandomStringUtils.secure().nextAlphanumeric(10),
+                GENERATOR.nextAlphanumeric(10),
                 name,
                 "text/plain",
                 content.getBytes(StandardCharsets.UTF_8)
@@ -72,10 +71,10 @@ class ProductPhotoServiceIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success: persists all uploaded photos with secure URL when present")
         void saveAll_success() {
-            String publicFront = RandomStringUtils.secure().nextAlphanumeric(12);
-            String publicBack = RandomStringUtils.secure().nextAlphanumeric(12);
-            String secureFront = "https://cdn.example.com/images/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/front.png";
-            String secureBack = "https://cdn.example.com/images/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/back.png";
+            String publicFront = GENERATOR.nextAlphanumeric(12);
+            String publicBack = GENERATOR.nextAlphanumeric(12);
+            String secureFront = "https://cdn.example.com/images/" + GENERATOR.nextAlphanumeric(6) + "/front.png";
+            String secureBack = "https://cdn.example.com/images/" + GENERATOR.nextAlphanumeric(6) + "/back.png";
             String httpFront = secureFront.replace("https", "http");
             String httpBack = secureBack.replace("https", "http");
 
@@ -103,8 +102,8 @@ class ProductPhotoServiceIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success_fallbackToHttp_whenSecureUrlIsAbsent: falls back to http URL when secure URL is absent")
         void saveAll_success_fallbackToHttp_whenSecureUrlIsAbsent() {
-            String publicId = RandomStringUtils.secure().nextAlphanumeric(14);
-            String httpUrl = "http://cdn.example.com/images/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/only.png";
+            String publicId = GENERATOR.nextAlphanumeric(14);
+            String httpUrl = "http://cdn.example.com/images/" + GENERATOR.nextAlphanumeric(6) + "/only.png";
 
             List<MultipartFile> files = List.of(generateMockFile("only.png", 800));
 
@@ -124,8 +123,8 @@ class ProductPhotoServiceIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success: accepts any multipart file type because API service validates type")
         void saveAll_success_anyMultipartTypeAllowedHere() {
-            String publicId = RandomStringUtils.secure().nextAlphanumeric(10);
-            String secureUrl = "https://cdn.example.com/" + RandomStringUtils.secure().nextAlphanumeric(5) + "/file.png";
+            String publicId = GENERATOR.nextAlphanumeric(10);
+            String secureUrl = "https://cdn.example.com/" + GENERATOR.nextAlphanumeric(5) + "/file.png";
             String url = secureUrl.replace("https", "http");
 
             List<MultipartFile> files = List.of(generateMockTextFile("not-image.txt", "payload"));
@@ -186,12 +185,95 @@ class ProductPhotoServiceIT extends AbstractIT {
             when(cloudinaryAPIService.uploadAllImages(anyList()))
                     .thenReturn(CompletableFuture.completedFuture(List.of(
                             generateCloudinaryImageUploadResponse(
-                                    RandomStringUtils.secure().nextAlphanumeric(10),
+                                    GENERATOR.nextAlphanumeric(10),
                                     "https://cdn.example.com/test.png",
                                     "http://cdn.example.com/test.png"))));
 
             assertThatThrownBy(() -> productPhotoService.saveAll(Long.MAX_VALUE, files))
                     .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("removeAll(photoIds)")
+    class RemoveAllTests {
+        @Test
+        @DisplayName("removeAll_success_deletesExistingPhotos_andCallsCloudinary")
+        void removeAll_success_deletesExistingPhotos_andCallsCloudinary() {
+            ProductPhoto photoOne = productPhotoRepository.save(ProductPhoto.builder()
+                    .productId(product.getId())
+                    .photoUrl("https://cdn/" + GENERATOR.nextAlphanumeric(10) + "/1.png")
+                    .externalReference("pub_" + GENERATOR.nextAlphanumeric(10))
+                    .build());
+
+            ProductPhoto photoTwo = productPhotoRepository.save(ProductPhoto.builder()
+                    .productId(product.getId())
+                    .photoUrl("https://cdn/" + GENERATOR.nextAlphanumeric(6) + "/3.png")
+                    .externalReference("pub_" + GENERATOR.nextAlphanumeric(10))
+                    .build());
+
+            long initialCount = productPhotoRepository.count();
+
+            productPhotoService.removeAll(List.of(photoOne.getId(), photoTwo.getId()));
+
+            verify(cloudinaryAPIService)
+                    .deleteAllImages(List.of(photoOne.getExternalReference(), photoTwo.getExternalReference()));
+
+            assertThat(productPhotoRepository.count())
+                    .isEqualTo(initialCount - 2);
+
+            assertThat(productPhotoRepository.findAllById(List.of(photoOne.getId(), photoTwo.getId())))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("removeAll_success_ignoresNonExistingIds_deletesOnlyFound")
+        void removeAll_success_ignoresNonExistingIds_deletesOnlyFound() {
+            ProductPhoto photoExisting = productPhotoRepository.save(ProductPhoto.builder()
+                    .productId(product.getId())
+                    .photoUrl("https://cdn/" + GENERATOR.nextAlphanumeric(10) + "/only.png")
+                    .externalReference("pub_" + GENERATOR.nextAlphanumeric(10))
+                    .build());
+
+            productPhotoService.removeAll(List.of(photoExisting.getId(), 99999999L));
+
+            verify(cloudinaryAPIService)
+                    .deleteAllImages(List.of(photoExisting.getExternalReference()));
+
+            assertThat(productPhotoRepository.existsById(photoExisting.getId()))
+                    .isFalse();
+        }
+
+        @Test
+        @DisplayName("removeAll_fail_null_throwsConstraintViolation")
+        void removeAll_fail_null_throwsConstraintViolation() {
+            assertThatThrownBy(() -> productPhotoService.removeAll(null))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @Test
+        @DisplayName("removeAll_fail_empty_throwsConstraintViolation")
+        void removeAll_fail_empty_throwsConstraintViolation() {
+            assertThatThrownBy(() -> productPhotoService.removeAll(List.of()))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @Test
+        @DisplayName("removeAll_fail_containsNullId_throwsConstraintViolation")
+        void removeAll_fail_containsNullId_throwsConstraintViolation() {
+            var arg = new ArrayList<>(List.of(1L, 3L));
+            arg.add(null);
+
+            assertThatThrownBy(() -> productPhotoService.removeAll(arg))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {0L, -1L, -5L})
+        @DisplayName("removeAll_fail_invalidId_throwsConstraintViolation")
+        void removeAll_fail_invalidId_throwsConstraintViolation(Long photoId) {
+            assertThatThrownBy(() -> productPhotoService.removeAll(List.of(photoId)))
+                    .isInstanceOf(ConstraintViolationException.class);
         }
     }
 }

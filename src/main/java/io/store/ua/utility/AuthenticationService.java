@@ -7,10 +7,14 @@ import io.store.ua.entity.cache.BlacklistedToken;
 import io.store.ua.events.LoginEvent;
 import io.store.ua.events.publishers.GenericEventPublisher;
 import io.store.ua.exceptions.RegularAuthenticationException;
+import io.store.ua.models.dto.LoginDTO;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
 import io.store.ua.service.security.UserDetailsSecurityService;
+import io.store.ua.validations.FieldValidator;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -38,11 +43,13 @@ import java.util.function.Function;
 @Service
 @PropertySource("classpath:token.properties")
 @RequiredArgsConstructor
+@Validated
 public class AuthenticationService {
     private final UserDetailsSecurityService userDetailsService;
     private final GenericEventPublisher<LoginEvent> loginEventPublisher;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final AuthenticationManager authenticationManager;
+    private final FieldValidator fieldValidator;
 
     /**
      * JWT token validity period in seconds
@@ -66,11 +73,11 @@ public class AuthenticationService {
         key = new SecretKeySpec(tokenSecret.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS512.getJcaName());
     }
 
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NotBlank(message = "Username can't be blank") String username) throws UsernameNotFoundException {
         return userDetailsService.loadUserByUsername(username);
     }
 
-    public void blacklistToken(String token) {
+    public void blacklistToken(@NotBlank(message = "Token can't be blank") String token) {
         BlacklistedToken blacklistedToken = new BlacklistedToken();
         blacklistedToken.setTokenId(getClaimFromToken(token, Claims::getId));
         blacklistedToken.setExpiryTime(
@@ -79,15 +86,20 @@ public class AuthenticationService {
         blacklistedTokenRepository.save(blacklistedToken);
     }
 
-    public String extractToken(String authorizationHeader) {
+    public String extractToken(@NotBlank(message = "Header can't be blank") String authorizationHeader) {
         return authorizationHeader.replace("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE), "");
     }
 
-    public String getUsernameFromToken(String token) {
+    public String getUsernameFromToken(@NotBlank(message = "Token can't be blank") String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
-    public String authenticate(String username, String password, HttpServletRequest request) {
+    public String authenticate(@NotNull(message = "Login information can't be null") LoginDTO loginDTO,
+                               HttpServletRequest request) {
+        fieldValidator.validate(loginDTO, true, LoginDTO.Fields.login, LoginDTO.Fields.password);
+        String username = loginDTO.getLogin();
+        String password = loginDTO.getPassword();
+
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
         if (authentication.isAuthenticated()) {
@@ -101,11 +113,12 @@ public class AuthenticationService {
         }
     }
 
-    public Date getExpirationDateFromToken(String token) {
+    public Date getExpirationDateFromToken(@NotBlank(message = "Token can't be blank") String token) {
         return getClaimFromToken(token, Claims::getExpiration);
     }
 
-    public boolean validateToken(String token, UserDetails userDetails, HttpServletRequest request) {
+    public boolean validateToken(@NotBlank(message = "Token can't be blank") String token,
+                                 @NotNull(message = "User details can't be null") UserDetails userDetails, HttpServletRequest request) {
         return getClaimFromToken(token, Claims::getSubject).equals(userDetails.getUsername())
                 && checkTokenExpiration(token)
                 && checkCustomClaims(token, request)

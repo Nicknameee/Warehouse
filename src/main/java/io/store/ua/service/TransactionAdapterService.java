@@ -5,14 +5,12 @@ import io.store.ua.enums.PaymentProvider;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.CheckoutFinancialInformation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
 public class TransactionAdapterService {
     private final List<FinancialAPIService> financialAPIServices;
 

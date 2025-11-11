@@ -13,17 +13,12 @@ import org.springframework.web.bind.annotation.*;
 public class StorageSectionController {
     private final StorageSectionService storageSectionService;
 
-    @GetMapping("/findAll")
-    public ResponseEntity<?> findAll(@RequestParam(name = "pageSize") int pageSize,
-                                     @RequestParam(name = "page") int page) {
-        return ResponseEntity.ok(storageSectionService.findBy(null, pageSize, page));
-    }
-
     @GetMapping("/findBy")
     public ResponseEntity<?> findBy(@RequestParam(name = "warehouse_id", required = false) Long warehouseId,
+                                    @RequestParam(name = "isActive", required = false) Boolean isActive,
                                     @RequestParam(name = "pageSize") int pageSize,
                                     @RequestParam(name = "page") int page) {
-        return ResponseEntity.ok(storageSectionService.findBy(warehouseId, pageSize, page));
+        return ResponseEntity.ok(storageSectionService.findBy(warehouseId, isActive, pageSize, page));
     }
 
     @PostMapping
@@ -34,7 +29,8 @@ public class StorageSectionController {
 
     @PutMapping
     public ResponseEntity<?> update(@RequestParam(name = "id") Long sectionId,
+                                    @RequestParam(name = "isActive", required = false) Boolean isActive,
                                     @RequestParam(name = "code") String newCode) {
-        return ResponseEntity.ok(storageSectionService.update(sectionId, newCode));
+        return ResponseEntity.ok(storageSectionService.update(sectionId, isActive, newCode));
     }
 }

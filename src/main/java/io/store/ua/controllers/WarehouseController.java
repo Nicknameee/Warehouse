@@ -4,6 +4,7 @@ import io.store.ua.models.dto.WarehouseDTO;
 import io.store.ua.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,16 +25,19 @@ public class WarehouseController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('OWNER')")
     public ResponseEntity<?> save(@RequestBody WarehouseDTO warehouseDTO) {
         return ResponseEntity.ok(warehouseService.save(warehouseDTO));
     }
 
     @PutMapping
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> update(@RequestBody WarehouseDTO warehouseDTO) {
         return ResponseEntity.ok(warehouseService.update(warehouseDTO));
     }
 
     @PutMapping("/toggle")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> toggleState(@RequestParam(name = "code") String code) {
         return ResponseEntity.ok(warehouseService.toggleState(code));
     }

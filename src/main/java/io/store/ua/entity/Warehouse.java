@@ -28,18 +28,18 @@ public class Warehouse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(unique = true, nullable = false)
+    @Column(name = "code", unique = true, nullable = false)
     private String code;
-    @Column(unique = true, nullable = false)
+    @Column(name = "name", unique = true, nullable = false)
     private String name;
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
+    @Column(name = "address", columnDefinition = "json")
     private Address address;
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "working_hours", columnDefinition = "json")
     private WorkingHours workingHours;
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(columnDefinition = "varchar[]")
+    @Column(name = "phones", columnDefinition = "varchar[]")
     private List<String> phones;
     @ManyToOne(optional = false)
     @JoinColumn(name = "manager_id", insertable = false, updatable = false)

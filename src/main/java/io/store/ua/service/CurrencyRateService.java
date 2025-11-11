@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class CurrencyRateService {
     private final CurrencyRateRepository currencyRateRepository;
     private final OpenExchangeRateAPIService openExchangeRateAPIService;
@@ -56,23 +54,21 @@ public class CurrencyRateService {
                 .orElseThrow(() -> new NotFoundException("Currency rate for currency '%s' was not found".formatted(currency)));
     }
 
-    public List<CurrencyRate> saveAll(@NotEmpty(message = "Currency rates can't be empty")
-                                      List<@NotNull(message = "Currency rate can't be null") CurrencyRate> currencyRates) {
-        return currencyRateRepository.saveAll(currencyRates);
-    }
-
-    public void clearAll(@NotEmpty(message = "Currency rates can't be empty")
+    private void saveAll(@NotNull(message = "Currency rates can't be null")
+                         @NotEmpty(message = "Currency rates can't be empty")
                          List<@NotNull(message = "Currency rate can't be null") CurrencyRate> currencyRates) {
-        currencyRateRepository.deleteAll(currencyRates);
+        currencyRateRepository.saveAll(currencyRates);
     }
 
-    public void clearAll() {
+    private void clearAll() {
         currencyRateRepository.deleteAll();
     }
 
     public BigInteger convert(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
                               @NotBlank(message = "Target currency can't be blank") String targetCurrency,
-                              @NotNull(message = "Amount can't be null") @Min(value = 1, message = "Amount can't be less than 1") BigInteger amount) {
+                              @NotNull(message = "Amount can't be null")
+                              @Min(value = 1, message = "Amount can't be less than 1")
+                              BigInteger amount) {
         if (baseCurrency.equals(targetCurrency)) {
             return amount;
         }
@@ -96,7 +92,9 @@ public class CurrencyRateService {
 
     public BigDecimal convertFromCentsToCurrencyUnit(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
                                                      @NotBlank(message = "Target currency can't be blank") String targetCurrency,
-                                                     @NotNull(message = "Amount can't be null") @Min(value = 1, message = "Amount can't be less than 1") BigInteger amount) {
+                                                     @NotNull(message = "Amount can't be null")
+                                                     @Min(value = 1, message = "Amount can't be less than 1")
+                                                     BigInteger amount) {
         return new BigDecimal(convert(baseCurrency, targetCurrency, amount)).movePointLeft(2);
     }
 }

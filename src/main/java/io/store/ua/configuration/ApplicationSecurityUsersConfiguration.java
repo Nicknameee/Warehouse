@@ -42,15 +42,14 @@ public class ApplicationSecurityUsersConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(authorizationTokenRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(preLogoutTokenBasedFilter, LogoutFilter.class)
-                .authorizeHttpRequests(authentication -> authentication.requestMatchers("/api/**").authenticated().anyRequest().denyAll())
-                .logout(logout -> logout
-                        .logoutRequestMatcher(request -> request.getRequestURI().equals("/logout")
-                                && request.getMethod().equals(HttpMethod.POST.name()))
+                .authorizeHttpRequests(authentication -> authentication.requestMatchers("/api/**", "/logout").authenticated().anyRequest().denyAll())
+                .logout(logout -> logout.logoutRequestMatcher(request ->
+                                request.getRequestURI().equals("/logout") && request.getMethod().equals(HttpMethod.POST.name()))
                         .logoutSuccessHandler(authenticationLogoutSecurityHandler)
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID", AbstractRememberMeServices.SPRING_SECURITY_REMEMBER_ME_COOKIE_KEY))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationFailureEntryPoint))
+                .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer.authenticationEntryPoint(authenticationFailureEntryPoint))
                 .userDetailsService(userDetailsSecurityService)
                 .authenticationManager(authenticationManager)
                 .build();

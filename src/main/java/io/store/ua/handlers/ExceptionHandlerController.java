@@ -12,6 +12,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.nio.file.AccessDeniedException;
 import java.util.Objects;
@@ -33,7 +35,10 @@ public class ExceptionHandlerController {
                             HttpStatus.BAD_REQUEST));
         } else if (e instanceof BadCredentialsException) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        } else if (e instanceof ValidationException || e instanceof MissingServletRequestParameterException || e instanceof HttpMessageNotReadableException) {
+        } else if (e instanceof ValidationException
+                || e instanceof MissingServletRequestParameterException
+                || e instanceof MissingServletRequestPartException
+                || e instanceof HttpMessageNotReadableException || e instanceof HandlerMethodValidationException) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApplicationException(e.getMessage(), HttpStatus.BAD_REQUEST));
         } else if (e instanceof AccessDeniedException || e instanceof AuthorizationDeniedException) {

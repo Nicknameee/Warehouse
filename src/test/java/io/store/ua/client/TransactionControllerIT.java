@@ -270,7 +270,7 @@ class TransactionControllerIT extends AbstractIT {
                     beneficiary.getId());
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/incoming/initiate")
-                    .queryParam("auto_settle", true)
+                    .queryParam("autoSettle", true)
                     .build(true)
                     .toUriString();
 
@@ -325,7 +325,7 @@ class TransactionControllerIT extends AbstractIT {
                     beneficiary.getId());
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/incoming/initiate")
-                    .queryParam("auto_settle", false)
+                    .queryParam("autoSettle", false)
                     .build(true)
                     .toUriString();
 
@@ -398,7 +398,7 @@ class TransactionControllerIT extends AbstractIT {
             );
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/outgoing/initiate")
-                    .queryParam("auto_settle", false)
+                    .queryParam("autoSettle", false)
                     .build(true)
                     .toUriString();
 

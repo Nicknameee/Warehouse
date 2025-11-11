@@ -10,7 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigInteger;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -43,10 +43,10 @@ public class Product {
     private List<ProductPhoto> photos;
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
+    private LocalDateTime createdAt;
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private ZonedDateTime updatedAt;
+    private LocalDateTime updatedAt;
     @Column
     private BigInteger weight;
     @Column

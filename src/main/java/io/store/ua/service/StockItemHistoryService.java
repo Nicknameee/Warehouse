@@ -17,7 +17,6 @@ import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -29,7 +28,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class StockItemHistoryService {
     private final StockItemHistoryRepository stockItemHistoryRepository;
     private final StockItemRepository stockItemRepository;

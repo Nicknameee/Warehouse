@@ -18,7 +18,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -28,7 +27,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class BeneficiaryService {
     private final BeneficiaryRepository beneficiaryRepository;
     private final FieldValidator fieldValidator;
@@ -43,6 +41,7 @@ public class BeneficiaryService {
                                     String SWIFTPrefix,
                                     String cardPrefix,
                                     String name,
+                                    Boolean isActive,
                                     @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                     @Min(value = 1, message = "A page number can't be less than 1") int page) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -67,6 +66,10 @@ public class BeneficiaryService {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.name)), "%" + name.toLowerCase() + "%"));
         }
 
+        if (isActive != null) {
+            predicates.add(criteriaBuilder.equal(root.get(Beneficiary.Fields.isActive), isActive));
+        }
+
         criteriaQuery.select(root).where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
 
         return entityManager.createQuery(criteriaQuery)
@@ -88,7 +91,8 @@ public class BeneficiaryService {
                 BeneficiaryDTO.Fields.card);
 
         if (beneficiaryRepository.existsByIBANOrCard(beneficiaryDTO.getIBAN(), beneficiaryDTO.getCard())) {
-            throw new BusinessException("Beneficiary with IBAN '%s' or card '%s' already exists".formatted(beneficiaryDTO.getIBAN(), beneficiaryDTO.getCard()));
+            throw new BusinessException("Beneficiary with IBAN '%s' or card '%s' already exists"
+                    .formatted(beneficiaryDTO.getIBAN(), beneficiaryDTO.getCard()));
         }
 
         return beneficiaryRepository.save(Beneficiary.builder()
@@ -102,7 +106,6 @@ public class BeneficiaryService {
 
     public Beneficiary update(@NotNull(message = "Beneficiary can't be null") BeneficiaryDTO beneficiaryDTO) {
         fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.id);
-
         Beneficiary beneficiary = beneficiaryRepository.findById(beneficiaryDTO.getId())
                 .orElseThrow(() -> new NotFoundException("Beneficiary with ID '%s' was not found".formatted(beneficiaryDTO.getId())));
 
@@ -136,15 +139,19 @@ public class BeneficiaryService {
             beneficiary.setCard(beneficiaryDTO.getCard());
         }
 
+        if (beneficiaryDTO.getIsActive() != null) {
+            beneficiary.setIsActive(beneficiaryDTO.getIsActive());
+        }
+
         return beneficiaryRepository.save(beneficiary);
     }
 
-    public List<Beneficiary> changeState(@NotEmpty(message = "IDs can't be empty") List<
+    public List<Beneficiary> changeState(@NotEmpty(message = "Beneficiary IDs can't be empty") List<
                                                  @NotNull(message = "ID can't be null")
                                                  @Min(value = 1, message = "ID can't be less than 1")
-                                                         Long> IDs,
+                                                         Long> beneficiaryIDs,
                                          @NotNull(message = "Active flag can't be null") Boolean isActive) {
-        var beneficiaries = beneficiaryRepository.findAllById(IDs);
+        var beneficiaries = beneficiaryRepository.findAllById(beneficiaryIDs);
 
         beneficiaries.forEach(beneficiary -> beneficiary.setIsActive(isActive));
 

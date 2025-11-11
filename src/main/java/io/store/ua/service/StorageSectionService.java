@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -21,13 +20,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
 public class StorageSectionService {
     private final StorageSectionRepository storageSectionRepository;
     private final EntityManager entityManager;
 
     public List<StorageSection> findBy(@Min(value = 1, message = "Warehouse ID can't be less than 1")
                                        Long warehouseId,
+                                       Boolean isActive,
                                        @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                        @Min(value = 1, message = "A page number can't be less than 1") int page) {
 
@@ -37,6 +36,10 @@ public class StorageSectionService {
 
         if (warehouseId != null) {
             criteriaQuery.where(criteriaBuilder.equal(root.get(StorageSection.Fields.warehouseId), warehouseId));
+        }
+
+        if (isActive != null) {
+            criteriaQuery.where(criteriaBuilder.equal(root.get(StorageSection.Fields.isActive), isActive));
         }
 
         criteriaQuery.orderBy(criteriaBuilder.asc(root.get(StorageSection.Fields.id)));
@@ -59,12 +62,14 @@ public class StorageSectionService {
         return storageSectionRepository.save(StorageSection.builder()
                 .warehouseId(warehouseId)
                 .code(code)
+                .isActive(true)
                 .build());
     }
 
     public StorageSection update(@NotNull(message = "Section ID can't be null")
                                  @Min(value = 1, message = "Section ID can't be less than 1")
                                  Long sectionId,
+                                 Boolean isActive,
                                  @NotBlank(message = "Section code can't be blank") String newCode) {
         StorageSection existing = storageSectionRepository.findById(sectionId)
                 .orElseThrow(() -> new NotFoundException("StorageSection id '%s' not found".formatted(sectionId)));
@@ -75,6 +80,10 @@ public class StorageSectionService {
         }
 
         existing.setCode(newCode);
+
+        if (isActive != null) {
+            existing.setIsActive(isActive);
+        }
 
         return storageSectionRepository.save(existing);
     }

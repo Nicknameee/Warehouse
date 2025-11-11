@@ -20,6 +20,8 @@ public class StorageSection {
     private Long id;
     @Column(name = "warehouse_id", nullable = false)
     private Long warehouseId;
-    @Column(nullable = false)
+    @Column(name = "code", nullable = false)
     private String code;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
 }

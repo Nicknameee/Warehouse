@@ -31,20 +31,20 @@ public class Transaction {
     private Long id;
     @Column(name = "transaction_id", unique = true, nullable = false, updatable = false)
     private String transactionId;
-    @Column(unique = true, nullable = false, updatable = false)
+    @Column(name = "reference", unique = true, nullable = false, updatable = false)
     private String reference;
     @Enumerated(EnumType.STRING)
     @Column(name = "flow_type", nullable = false)
     private TransactionFlowType flowType;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "purpose", nullable = false)
     private TransactionPurpose purpose;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private TransactionStatus status;
-    @Column(nullable = false)
+    @Column(name = "amount", nullable = false)
     private BigInteger amount;
-    @Column(nullable = false)
+    @Column(name = "currency", nullable = false)
     private String currency;
     @Column(name = "beneficiary_id", nullable = false, updatable = false)
     private Long beneficiaryId;

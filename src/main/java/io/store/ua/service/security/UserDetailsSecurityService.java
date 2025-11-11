@@ -4,7 +4,6 @@ import io.store.ua.service.UserService;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,7 +13,6 @@ import org.springframework.validation.annotation.Validated;
 @Service
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("permitAll()")
 public class UserDetailsSecurityService implements UserDetailsService {
     private final UserService userService;
 

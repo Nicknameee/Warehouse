@@ -22,9 +22,9 @@ public class StockItemGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false, unique = true, updatable = false)
+    @Column(name = "code", nullable = false, unique = true, updatable = false)
     private String code;
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;

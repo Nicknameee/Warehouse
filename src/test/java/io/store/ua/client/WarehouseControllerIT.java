@@ -49,9 +49,9 @@ class WarehouseControllerIT extends AbstractIT {
         void findAll_success_returnsPaginatedList() {
             Warehouse first = generateWarehouse();
             generateWarehouse();
-            Warehouse third = generateWarehouse();
+            Warehouse another = generateWarehouse();
 
-            String firstPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
+            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
                     .queryParam("pageSize", 1)
                     .queryParam("page", 1)
                     .build(true)
@@ -64,48 +64,57 @@ class WarehouseControllerIT extends AbstractIT {
                     .toUriString();
 
             ResponseEntity<List<Warehouse>> firstPage = restClient.exchange(
-                    firstPageUrl,
+                    url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
             ResponseEntity<List<Warehouse>> otherPage = restClient.exchange(
                     otherPageUrl,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
 
-            assertThat(firstPage.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(otherPage.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(firstPage.getBody()).isNotNull().hasSize(1);
-            assertThat(otherPage.getBody()).isNotNull().hasSize(1);
+            assertThat(firstPage.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(otherPage.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(firstPage.getBody())
+                    .isNotNull()
+                    .hasSize(1);
+            assertThat(otherPage.getBody())
+                    .isNotNull()
+                    .hasSize(1);
 
             Set<String> codes = firstPage.getBody().stream()
                     .map(Warehouse::getCode)
                     .collect(Collectors.toSet());
-            codes.addAll(otherPage.getBody().stream().map(Warehouse::getCode).toList());
+            codes.addAll(otherPage.getBody()
+                    .stream()
+                    .map(Warehouse::getCode)
+                    .toList());
 
-            assertThat(codes).contains(first.getCode(), third.getCode());
+            assertThat(codes)
+                    .contains(first.getCode(), another.getCode());
 
-            String managerPageUrl = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
+            url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
                     .queryParam("pageSize", 5)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<Warehouse>> pageManager = restClient.exchange(
-                    managerPageUrl,
+            ResponseEntity<List<Warehouse>> pageManager = restClient.exchange(url,
                     HttpMethod.GET,
                     new HttpEntity<>(managerHeaders),
                     new ParameterizedTypeReference<>() {
-                    }
-            );
+                    });
 
-            assertThat(pageManager.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(pageManager.getBody()).isNotNull().isNotEmpty();
+            assertThat(pageManager.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(pageManager.getBody())
+                    .isNotNull()
+                    .isNotEmpty();
         }
     }
 
@@ -115,24 +124,27 @@ class WarehouseControllerIT extends AbstractIT {
         @Test
         @DisplayName("returns warehouse by code")
         void findByCode_success_returnsWarehouseByCode() {
-            Warehouse created = generateWarehouse();
+            Warehouse warehouse = generateWarehouse();
 
             String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findBy/code")
-                    .queryParam("code", created.getCode())
+                    .queryParam("code", warehouse.getCode())
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Warehouse> response = restClient.exchange(
-                    url,
+            ResponseEntity<Warehouse> response = restClient.exchange(url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerHeaders),
                     Warehouse.class
             );
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getCode()).isEqualTo(created.getCode());
-            assertThat(response.getBody().getName()).isEqualTo(created.getName());
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody())
+                    .isNotNull();
+            assertThat(response.getBody().getCode())
+                    .isEqualTo(warehouse.getCode());
+            assertThat(response.getBody().getName())
+                    .isEqualTo(warehouse.getName());
         }
     }
 
@@ -144,26 +156,28 @@ class WarehouseControllerIT extends AbstractIT {
         void save_success_createsWarehouseForOwnerOnly() {
             WarehouseDTO warehouseDTO = buildWarehouseDTO();
 
-            ResponseEntity<Warehouse> createResponse = restClient.exchange(
-                    "/api/v1/warehouses",
+            ResponseEntity<Warehouse> createResponse = restClient.exchange("/api/v1/warehouses",
                     HttpMethod.POST,
                     new HttpEntity<>(warehouseDTO, ownerHeaders),
                     Warehouse.class
             );
 
-            assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(createResponse.getBody()).isNotNull();
-            assertThat(createResponse.getBody().getCode()).isNotBlank();
-            assertThat(createResponse.getBody().getName()).isEqualTo(warehouseDTO.getName());
+            assertThat(createResponse.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(createResponse.getBody())
+                    .isNotNull();
+            assertThat(createResponse.getBody().getCode())
+                    .isNotBlank();
+            assertThat(createResponse.getBody().getName()).
+                    isEqualTo(warehouseDTO.getName());
 
-            ResponseEntity<String> forbiddenResponse = restClient.exchange(
-                    "/api/v1/warehouses",
+            ResponseEntity<String> forbiddenResponse = restClient.exchange("/api/v1/warehouses",
                     HttpMethod.POST,
                     new HttpEntity<>(buildWarehouseDTO(), managerHeaders),
-                    String.class
-            );
+                    String.class);
 
-            assertThat(forbiddenResponse.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(forbiddenResponse.getStatusCode().is4xxClientError())
+                    .isTrue();
         }
     }
 
@@ -173,46 +187,52 @@ class WarehouseControllerIT extends AbstractIT {
         @Test
         @DisplayName("updates mutable fields for OWNER/MANAGER; managerId only by OWNER")
         void update_success_updatesFieldsRespectsRoleRules() {
-            Warehouse existing = generateWarehouse();
+            Warehouse warehouse = generateWarehouse();
 
-            WarehouseDTO ownerUpdate = WarehouseDTO.builder()
-                    .code(existing.getCode())
-                    .name("%s%s".formatted(existing.getName(), GENERATOR.nextAlphabetic(3)))
-                    .isActive(Boolean.FALSE.equals(existing.getIsActive()) ? Boolean.TRUE : Boolean.FALSE)
+            WarehouseDTO warehouseDTO = WarehouseDTO.builder()
+                    .code(warehouse.getCode())
+                    .name("%s%s".formatted(warehouse.getName(), GENERATOR.nextAlphabetic(3)))
+                    .isActive(Boolean.FALSE.equals(warehouse.getIsActive()) ? Boolean.TRUE : Boolean.FALSE)
                     .managerId(owner.getId())
-                    .workingHours(existing.getWorkingHours())
-                    .address(existing.getAddress())
-                    .phones(existing.getPhones())
+                    .workingHours(warehouse.getWorkingHours())
+                    .address(warehouse.getAddress())
+                    .phones(warehouse.getPhones())
                     .build();
 
-            ResponseEntity<Warehouse> ownerResponse = restClient.exchange(
-                    "/api/v1/warehouses",
+            ResponseEntity<Warehouse> response = restClient.exchange("/api/v1/warehouses",
                     HttpMethod.PUT,
-                    new HttpEntity<>(ownerUpdate, ownerHeaders),
+                    new HttpEntity<>(warehouseDTO, ownerHeaders),
                     Warehouse.class
             );
 
-            assertThat(ownerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
 
-            Warehouse afterOwnerUpdate = warehouseRepository.findByCode(existing.getCode()).orElseThrow();
-            assertThat(afterOwnerUpdate).isNotNull();
-            assertThat(afterOwnerUpdate.getName()).isEqualTo(ownerUpdate.getName());
-            assertThat(afterOwnerUpdate.getIsActive()).isEqualTo(ownerUpdate.getIsActive());
-            assertThat(afterOwnerUpdate.getManagerId()).isEqualTo(ownerUpdate.getManagerId());
+            warehouse = warehouseRepository.findByCode(warehouse.getCode())
+                    .orElseThrow();
 
-            WarehouseDTO managerUpdate = WarehouseDTO.builder()
-                    .code(existing.getCode())
+            assertThat(warehouse)
+                    .isNotNull();
+            assertThat(warehouse.getName())
+                    .isEqualTo(warehouseDTO.getName());
+            assertThat(warehouse.getIsActive())
+                    .isEqualTo(warehouseDTO.getIsActive());
+            assertThat(warehouse.getManagerId())
+                    .isEqualTo(warehouseDTO.getManagerId());
+
+            warehouseDTO = WarehouseDTO.builder()
+                    .code(warehouse.getCode())
                     .managerId(manager.getId())
                     .build();
 
-            ResponseEntity<String> managerAttempt = restClient.exchange(
-                    "/api/v1/warehouses",
+            response = restClient.exchange("/api/v1/warehouses",
                     HttpMethod.PUT,
-                    new HttpEntity<>(managerUpdate, managerHeaders),
-                    String.class
+                    new HttpEntity<>(warehouseDTO, managerHeaders),
+                    Warehouse.class
             );
 
-            assertThat(managerAttempt.getStatusCode().is4xxClientError()).isTrue();
+            assertThat(response.getStatusCode().is4xxClientError())
+                    .isTrue();
         }
     }
 
@@ -223,39 +243,43 @@ class WarehouseControllerIT extends AbstractIT {
         @DisplayName("toggles active state for OWNER/MANAGER")
         void toggleState_success_togglesActiveState() {
             Warehouse warehouse = generateWarehouse();
-            Boolean initial = warehouse.getIsActive();
+            Boolean isActive = warehouse.getIsActive();
 
-            String toggleUrlOwner = UriComponentsBuilder.fromPath("/api/v1/warehouses/toggle")
+            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/toggle")
                     .queryParam("code", warehouse.getCode())
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Warehouse> toggleResponse = restClient.exchange(
-                    toggleUrlOwner,
+            ResponseEntity<Warehouse> toggleResponse = restClient.exchange(url,
                     HttpMethod.PUT,
                     new HttpEntity<>(ownerHeaders),
                     Warehouse.class
             );
 
-            assertThat(toggleResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(toggleResponse.getBody()).isNotNull();
-            assertThat(toggleResponse.getBody().getIsActive()).isEqualTo(!initial);
+            assertThat(toggleResponse.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(toggleResponse.getBody())
+                    .isNotNull();
+            assertThat(toggleResponse.getBody().getIsActive())
+                    .isEqualTo(!isActive);
 
-            String toggleUrlManager = UriComponentsBuilder.fromPath("/api/v1/warehouses/toggle")
+            url = UriComponentsBuilder.fromPath("/api/v1/warehouses/toggle")
                     .queryParam("code", warehouse.getCode())
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<Warehouse> toggleBack = restClient.exchange(
-                    toggleUrlManager,
+            ResponseEntity<Warehouse> toggleBack = restClient.exchange(url,
                     HttpMethod.PUT,
                     new HttpEntity<>(managerHeaders),
                     Warehouse.class
             );
 
-            assertThat(toggleBack.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(toggleBack.getBody()).isNotNull();
-            assertThat(toggleBack.getBody().getIsActive()).isEqualTo(initial);
+            assertThat(toggleBack.getStatusCode())
+                    .isEqualTo(HttpStatus.OK);
+            assertThat(toggleBack.getBody())
+                    .isNotNull();
+            assertThat(toggleBack.getBody().getIsActive())
+                    .isEqualTo(isActive);
         }
     }
 }

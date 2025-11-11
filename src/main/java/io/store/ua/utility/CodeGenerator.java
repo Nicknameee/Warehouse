@@ -10,7 +10,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.StringJoiner;
@@ -44,6 +46,12 @@ public class CodeGenerator {
     public static class ShipmentCodeGenerator {
         public static String generate() {
             return "SH-%s-%s".formatted(LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")), randomStringUtils.nextAlphanumeric(15).toUpperCase());
+        }
+    }
+
+    public static class KafkaCodeGenerator {
+        public static String generate(String arg) {
+            return "%s-%s".formatted(LocalDateTime.now(Clock.systemUTC()), arg);
         }
     }
 

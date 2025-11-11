@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class GenericEventPublisher<T> {
-  private final ApplicationEventPublisher applicationEventPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-  public void publishEvent(T event) {
-    applicationEventPublisher.publishEvent(event);
-  }
+    public void publishEvent(T event) {
+        applicationEventPublisher.publishEvent(event);
+    }
 }
