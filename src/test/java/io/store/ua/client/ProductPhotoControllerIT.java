@@ -4,7 +4,6 @@ import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.ProductPhoto;
 import io.store.ua.models.api.external.response.CloudinaryImageUploadResponse;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -14,6 +13,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -34,21 +34,17 @@ class ProductPhotoControllerIT extends AbstractIT {
     }
 
     private MockMultipartFile generateMockImage(String filename, int size) {
-        return new MockMultipartFile(
-                "photo",
+        return new MockMultipartFile("photo",
                 filename,
                 "image/png",
-                new byte[Math.max(size, 0)]
-        );
+                new byte[Math.max(size, 0)]);
     }
 
     private MockMultipartFile generateMockText(String filename, String content) {
-        return new MockMultipartFile(
-                "photo",
+        return new MockMultipartFile("photo",
                 filename,
                 "text/plain",
-                content.getBytes(StandardCharsets.UTF_8)
-        );
+                content.getBytes(StandardCharsets.UTF_8));
     }
 
     private CloudinaryImageUploadResponse cloudinaryUpload(String publicId, String secureUrl, String url) {
@@ -65,20 +61,17 @@ class ProductPhotoControllerIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success_multipleFiles")
         void saveAll_success_multipleFiles() {
-            String publicA = RandomStringUtils.secure().nextAlphanumeric(10);
-            String publicB = RandomStringUtils.secure().nextAlphanumeric(10);
-            String secureA = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/a.png";
-            String secureB = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/b.png";
+            String publicA = GENERATOR.nextAlphanumeric(10);
+            String publicB = GENERATOR.nextAlphanumeric(10);
+            String secureA = "https://cdn.example/%s%s".formatted(GENERATOR.nextAlphanumeric(6), "/a.png");
+            String secureB = "https://cdn.example/%s%s".formatted(GENERATOR.nextAlphanumeric(6), "/b.png");
             String httpA = secureA.replace("https", "http");
             String httpB = secureB.replace("https", "http");
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
-                    .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
-                            java.util.List.of(
-                                    cloudinaryUpload(publicA, secureA, httpA),
-                                    cloudinaryUpload(publicB, secureB, httpB)
-                            )
-                    ));
+                    .thenReturn(CompletableFuture.completedFuture(List.of(
+                            cloudinaryUpload(publicA, secureA, httpA),
+                            cloudinaryUpload(publicB, secureB, httpB))));
 
             MultiValueMap<String, Object> multipartBody = new LinkedMultiValueMap<>();
             multipartBody.add("productId", product.getId().toString());
@@ -116,8 +109,8 @@ class ProductPhotoControllerIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success_fallbackToHttpWhenNoSecure")
         void saveAll_success_fallbackToHttpWhenNoSecure() {
-            String publicId = RandomStringUtils.secure().nextAlphanumeric(12);
-            String httpUrl = "http://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/only.png";
+            String publicId = GENERATOR.nextAlphanumeric(12);
+            String httpUrl = "http://cdn.example/" + GENERATOR.nextAlphanumeric(6) + "/only.png";
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
                     .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
@@ -154,8 +147,8 @@ class ProductPhotoControllerIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_success_acceptsAnyMultipartType_serviceValidates")
         void saveAll_success_acceptsAnyMultipartType_serviceValidates() {
-            String publicId = RandomStringUtils.secure().nextAlphanumeric(10);
-            String secureUrl = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/f.png";
+            String publicId = GENERATOR.nextAlphanumeric(10);
+            String secureUrl = "https://cdn.example/" + GENERATOR.nextAlphanumeric(6) + "/f.png";
             String httpUrl = secureUrl.replace("https", "http");
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
@@ -213,9 +206,9 @@ class ProductPhotoControllerIT extends AbstractIT {
         @Test
         @DisplayName("saveAll_fail_missingProduct_returns4xx")
         void saveAll_fail_missingProduct_returns4xx() {
-            String secureUrl = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(5) + "/x.png";
+            String secureUrl = "https://cdn.example/" + GENERATOR.nextAlphanumeric(5) + "/x.png";
             String httpUrl = secureUrl.replace("https", "http");
-            String publicId = RandomStringUtils.secure().nextAlphanumeric(10);
+            String publicId = GENERATOR.nextAlphanumeric(10);
 
             when(cloudinaryAPIService.uploadAllImages(anyList()))
                     .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
@@ -248,10 +241,10 @@ class ProductPhotoControllerIT extends AbstractIT {
         @Test
         @DisplayName("removeAll_success_deletesByIds")
         void removeAll_success_deletesByIds() {
-            String publicA = RandomStringUtils.secure().nextAlphanumeric(10);
-            String publicB = RandomStringUtils.secure().nextAlphanumeric(10);
-            String secureA = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/a.png";
-            String secureB = "https://cdn.example/" + RandomStringUtils.secure().nextAlphanumeric(6) + "/b.png";
+            String publicA = GENERATOR.nextAlphanumeric(10);
+            String publicB = GENERATOR.nextAlphanumeric(10);
+            String secureA = "https://cdn.example/" + GENERATOR.nextAlphanumeric(6) + "/a.png";
+            String secureB = "https://cdn.example/" + GENERATOR.nextAlphanumeric(6) + "/b.png";
             String httpA = secureA.replace("https", "http");
             String httpB = secureB.replace("https", "http");
 

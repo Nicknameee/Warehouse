@@ -284,7 +284,8 @@ public class ShipmentService {
         }
 
         if (ObjectUtils.allNotNull(actualRecipient, actualAddress)
-                || ObjectUtils.allNotNull(actualSender, actualRecipient) && actualSender.equals(actualRecipient)) {
+                || (ObjectUtils.allNotNull(actualSender, actualRecipient)
+                && actualSender.equals(actualRecipient))) {
             throw new BusinessException("Incorrect shipment locations, sender and recipient can't be the same and only one of recipient or address can be set");
         }
 
@@ -318,18 +319,24 @@ public class ShipmentService {
             if (stockItem.getAvailableQuantity().compareTo(shipmentQuantity) < 0) {
                 throw new BusinessException("Shipment quantity can't be greater than available quantity");
             }
+
             StockItemDTO updateSender = StockItemDTO.builder()
                     .stockItemId(stockItem.getId())
                     .availableQuantity(stockItem.getAvailableQuantity().subtract(shipmentQuantity))
                     .build();
+
             stockItemService.update(updateSender);
         } else if (shipment.getStatus() == ShipmentStatus.DELIVERED && shipment.getWarehouseIdRecipient() != null) {
-            List<StockItem> recipientItems = stockItemService.findBy(
-                    List.of(shipment.getWarehouseIdRecipient()),
+            List<StockItem> recipientItems = stockItemService.findBy(List.of(shipment.getWarehouseIdRecipient()),
                     List.of(stockItem.getProductId()),
-                    null, null, null, null, null,
-                    1, 1
-            );
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    1,
+                    1);
+
             if (recipientItems.isEmpty()) {
                 StockItemDTO createRecipient = StockItemDTO.builder()
                         .productId(stockItem.getProductId())
@@ -338,14 +345,16 @@ public class ShipmentService {
                         .availableQuantity(shipmentQuantity)
                         .isActive(true)
                         .build();
+
                 stockItemService.create(createRecipient);
             } else {
-                StockItem recipientItem = recipientItems.getFirst();
-                StockItemDTO updateRecipient = StockItemDTO.builder()
-                        .stockItemId(recipientItem.getId())
-                        .availableQuantity(recipientItem.getAvailableQuantity().add(shipmentQuantity))
+                StockItem item = recipientItems.getFirst();
+                StockItemDTO stockItemDTO = StockItemDTO.builder()
+                        .stockItemId(item.getId())
+                        .availableQuantity(item.getAvailableQuantity().add(shipmentQuantity))
                         .build();
-                stockItemService.update(updateRecipient);
+
+                stockItemService.update(stockItemDTO);
             }
         }
     }

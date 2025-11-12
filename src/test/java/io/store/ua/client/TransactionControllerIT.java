@@ -59,11 +59,10 @@ class TransactionControllerIT extends AbstractIT {
                                                Long beneficiaryId) {
         return TransactionDTO.builder()
                 .purpose(purpose)
-                .status(TransactionStatus.INITIATED.name())
                 .amount(amount)
                 .currency(currency)
                 .receiverFinancialAccountId(beneficiaryId)
-                .paymentProvider(provider)
+                .paymentProvider(provider.name())
                 .build();
     }
 
@@ -428,7 +427,7 @@ class TransactionControllerIT extends AbstractIT {
         @DisplayName("initiateOutcoming_fails_invalidDTO: invalid DTO → 4xx and no provider calls")
         void initiateOutcoming_fails_invalidDTO() {
             TransactionDTO transactionDTO = TransactionDTO.builder()
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .currency("usd")
                     .build();
 
@@ -483,7 +482,7 @@ class TransactionControllerIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(transaction.getTransactionId())
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/settle")
@@ -522,7 +521,7 @@ class TransactionControllerIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(20))
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/settle")
@@ -560,7 +559,7 @@ class TransactionControllerIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(transaction.getTransactionId())
-                    .paymentProvider(PaymentProvider.LIQ_PAY)
+                    .paymentProvider(PaymentProvider.LIQ_PAY.name())
                     .build();
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/cancel")
@@ -603,7 +602,7 @@ class TransactionControllerIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(settled.getTransactionId())
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             String url = UriComponentsBuilder.fromPath("/api/v1/transactions/cancel")

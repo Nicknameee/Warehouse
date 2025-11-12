@@ -48,14 +48,12 @@ public class StockItemGroupService {
                 fieldValidator.validate(stockItemGroupDTO, StockItemGroupDTO.Fields.name, true);
                 Optional<StockItemGroup> stockItemGroup = stockItemGroupRepository.findByName(stockItemGroupDTO.getName());
 
-                return stockItemGroup.orElseGet(
-                        () ->
-                                stockItemGroupRepository.save(
-                                        StockItemGroup.builder()
-                                                .code(CodeGenerator.StockCodeGenerator.generate())
-                                                .name(stockItemGroupDTO.getName())
-                                                .isActive(stockItemGroupDTO.getIsActive() != null && stockItemGroupDTO.getIsActive())
-                                                .build()));
+                return stockItemGroup.orElseGet(() -> stockItemGroupRepository.save(
+                        StockItemGroup.builder()
+                                .code(CodeGenerator.StockCodeGenerator.generate())
+                                .name(stockItemGroupDTO.getName())
+                                .isActive(stockItemGroupDTO.getIsActive() != null && stockItemGroupDTO.getIsActive())
+                                .build()));
             }
         } else {
             fieldValidator.validate(stockItemGroupDTO, StockItemGroupDTO.Fields.code, true);
@@ -85,12 +83,9 @@ public class StockItemGroupService {
                                  Long groupId,
                                  String groupName,
                                  Boolean isActive) {
-        StockItemGroup stockItemGroup =
-                stockItemGroupRepository
-                        .findById(groupId)
-                        .orElseThrow(() ->
-                                new NotFoundException(
-                                        "Stock group with ID '%s' was not found".formatted(groupId)));
+        StockItemGroup stockItemGroup = stockItemGroupRepository
+                .findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Stock group with ID '%s' was not found".formatted(groupId)));
 
         if (!StringUtils.isBlank(groupName)) {
             stockItemGroup.setName(groupName);

@@ -2,12 +2,11 @@ package io.store.ua.client;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
-import io.store.ua.enums.ShipmentDirection;
-import io.store.ua.enums.ShipmentStatus;
-import io.store.ua.enums.StockItemStatus;
+import io.store.ua.enums.*;
 import io.store.ua.models.dto.QueueResponseDTO;
 import io.store.ua.models.dto.ShipmentDTO;
-import io.store.ua.producers.ShipmentSinkProducer;
+import io.store.ua.models.dto.TransactionDTO;
+import io.store.ua.producers.SinkProducer;
 import io.store.ua.service.ShipmentService;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -26,11 +25,12 @@ import org.testcontainers.utility.DockerImageName;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default"})
-class ShipmentSinkFlowIT extends AbstractIT {
+class SinkFlowIT extends AbstractIT {
     @ServiceConnection
     static final KafkaContainer kafka =
             new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"))
@@ -122,13 +122,13 @@ class ShipmentSinkFlowIT extends AbstractIT {
         assertThat(response.getBody().getKey())
                 .isNotBlank();
         assertThat(response.getBody().getTopic())
-                .isEqualTo(ShipmentSinkProducer.TOPIC);
+                .isEqualTo(SinkProducer.SHIPMENT_TOPIC);
         assertThat(response.getBody().isEnqueued())
                 .isTrue();
 
         Awaitility.await()
-                .atMost(Duration.ofSeconds(33))
-                .pollInterval(Duration.ofMillis(300))
+                .atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(500))
                 .untilAsserted(() -> {
                     Shipment refreshed = shipmentRepository.findById(shipment.getId()).orElseThrow();
 
@@ -151,5 +151,68 @@ class ShipmentSinkFlowIT extends AbstractIT {
 
         assertThat(response.getStatusCode().is4xxClientError())
                 .isTrue();
+    }
+
+    @Test
+    @DisplayName("enqueueTransactions_success: CREDIT (CASH) message hits TransactionService.synchroniseTransaction")
+    void enqueueTransactions_success() {
+        TransactionDTO transactionDTO = TransactionDTO.builder()
+                .purpose(TransactionPurpose.STOCK_OUTBOUND_REVENUE.name())
+                .flow(TransactionFlowType.CREDIT.name())
+                .amount(BigInteger.valueOf(100_000))
+                .currency(Currency.UAH.name())
+                .receiverFinancialAccountId(generateBeneficiary().getId())
+                .paymentProvider(PaymentProvider.CASH.name())
+                .build();
+
+        ResponseEntity<QueueResponseDTO> response = restClient.exchange("/api/v1/sink/transactions",
+                HttpMethod.POST,
+                new HttpEntity<>(transactionDTO, generateHeaders()),
+                QueueResponseDTO.class);
+
+        assertThat(response.getStatusCode())
+                .isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(response.getBody())
+                .isNotNull();
+        assertThat(response.getBody().getKey())
+                .isNotBlank();
+        assertThat(response.getBody().getTopic())
+                .isEqualTo(SinkProducer.TRANSACTION_TOPIC);
+        assertThat(response.getBody().isEnqueued())
+                .isTrue();
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(500))
+                .untilAsserted(() -> {
+                    List<Transaction> transactions = transactionRepository.findAll();
+
+                    assertThat(transactions).isNotEmpty();
+                    assertThat(transactions.getFirst())
+                            .isNotNull();
+                    assertThat(transactions.getFirst().getPaymentProvider())
+                            .isEqualTo(PaymentProvider.CASH);
+                });
+    }
+
+    @Test
+    @DisplayName("enqueueTransactions_fails: non-CASH provider eventually reaches service and fails validation")
+    void enqueueTransactions_fails() {
+        TransactionDTO transactionDTO = TransactionDTO.builder()
+                .purpose(TransactionPurpose.STOCK_OUTBOUND_REVENUE.name())
+                .flow(TransactionFlowType.CREDIT.name())
+                .amount(BigInteger.valueOf(100_000))
+                .currency(Currency.UAH.name())
+                .receiverFinancialAccountId(generateBeneficiary().getId())
+                .paymentProvider(PaymentProvider.LIQ_PAY.name())
+                .build();
+
+        ResponseEntity<String> response = restClient.exchange("/api/v1/sink/transactions",
+                HttpMethod.POST,
+                new HttpEntity<>(transactionDTO, generateHeaders()),
+                String.class);
+
+        assertThat(response.getStatusCode())
+                .isEqualTo(HttpStatus.ACCEPTED);
     }
 }

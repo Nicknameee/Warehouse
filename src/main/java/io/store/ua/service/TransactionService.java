@@ -119,18 +119,18 @@ public class TransactionService {
         }
 
         if (StringUtils.isNotBlank(flowType)) {
-            TransactionFlowType parsed = parseEnumOrThrow(flowType, TransactionFlowType.class, Transaction.Fields.flowType);
-            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.flowType), parsed));
+            TransactionFlowType transactionFlowType = parseEnumOrThrow(flowType, TransactionFlowType.class, Transaction.Fields.flowType);
+            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.flowType), transactionFlowType));
         }
 
         if (StringUtils.isNotBlank(purpose)) {
-            TransactionPurpose parsed = parseEnumOrThrow(purpose, TransactionPurpose.class, Transaction.Fields.purpose);
-            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.purpose), parsed));
+            TransactionPurpose transactionPurpose = parseEnumOrThrow(purpose, TransactionPurpose.class, Transaction.Fields.purpose);
+            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.purpose), transactionPurpose));
         }
 
         if (StringUtils.isNotBlank(status)) {
-            TransactionStatus parsed = parseEnumOrThrow(status, TransactionStatus.class, Transaction.Fields.status);
-            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.status), parsed));
+            TransactionStatus transactionStatus = parseEnumOrThrow(status, TransactionStatus.class, Transaction.Fields.status);
+            predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.status), transactionStatus));
         }
 
         if (beneficiaryID != null) {
@@ -150,6 +150,34 @@ public class TransactionService {
                 .getResultList();
     }
 
+    public void synchroniseTransaction(@NotNull TransactionDTO transactionDTO) {
+        fieldValidator.validate(transactionDTO, true,
+                TransactionDTO.Fields.purpose,
+                TransactionDTO.Fields.flow,
+                TransactionDTO.Fields.amount,
+                TransactionDTO.Fields.currency,
+                TransactionDTO.Fields.paymentProvider);
+
+        PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
+
+        if (paymentProvider != PaymentProvider.CASH) {
+            throw new ValidationException("Only cash payments can be synchronised");
+        }
+
+        TransactionFlowType transactionFlowType = parseEnumOrThrow(transactionDTO.getFlow(), TransactionFlowType.class, TransactionDTO.Fields.flow);
+
+        switch (transactionFlowType) {
+            case CREDIT:
+                initiateIncomingPayment(transactionDTO, true);
+                break;
+            case DEBIT:
+                initiateOutcomingPayment(transactionDTO, true);
+                break;
+            default:
+                throw new ValidationException("Invalid transaction flow '%s'".formatted(transactionFlowType));
+        }
+    }
+
     public CheckoutFinancialInformation initiateIncomingPayment(@NotNull TransactionDTO transactionDTO, Boolean autoSettle) {
         fieldValidator.validate(transactionDTO, true,
                 TransactionDTO.Fields.purpose,
@@ -158,12 +186,8 @@ public class TransactionService {
                 TransactionDTO.Fields.receiverFinancialAccountId,
                 TransactionDTO.Fields.paymentProvider);
 
-        if (transactionDTO.getPaymentProvider() == null) {
-            throw new ValidationException("A payment provider is required");
-        }
-
+        PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
         TransactionPurpose purpose = parseEnumOrThrow(transactionDTO.getPurpose(), TransactionPurpose.class, TransactionDTO.Fields.purpose);
-        PaymentProvider provider = transactionDTO.getPaymentProvider();
 
         Transaction transaction = Transaction.builder()
                 .flowType(TransactionFlowType.CREDIT)
@@ -171,10 +195,10 @@ public class TransactionService {
                 .amount(transactionDTO.getAmount())
                 .currency(transactionDTO.getCurrency())
                 .beneficiaryId(transactionDTO.getReceiverFinancialAccountId())
-                .paymentProvider(provider)
+                .paymentProvider(paymentProvider)
                 .build();
 
-        var result = transactionAdapterService.initiateIncomingPayment(transaction, autoSettle != null && autoSettle, provider);
+        var result = transactionAdapterService.initiateIncomingPayment(transaction, autoSettle != null && autoSettle, paymentProvider);
 
         transactionRepository.save(transaction);
 
@@ -182,10 +206,6 @@ public class TransactionService {
     }
 
     public Transaction initiateOutcomingPayment(@NotNull TransactionDTO transactionDTO, Boolean autoSettle) {
-        if (transactionDTO.getPaymentProvider() == null) {
-            throw new ValidationException("A payment provider is required");
-        }
-
         fieldValidator.validate(transactionDTO, true,
                 TransactionDTO.Fields.purpose,
                 TransactionDTO.Fields.amount,
@@ -193,8 +213,9 @@ public class TransactionService {
                 TransactionDTO.Fields.receiverFinancialAccountId,
                 TransactionDTO.Fields.paymentProvider);
 
+
+        PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
         TransactionPurpose purpose = parseEnumOrThrow(transactionDTO.getPurpose(), TransactionPurpose.class, TransactionDTO.Fields.purpose);
-        PaymentProvider provider = transactionDTO.getPaymentProvider();
 
         Transaction transaction = Transaction.builder()
                 .flowType(TransactionFlowType.DEBIT)
@@ -202,21 +223,17 @@ public class TransactionService {
                 .amount(transactionDTO.getAmount())
                 .currency(transactionDTO.getCurrency())
                 .beneficiaryId(transactionDTO.getReceiverFinancialAccountId())
-                .paymentProvider(provider)
+                .paymentProvider(paymentProvider)
                 .build();
 
         transaction = transactionAdapterService.initiateOutcomingPayment(transaction,
                 autoSettle != null && autoSettle,
-                provider);
+                paymentProvider);
 
         return transactionRepository.save(transaction);
     }
 
     public Transaction settlePayment(@NotNull TransactionDTO transactionDTO) {
-        if (transactionDTO.getPaymentProvider() == null) {
-            throw new ValidationException("A payment provider is required");
-        }
-
         fieldValidator.validate(transactionDTO, true,
                 TransactionDTO.Fields.transactionId,
                 TransactionDTO.Fields.paymentProvider);
@@ -224,14 +241,12 @@ public class TransactionService {
         var transaction = transactionRepository.findByTransactionId(transactionDTO.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction with transactionID '%s' was not found".formatted(transactionDTO.getTransactionId())));
 
-        return transactionRepository.save(transactionAdapterService.settlePayment(transaction, transactionDTO.getPaymentProvider()));
+        PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
+
+        return transactionRepository.save(transactionAdapterService.settlePayment(transaction, paymentProvider));
     }
 
     public Transaction cancelPayment(@NotNull TransactionDTO transactionDTO) {
-        if (transactionDTO.getPaymentProvider() == null) {
-            throw new ValidationException("A payment provider is required");
-        }
-
         fieldValidator.validate(transactionDTO, true,
                 TransactionDTO.Fields.transactionId,
                 TransactionDTO.Fields.paymentProvider);

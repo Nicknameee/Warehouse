@@ -72,11 +72,10 @@ class TransactionServiceIT extends AbstractIT {
                                                Long beneficiaryId) {
         return TransactionDTO.builder()
                 .purpose(purpose)
-                .status(TransactionStatus.INITIATED.name())
                 .amount(amount)
                 .currency(currencyCode)
                 .receiverFinancialAccountId(beneficiaryId)
-                .paymentProvider(paymentProvider)
+                .paymentProvider(paymentProvider.name())
                 .build();
     }
 
@@ -336,7 +335,7 @@ class TransactionServiceIT extends AbstractIT {
 
             CheckoutFinancialInformation financialInformation = transactionService.initiateIncomingPayment(transactionDTO, false);
 
-            assertThat(financialInformation.getPaymentProvider()).isEqualTo(transactionDTO.getPaymentProvider());
+            assertThat(financialInformation.getPaymentProvider().name()).isEqualTo(transactionDTO.getPaymentProvider());
             assertNotNull(financialInformation.getTransactionId());
             assertNotNull(financialInformation.getReference());
             assertThat(transactionRepository.count()).isEqualTo(initialCount + 1);
@@ -578,7 +577,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(initialTransaction.getTransactionId())
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             Transaction updatedTransaction = transactionService.settlePayment(transactionDTO);
@@ -599,7 +598,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(10))
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             assertThrows(NotFoundException.class, () -> transactionService.settlePayment(transactionDTO));
@@ -616,7 +615,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = invalidMutationFlow.apply(TransactionDTO.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build());
 
             assertThatThrownBy(() -> transactionService.settlePayment(transactionDTO))
@@ -665,7 +664,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(initialTransaction.getTransactionId())
-                    .paymentProvider(PaymentProvider.LIQ_PAY)
+                    .paymentProvider(PaymentProvider.LIQ_PAY.name())
                     .build();
 
             Transaction canceledTransaction = transactionService.cancelPayment(transactionDTO);
@@ -694,7 +693,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = TransactionDTO.builder()
                     .transactionId(settledTransaction.getTransactionId())
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build();
 
             assertThrows(BusinessException.class, () -> transactionService.cancelPayment(transactionDTO));
@@ -708,7 +707,7 @@ class TransactionServiceIT extends AbstractIT {
 
             TransactionDTO transactionDTO = invalidMutationFlow.apply(TransactionDTO.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
+                    .paymentProvider(PaymentProvider.DATA_TRANS.name())
                     .build());
 
             assertThatThrownBy(() -> transactionService.cancelPayment(transactionDTO))

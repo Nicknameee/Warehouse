@@ -11,6 +11,7 @@ public class RegularObjectMapper extends ObjectMapper {
     private RegularObjectMapper() {
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
+        configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
         registerModule(new JavaTimeModule());
     }
 
