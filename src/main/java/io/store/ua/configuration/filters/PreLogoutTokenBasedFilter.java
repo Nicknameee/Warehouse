@@ -1,6 +1,6 @@
 package io.store.ua.configuration.filters;
 
-import io.store.ua.exceptions.RegularAuthenticationException;
+import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.utility.AuthenticationService;
 import io.store.ua.utility.RegularObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -56,7 +56,7 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
                 .getWriter()
                 .write(
                         RegularObjectMapper.writeToString(
-                                new RegularAuthenticationException("Unauthorized, logout failed")));
+                                new AuthenticationException("Unauthorized, logout failed")));
         servletResponse.getWriter().flush();
     }
 }

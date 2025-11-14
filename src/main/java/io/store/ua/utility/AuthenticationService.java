@@ -6,7 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.store.ua.entity.cache.BlacklistedToken;
 import io.store.ua.events.LoginEvent;
 import io.store.ua.events.publishers.GenericEventPublisher;
-import io.store.ua.exceptions.RegularAuthenticationException;
+import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.models.dto.LoginDTO;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
 import io.store.ua.service.security.UserDetailsSecurityService;
@@ -110,7 +110,7 @@ public class AuthenticationService {
 
             return token;
         } else {
-            throw new RegularAuthenticationException("Could not authenticate given credentials");
+            throw new AuthenticationException("Could not authenticate given credentials");
         }
     }
 

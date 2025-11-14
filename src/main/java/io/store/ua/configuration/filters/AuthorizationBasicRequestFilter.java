@@ -1,6 +1,6 @@
 package io.store.ua.configuration.filters;
 
-import io.store.ua.exceptions.RegularAuthenticationException;
+import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.utility.RegularObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,7 +50,7 @@ public class AuthorizationBasicRequestFilter extends OncePerRequestFilter {
                         response.setContentType("application/json");
                         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.getWriter().write(RegularObjectMapper.writeToString(new RegularAuthenticationException("Invalid credentials")));
+                        response.getWriter().write(RegularObjectMapper.writeToString(new AuthenticationException("Invalid credentials")));
                         response.getWriter().flush();
                     }
                 }

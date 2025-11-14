@@ -7,6 +7,7 @@ import io.store.ua.enums.PaymentProvider;
 import io.store.ua.enums.TransactionStatus;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.HealthCheckException;
+import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequest;
 import io.store.ua.models.api.external.request.LPInitiatePaymentRequestDTO;
 import io.store.ua.models.api.external.request.LPStatusPayload;
@@ -206,7 +207,7 @@ public class LiqPayAPIService implements ExternalAPIService, FinancialAPIService
 
         try {
             var beneficiary = beneficiaryRepository.findById(requestDTO.getBeneficiaryID())
-                    .orElseThrow(() -> new RuntimeException("Beneficiary with code '%s' was not found"
+                    .orElseThrow(() -> new NotFoundException("Beneficiary with code '%s' was not found"
                             .formatted(requestDTO.getBeneficiaryID())));
 
 

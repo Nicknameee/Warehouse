@@ -84,7 +84,7 @@ class ProductControllerIT extends AbstractIT {
                 .title(productDTO.getTitle())
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
-                .tags(tagRepository.findAllById(productDTO.getTags()))
+                .tags(productDTO.getTags() == null ? null : tagRepository.findAllById(productDTO.getTags()))
                 .weight(productDTO.getWeight())
                 .length(productDTO.getLength())
                 .width(productDTO.getWidth())
@@ -222,11 +222,11 @@ class ProductControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/products/findWith/tags")
-    class FindWithTagsTests {
+    @DisplayName("GET /api/v1/products/findBy/tags")
+    class FindByTagsTests {
         @Test
-        @DisplayName("findWithTags_success_intersectionAny_returnsMatching")
-        void findWithTags_success_intersectionAny_returnsMatching() {
+        @DisplayName("findByTags_success_intersectionAny_returnsMatching")
+        void findByTags_success_intersectionAny_returnsMatching() {
             List<Tag> tags = generateTags(3);
             Tag tagA = tags.get(0);
             Tag tagB = tags.get(1);
@@ -264,9 +264,9 @@ class ProductControllerIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("findWithTags_fail_empty_returns4xx")
-        void findWithTags_fail_empty_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/products/findWith/tags")
+        @DisplayName("findByTags_fail_empty_returns4xx")
+        void findByTags_fail_empty_returns4xx() {
+            String url = UriComponentsBuilder.fromPath("/api/v1/products/findBy/tags")
                     .queryParam("pageSize", 10)
                     .queryParam("page", 1)
                     .build(true)

@@ -1,6 +1,7 @@
 package io.store.ua.handlers;
 
 import io.store.ua.exceptions.ApplicationException;
+import io.store.ua.exceptions.AuthenticationException;
 import jakarta.validation.ValidationException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -26,15 +27,13 @@ public class ExceptionHandlerController {
             return ResponseEntity.status(exception.getStatus()).body(exception);
         } else if (e instanceof MethodArgumentNotValidException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApplicationException(
-                            exception.getBindingResult().getFieldErrors().stream()
-                                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                                    .filter(Objects::nonNull)
-                                    .toList()
-                                    .toString(),
-                            HttpStatus.BAD_REQUEST));
+                    .body(new ApplicationException(exception.getBindingResult().getFieldErrors().stream()
+                            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                            .filter(Objects::nonNull)
+                            .toList()
+                            .toString(), HttpStatus.BAD_REQUEST));
         } else if (e instanceof BadCredentialsException) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthenticationException(e.getMessage()));
         } else if (e instanceof ValidationException
                 || e instanceof MissingServletRequestParameterException
                 || e instanceof MissingServletRequestPartException

@@ -5,7 +5,7 @@ import io.store.ua.enums.UserRole;
 import io.store.ua.enums.UserStatus;
 import io.store.ua.exceptions.ApplicationException;
 import io.store.ua.exceptions.BusinessException;
-import io.store.ua.exceptions.RegularAuthenticationException;
+import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.mappers.UserMapper;
 import io.store.ua.models.dto.UserActionResultDTO;
 import io.store.ua.models.dto.UserDTO;
@@ -50,7 +50,7 @@ public class UserService {
 
     public static void assertAuthenticatedUserRoles(List<UserRole> roles) {
         getCurrentlyAuthenticatedUser().filter(user -> roles.contains(user.getRole()))
-                .orElseThrow(() -> new RegularAuthenticationException(("User role has to be one of [%s]").formatted(roles)));
+                .orElseThrow(() -> new AuthenticationException(("User role has to be one of [%s]").formatted(roles)));
     }
 
     public static Optional<User> getCurrentlyAuthenticatedUser() {
@@ -72,7 +72,7 @@ public class UserService {
 
     public static Long getCurrentlyAuthenticatedUserID() {
         return getCurrentlyAuthenticatedUser().map(User::getId)
-                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+                .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
     }
 
     public List<User> findByRole(@NotNull(message = "User role can't be null") UserRole role,
@@ -162,7 +162,7 @@ public class UserService {
         List<User> users = new ArrayList<>();
 
         var currentUser = getCurrentlyAuthenticatedUser()
-                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+                .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
         for (UserDTO regularUser : regularUsers) {
             fieldValidator.validate(regularUser, true, UserDTO.Fields.email, UserDTO.Fields.username, UserDTO.Fields.role);
@@ -203,7 +203,7 @@ public class UserService {
         User user = userMapper.toUser(regularUser);
 
         var currentUser = getCurrentlyAuthenticatedUser()
-                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+                .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
         if (currentUser.getRole() == UserRole.MANAGER && user.getRole() != UserRole.OPERATOR) {
             throw new BusinessException("Only operator can be created by manager");
@@ -226,7 +226,7 @@ public class UserService {
         List<UserActionResultDTO> results = new ArrayList<>();
         List<User> users = new ArrayList<>();
         var currentUser = getCurrentlyAuthenticatedUser()
-                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+                .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
         for (UserDTO regularUser : regularUsers) {
             fieldValidator.validateObject(regularUser, UserDTO.Fields.username, true);
@@ -288,7 +288,7 @@ public class UserService {
         User user = userOptional.get();
 
         var currentUser = getCurrentlyAuthenticatedUser()
-                .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
+                .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
         if (userDTO.getPassword() != null) {
             fieldValidator.validate(userDTO, true, UserDTO.Fields.password, UserDTO.Fields.oldPassword);

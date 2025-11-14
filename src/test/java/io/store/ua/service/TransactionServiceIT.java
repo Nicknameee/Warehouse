@@ -363,6 +363,25 @@ class TransactionServiceIT extends AbstractIT {
 
             verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
             verify(liqPayService, never()).initiateIncomingPayment(any(), anyBoolean());
+        }@Test
+        @DisplayName("initiateIncomingPayment_fails_whenFinancialServiceIsNotFoundForProvider: throws NotFoundException when financial service is not found for provider")
+        void initiateIncomingPayment_fails_whenBeneficiary() {
+            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+
+            long initialCount = transactionRepository.count();
+
+            TransactionDTO transactionDTO = buildTransactionDTO(PaymentProvider.GOOGLE_PAY,
+                    TransactionPurpose.OTHER.name(),
+                    BigInteger.valueOf(300_000),
+                    Currency.USD.name(),
+                    beneficiary.getId());
+
+            assertThrows(NotFoundException.class, () -> transactionService.initiateIncomingPayment(transactionDTO, false));
+            assertThat(transactionRepository.count()).isEqualTo(initialCount);
+
+            verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
+            verify(liqPayService, never()).initiateIncomingPayment(any(), anyBoolean());
         }
 
         @Test
@@ -370,8 +389,7 @@ class TransactionServiceIT extends AbstractIT {
         void initiateIncomingPayment_fails_whenProviderDoesNotSupportAutoSettle() {
             when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
             when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
-            when(liqPayService.initiateIncomingPayment(any(Transaction.class), eq(true)))
-                    .thenThrow(new BusinessException(RandomStringUtils.secure().nextAlphanumeric(7)));
+            when(liqPayService.initiateIncomingPayment(any(Transaction.class), eq(true))).thenCallRealMethod();
 
             long initialCount = transactionRepository.count();
 
@@ -381,7 +399,7 @@ class TransactionServiceIT extends AbstractIT {
                     Currency.USD.name(),
                     beneficiary.getId());
 
-            assertThrows(BusinessException.class, () -> transactionService.initiateIncomingPayment(transactionDTO, true));
+            assertThrows(UnsupportedOperationException.class, () -> transactionService.initiateIncomingPayment(transactionDTO, true));
             assertThat(transactionRepository.count()).isEqualTo(initialCount);
 
             verify(liqPayService, times(1)).initiateIncomingPayment(any(Transaction.class), eq(true));

@@ -9,6 +9,7 @@ import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.CheckoutFinancialInformation;
 import io.store.ua.models.dto.TransactionDTO;
+import io.store.ua.repository.BeneficiaryRepository;
 import io.store.ua.repository.TransactionRepository;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
@@ -35,6 +36,7 @@ import java.util.List;
 @Validated
 public class TransactionService {
     private final TransactionRepository transactionRepository;
+    private final BeneficiaryRepository beneficiaryRepository;
     private final TransactionAdapterService transactionAdapterService;
     private final EntityManager entityManager;
     private final FieldValidator fieldValidator;
@@ -186,6 +188,10 @@ public class TransactionService {
                 TransactionDTO.Fields.receiverFinancialAccountId,
                 TransactionDTO.Fields.paymentProvider);
 
+        if (!beneficiaryRepository.existsById(transactionDTO.getReceiverFinancialAccountId())) {
+            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getReceiverFinancialAccountId()));
+        }
+
         PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
         TransactionPurpose purpose = parseEnumOrThrow(transactionDTO.getPurpose(), TransactionPurpose.class, TransactionDTO.Fields.purpose);
 
@@ -213,6 +219,9 @@ public class TransactionService {
                 TransactionDTO.Fields.receiverFinancialAccountId,
                 TransactionDTO.Fields.paymentProvider);
 
+        if (!beneficiaryRepository.existsById(transactionDTO.getReceiverFinancialAccountId())) {
+            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getReceiverFinancialAccountId()));
+        }
 
         PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
         TransactionPurpose purpose = parseEnumOrThrow(transactionDTO.getPurpose(), TransactionPurpose.class, TransactionDTO.Fields.purpose);
