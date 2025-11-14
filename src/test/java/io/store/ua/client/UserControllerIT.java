@@ -345,6 +345,7 @@ class UserControllerIT extends AbstractIT {
         @Test
         @DisplayName("updates role, status, timezone, and password")
         void update_success_updatesSingle() {
+            String password = GENERATOR.nextAlphanumeric(13);
             var actualUser = userRepository.save(User.builder()
                     .username(GENERATOR.nextAlphabetic(10))
                     .email("%s@%s.%s".formatted(
@@ -354,7 +355,7 @@ class UserControllerIT extends AbstractIT {
                     .role(UserRole.MANAGER)
                     .status(UserStatus.ACTIVE)
                     .timezone("UTC")
-                    .password(GENERATOR.nextAlphanumeric(13))
+                    .password(passwordEncoder.encode(password))
                     .build());
 
             var user = UserDTO.builder()
@@ -366,6 +367,7 @@ class UserControllerIT extends AbstractIT {
                     .role(UserRole.MANAGER.name())
                     .status(UserStatus.ACTIVE.name())
                     .timezone("UTC")
+                    .oldPassword(password)
                     .password(GENERATOR.nextAlphanumeric(13))
                     .build();
 
