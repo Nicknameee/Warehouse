@@ -192,11 +192,12 @@ class UserServiceIT extends AbstractIT {
         @DisplayName("update_success: patches only provided fields")
         @Transactional
         void update_success() {
-            User user = userRepository.save(generateUser(generateUserDTO()));
+            UserDTO userDTOGenerating = generateUserDTO();
+            User user = userRepository.save(generateUser(userDTOGenerating));
 
             UserDTO userDTO = new UserDTO();
             userDTO.setUsername(user.getUsername());
-            userDTO.setOldPassword(user.getPassword());
+            userDTO.setOldPassword(userDTOGenerating.getPassword());
             userDTO.setPassword(RandomStringUtils.secure().nextAlphanumeric(30));
             userDTO.setTimezone("America/Los_Angeles");
             userDTO.setStatus(UserStatus.INACTIVE.name());
@@ -228,11 +229,27 @@ class UserServiceIT extends AbstractIT {
             user.setRole(UserRole.OPERATOR);
             userRepository.save(user);
 
-            UserDTO patchUser = new UserDTO();
-            patchUser.setUsername(user.getUsername());
-            patchUser.setPassword(RandomStringUtils.secure().nextAlphanumeric(30));
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(user.getUsername());
+            userDTO.setPassword(RandomStringUtils.secure().nextAlphanumeric(30));
 
-            assertThatThrownBy(() -> userService.update(patchUser))
+            assertThatThrownBy(() -> userService.update(userDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenPasswordsIdentical")
+        void update_fail_whenNewPasswordIdentical() {
+            User user = generateUser(generateUserDTO());
+            user.setRole(UserRole.OPERATOR);
+            userRepository.save(user);
+
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(user.getUsername());
+            userDTO.setOldPassword(user.getPassword());
+            userDTO.setPassword(user.getPassword());
+
+            assertThatThrownBy(() -> userService.update(userDTO))
                     .isInstanceOf(ValidationException.class);
         }
 

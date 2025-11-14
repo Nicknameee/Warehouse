@@ -16,6 +16,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -275,13 +276,13 @@ public class UserService {
         return results;
     }
 
-    public User update(UserDTO regularUser) {
-        fieldValidator.validateObject(regularUser, UserDTO.Fields.username, true);
-        Optional<User> userOptional = findByUsername(regularUser.getUsername());
+    public User update(UserDTO userDTO) {
+        fieldValidator.validateObject(userDTO, UserDTO.Fields.username, true);
+        Optional<User> userOptional = findByUsername(userDTO.getUsername());
 
         if (userOptional.isEmpty()) {
             throw new ApplicationException("User with username %s was not found"
-                    .formatted(regularUser.getUsername()), HttpStatus.NOT_FOUND);
+                    .formatted(userDTO.getUsername()), HttpStatus.NOT_FOUND);
         }
 
         User user = userOptional.get();
@@ -289,32 +290,37 @@ public class UserService {
         var currentUser = getCurrentlyAuthenticatedUser()
                 .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
 
-        if (regularUser.getPassword() != null) {
-            fieldValidator.validate(regularUser, true, UserDTO.Fields.password, UserDTO.Fields.oldPassword);
-            if (!passwordEncoder.matches(regularUser.getOldPassword(), user.getPassword())) {
-                throw new BusinessException("Old password is incorrect");
+        if (userDTO.getPassword() != null) {
+            fieldValidator.validate(userDTO, true, UserDTO.Fields.password, UserDTO.Fields.oldPassword);
+
+            if (userDTO.getPassword().equals(userDTO.getOldPassword())) {
+                throw new ValidationException("New password can't be the same as old password");
             }
 
-            user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
+            if (!passwordEncoder.matches(userDTO.getOldPassword(), user.getPassword())) {
+                throw new ValidationException("Old password is incorrect");
+            }
+
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
 
-        if (regularUser.getTimezone() != null) {
-            fieldValidator.validate(regularUser, UserDTO.Fields.timezone, true);
-            user.setTimezone(regularUser.getTimezone());
+        if (userDTO.getTimezone() != null) {
+            fieldValidator.validate(userDTO, UserDTO.Fields.timezone, true);
+            user.setTimezone(userDTO.getTimezone());
         }
 
-        if (regularUser.getStatus() != null) {
-            fieldValidator.validate(regularUser, UserDTO.Fields.status, true);
-            user.setStatus(UserStatus.valueOf(regularUser.getStatus()));
+        if (userDTO.getStatus() != null) {
+            fieldValidator.validate(userDTO, UserDTO.Fields.status, true);
+            user.setStatus(UserStatus.valueOf(userDTO.getStatus()));
         }
 
-        if (regularUser.getRole() != null) {
+        if (userDTO.getRole() != null) {
             if (currentUser.getRole() != UserRole.OWNER) {
-                throw new BusinessException("Only owner can change user roles");
+                throw new ValidationException("Only owner can change user roles");
             }
 
-            fieldValidator.validate(regularUser, UserDTO.Fields.role, true);
-            user.setRole(UserRole.valueOf(regularUser.getRole()));
+            fieldValidator.validate(userDTO, UserDTO.Fields.role, true);
+            user.setRole(UserRole.valueOf(userDTO.getRole()));
         }
 
         return userRepository.save(user);
