@@ -20,11 +20,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CurrencyRate {
-    private final LocalDateTime createdAt = LocalDateTime.now(Clock.systemUTC());
     @Id
     private String currencyCode;
     private String baseCurrencyCode;
     private BigDecimal rate;
+    private LocalDateTime createdAt = LocalDateTime.now(Clock.systemUTC());
     @TimeToLive
     private long expiryTime;
 }
