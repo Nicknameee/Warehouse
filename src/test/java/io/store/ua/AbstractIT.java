@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnableRetry
 @WithUserDetails(value = AbstractIT.OWNER, userDetailsServiceBeanName = "userDetailsSecurityService", setupBefore = TestExecutionEvent.TEST_EXECUTION)
 public abstract class AbstractIT {
-    protected static final String OWNER = "owner";
+    protected static final String OWNER = "warehouse";
     protected static final RandomStringUtils GENERATOR = RandomStringUtils.secure();
 
     @ServiceConnection

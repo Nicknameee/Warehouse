@@ -19,7 +19,6 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getUser() {
         return UserService.getCurrentlyAuthenticatedUser()
                 .map(ResponseEntity::ok)

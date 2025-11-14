@@ -290,7 +290,11 @@ public class UserService {
                 .orElseThrow(() -> new RegularAuthenticationException("User is not authenticated"));
 
         if (regularUser.getPassword() != null) {
-            fieldValidator.validate(regularUser, UserDTO.Fields.password, true);
+            fieldValidator.validate(regularUser, true, UserDTO.Fields.password, UserDTO.Fields.oldPassword);
+            if (!passwordEncoder.matches(regularUser.getOldPassword(), user.getPassword())) {
+                throw new BusinessException("Old password is incorrect");
+            }
+
             user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
         }
 

@@ -16,6 +16,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -188,31 +192,66 @@ class UserServiceIT extends AbstractIT {
         @DisplayName("update_success: patches only provided fields")
         @Transactional
         void update_success() {
-            User existingUser = userRepository.save(generateUser(generateUserDTO()));
+            User user = userRepository.save(generateUser(generateUserDTO()));
 
-            UserDTO patchUser = new UserDTO();
-            patchUser.setUsername(existingUser.getUsername());
-            patchUser.setPassword(RandomStringUtils.secure().nextAlphanumeric(12));
-            patchUser.setTimezone("America/Los_Angeles");
-            patchUser.setStatus(UserStatus.INACTIVE.name());
-            patchUser.setRole(UserRole.MANAGER.name());
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(user.getUsername());
+            userDTO.setOldPassword(user.getPassword());
+            userDTO.setPassword(RandomStringUtils.secure().nextAlphanumeric(30));
+            userDTO.setTimezone("America/Los_Angeles");
+            userDTO.setStatus(UserStatus.INACTIVE.name());
+            userDTO.setRole(UserRole.MANAGER.name());
 
-            User updatedUser = userService.update(patchUser);
+            User updatedUser = userService.update(userDTO);
 
-            assertThat(updatedUser.getId()).isEqualTo(existingUser.getId());
+            assertThat(updatedUser.getId()).isEqualTo(user.getId());
             assertThat(updatedUser.getTimezone()).isEqualTo("America/Los_Angeles");
             assertThat(updatedUser.getStatus()).isEqualTo(UserStatus.INACTIVE);
             assertThat(updatedUser.getRole()).isEqualTo(UserRole.MANAGER);
-            assertTrue(passwordEncoder.matches(patchUser.getPassword(), updatedUser.getPassword()));
+            assertTrue(passwordEncoder.matches(userDTO.getPassword(), updatedUser.getPassword()));
         }
 
         @Test
         @DisplayName("update_fail_whenMissingUsername")
         void update_fail_whenMissingUsername() {
-            UserDTO patchDto = new UserDTO();
-            patchDto.setPassword(RandomStringUtils.secure().nextAlphanumeric(10));
+            UserDTO userDTO = new UserDTO();
+            userDTO.setPassword(RandomStringUtils.secure().nextAlphanumeric(10));
 
-            assertThatThrownBy(() -> userService.update(patchDto))
+            assertThatThrownBy(() -> userService.update(userDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenChangingPasswordWithoutOldPassword")
+        void update_fail_whenChangingPasswordWithoutOldPassword() {
+            User user = generateUser(generateUserDTO());
+            user.setRole(UserRole.OPERATOR);
+            userRepository.save(user);
+
+            UserDTO patchUser = new UserDTO();
+            patchUser.setUsername(user.getUsername());
+            patchUser.setPassword(RandomStringUtils.secure().nextAlphanumeric(30));
+
+            assertThatThrownBy(() -> userService.update(patchUser))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenChangingRole")
+        void update_fail_whenChangingRole() {
+            User existingUser = userRepository.save(generateUser(generateUserDTO()));
+
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(existingUser, null, existingUser.getAuthorities());
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(existingUser.getUsername());
+            userDTO.setRole(UserRole.MANAGER.name());
+
+            assertThatThrownBy(() -> userService.update(userDTO))
                     .isInstanceOf(ValidationException.class);
         }
     }

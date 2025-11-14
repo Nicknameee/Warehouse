@@ -2,8 +2,10 @@ package io.store.ua.configuration.handlers;
 
 import io.store.ua.events.LogoutEvent;
 import io.store.ua.events.publishers.GenericEventPublisher;
+import io.store.ua.models.dto.LogoutResponseDTO;
 import io.store.ua.utility.AuthenticationService;
 import io.store.ua.utility.RegularObjectMapper;
+import io.store.ua.utility.UserSecurityStrategyService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +20,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -35,7 +35,8 @@ public class AuthenticationLogoutSecurityHandler implements LogoutSuccessHandler
         if (request.getRequestURI().equals("/logout")) {
             String authorizationHeaderValue = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-            if (authorizationHeaderValue != null && authorizationHeaderValue.startsWith("Bearer ")) {
+            if (authorizationHeaderValue != null
+                    && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE))) {
                 String authorizationToken = authorizationHeaderValue.substring(7);
                 String username = authenticationService.getUsernameFromToken(authorizationToken);
                 UserDetails userDetails = authenticationService.loadUserByUsername(username);
@@ -45,13 +46,13 @@ public class AuthenticationLogoutSecurityHandler implements LogoutSuccessHandler
 
                     logoutEventEventPublisher.publishEvent(new LogoutEvent(userDetails));
 
-                    Map<String, Object> responseBodyMap = new HashMap<>();
-                    responseBodyMap.put("logout", true);
-                    response.setContentType("application/json");
-
                     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                    response.setContentType("application/json");
                     response.setStatus(HttpStatus.OK.value());
-                    response.getWriter().write(RegularObjectMapper.writeToString(responseBodyMap));
+                    response.getWriter()
+                            .write(RegularObjectMapper.writeToString(LogoutResponseDTO.builder()
+                                    .isSuccess(true)
+                                    .build()));
                     response.getWriter().flush();
                 }
             }

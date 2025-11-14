@@ -3,6 +3,7 @@ package io.store.ua.client;
 import io.store.ua.AbstractIT;
 import io.store.ua.models.dto.LoginDTO;
 import io.store.ua.models.dto.LoginResponseDTO;
+import io.store.ua.models.dto.LogoutResponseDTO;
 import io.store.ua.utility.UserSecurityStrategyService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -74,17 +75,23 @@ class AuthenticationControllerIT extends AbstractIT {
             headers.set(HttpHeaders.AUTHORIZATION, "%s %s"
                     .formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE, content.getToken()));
 
-            ResponseEntity<Void> logoutResponse = restClient.exchange("/logout",
+            ResponseEntity<LogoutResponseDTO> logoutResponse = restClient.exchange("/logout",
                     HttpMethod.POST,
                     new HttpEntity<>(null, headers),
-                    Void.class);
+                    LogoutResponseDTO.class);
 
             assertThat(logoutResponse.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
+            assertNotNull(logoutResponse.getBody());
+            assertThat(logoutResponse.getBody().isSuccess())
+                    .isTrue();
+        }
 
-            logoutResponse = restClient.exchange("/logout",
+        @Test
+        void logout_fails() {
+            ResponseEntity<Void> logoutResponse = restClient.exchange("/logout",
                     HttpMethod.POST,
-                    new HttpEntity<>(null, headers),
+                    new HttpEntity<>(null, null),
                     Void.class);
 
             assertThat(logoutResponse.getStatusCode())

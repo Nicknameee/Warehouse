@@ -79,9 +79,10 @@ public class AuthenticationService {
 
     public void blacklistToken(@NotBlank(message = "Token can't be blank") String token) {
         BlacklistedToken blacklistedToken = new BlacklistedToken();
-        blacklistedToken.setTokenId(getClaimFromToken(token, Claims::getId));
-        blacklistedToken.setExpiryTime(
-                Math.max(0, Duration.ofMillis(getExpirationDateFromToken(token).getTime() - System.currentTimeMillis()).toSeconds()));
+        blacklistedToken
+                .setTokenId(getClaimFromToken(token, Claims::getId));
+        blacklistedToken
+                .setExpiryTime(Math.max(0, Duration.ofMillis(getExpirationDateFromToken(token).getTime() - System.currentTimeMillis()).toSeconds()));
 
         blacklistedTokenRepository.save(blacklistedToken);
     }

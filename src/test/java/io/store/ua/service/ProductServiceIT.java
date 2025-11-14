@@ -321,7 +321,7 @@ class ProductServiceIT extends AbstractIT {
             product3.setTags(List.of(tags.get(2)));
             productRepository.save(product3);
 
-            List<Product> result = productService.findWithTags(
+            List<Product> result = productService.findByTags(
                     List.of(tagA.getId(), tagB.getId()),
                     10, 1
             );

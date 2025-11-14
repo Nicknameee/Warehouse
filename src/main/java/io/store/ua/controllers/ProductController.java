@@ -29,11 +29,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.findByCode(code));
     }
 
-    @GetMapping("/findWith/tags")
-    public ResponseEntity<List<Product>> findWithTags(@RequestParam("tagId") List<Long> tagIds,
-                                                      @RequestParam("pageSize") int pageSize,
-                                                      @RequestParam("page") int page) {
-        return ResponseEntity.ok(productService.findWithTags(tagIds, pageSize, page));
+    @GetMapping("/findBy/tags")
+    public ResponseEntity<List<Product>> findByTags(@RequestParam("tagId") List<Long> tagIds,
+                                                    @RequestParam("pageSize") int pageSize,
+                                                    @RequestParam("page") int page) {
+        return ResponseEntity.ok(productService.findByTags(tagIds, pageSize, page));
     }
 
     @GetMapping("/findBy")

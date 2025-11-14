@@ -25,4 +25,4 @@ spring:
     baseline-on-migrate: true
     table: flyway_history
     placeholders:
-      owner: ${OWNER:'owner'}
+      owner: ${OWNER:'warehouse'}

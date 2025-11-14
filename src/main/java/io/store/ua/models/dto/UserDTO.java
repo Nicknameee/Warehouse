@@ -26,6 +26,9 @@ public class UserDTO {
     @NotBlank(message = "Username can not be blank")
     @Length(min = 8, max = 64, message = "Username length should be in range [8; 64]")
     private String username;
+    @NotBlank(message = "Old password can not be blank")
+    @Length(min = 8, message = "Old password length should be at least 8 chars")
+    private String oldPassword;
     @NotBlank(message = "Password can not be blank")
     @Length(min = 8, message = "Password length should be at least 8 chars")
     private String password;

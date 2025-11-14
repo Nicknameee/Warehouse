@@ -84,6 +84,7 @@ class ProductControllerIT extends AbstractIT {
                 .title(productDTO.getTitle())
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
+                .tags(tagRepository.findAllById(productDTO.getTags()))
                 .weight(productDTO.getWeight())
                 .length(productDTO.getLength())
                 .width(productDTO.getWidth())
@@ -231,19 +232,13 @@ class ProductControllerIT extends AbstractIT {
             Tag tagB = tags.get(1);
             Tag tagC = tags.get(2);
 
-            Product product = generateProduct(generateProductDTO());
-            product.setTags(List.of(tagA));
-            productRepository.save(product);
+            Product product = generateProduct(generateProductDTO(List.of(tagA.getId())));
 
-            Product productOther = generateProduct(generateProductDTO());
-            productOther.setTags(List.of(tagB));
-            productRepository.save(productOther);
+            Product productOther = generateProduct(generateProductDTO(List.of(tagB.getId())));
 
-            Product productAnother = generateProduct(generateProductDTO());
-            productAnother.setTags(List.of(tagC));
-            productRepository.save(productAnother);
+            Product productAnother = generateProduct(generateProductDTO(List.of(tagC.getId())));
 
-            String url = UriComponentsBuilder.fromPath("/api/v1/products/findWith/tags")
+            String url = UriComponentsBuilder.fromPath("/api/v1/products/findBy/tags")
                     .queryParam("tagId", tagA.getId())
                     .queryParam("tagId", tagB.getId())
                     .queryParam("pageSize", 10)
@@ -300,22 +295,24 @@ class ProductControllerIT extends AbstractIT {
             ProductDTO productDTO = generateProductDTO();
             productDTO.setTitle(GENERATOR.nextAlphanumeric(30));
             productDTO.setPrice(BigInteger.valueOf(600));
+
             Product product = generateProduct(productDTO);
             product.setTags(List.of(tagX, tagY));
             productRepository.save(product);
 
             productDTO = generateProductDTO();
-            productDTO.setTitle(GENERATOR.nextAlphanumeric(30));
+            productDTO.setTitle(GENERATOR.nextAlphanumeric(9));
             productDTO.setPrice(BigInteger.valueOf(1500));
-            product = generateProduct(productDTO);
-            product.setTags(List.of(tagX));
-            productRepository.save(product);
+            Product otherProduct = generateProduct(productDTO);
+            otherProduct.setTags(List.of(tagX));
+            productRepository.save(otherProduct);
 
             String url = UriComponentsBuilder.fromPath("/api/v1/products/findBy")
-                    .queryParam("titlePart", "alpha")
+                    .queryParam("titlePart", product.getTitle().substring(10, 19))
                     .queryParam("minimumPrice", new BigDecimal("100"))
                     .queryParam("maximumPrice", new BigDecimal("1000"))
-                    .queryParam("tagIds", tagX.getId() + "," + tagY.getId())
+                    .queryParam("tagId", tagX.getId())
+                    .queryParam("tagId", tagY.getId())
                     .queryParam("from", DMY_HMS.format(LocalDateTime.now().minusDays(1)))
                     .queryParam("to", DMY_HMS.format(LocalDateTime.now().plusDays(1)))
                     .queryParam("pageSize", 10)

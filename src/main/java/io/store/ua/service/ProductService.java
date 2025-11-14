@@ -40,9 +40,9 @@ public class ProductService {
         return productRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
     }
 
-    public List<Product> findWithTags(@NotEmpty(message = "Tag list can't be empty") List<@NotNull(message = "Tag ID can't e blank") Long> tagIds,
-                                      @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                      @Min(value = 1, message = "A page number can't be less than 1") int page) {
+    public List<Product> findByTags(@NotEmpty(message = "Tag list can't be empty") List<@NotNull(message = "Tag ID can't e blank") Long> tagIds,
+                                    @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
+                                    @Min(value = 1, message = "A page number can't be less than 1") int page) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
         Root<Product> product = criteriaQuery.from(Product.class);
