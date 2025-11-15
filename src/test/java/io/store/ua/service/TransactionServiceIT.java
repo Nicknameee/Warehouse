@@ -57,8 +57,8 @@ class TransactionServiceIT extends AbstractIT {
         beneficiary = beneficiaryRepository.save(
                 Beneficiary.builder()
                         .name(RandomStringUtils.secure().nextAlphabetic(10))
-                        .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
-                        .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
+                        .iban("UA" + RandomStringUtils.secure().nextNumeric(27))
+                        .swift(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
                         .card(RandomStringUtils.secure().nextNumeric(16))
                         .isActive(true)
                         .build()

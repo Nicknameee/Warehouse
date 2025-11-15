@@ -51,11 +51,11 @@ public class BeneficiaryService {
         List<Predicate> predicates = new ArrayList<>();
 
         if (!StringUtils.isBlank(IBANPrefix)) {
-            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.IBAN)), IBANPrefix.toLowerCase() + "%"));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.iban)), IBANPrefix.toLowerCase() + "%"));
         }
 
         if (!StringUtils.isBlank(SWIFTPrefix)) {
-            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.SWIFT)), SWIFTPrefix.toLowerCase() + "%"));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.swift)), SWIFTPrefix.toLowerCase() + "%"));
         }
 
         if (!StringUtils.isBlank(cardPrefix)) {
@@ -81,24 +81,29 @@ public class BeneficiaryService {
     public Beneficiary save(@NotNull(message = "Beneficiary can't be null") BeneficiaryDTO beneficiaryDTO) {
         fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.name);
 
-        if (StringUtils.isAllBlank(beneficiaryDTO.getIBAN(), beneficiaryDTO.getSWIFT(), beneficiaryDTO.getCard())) {
+        if (StringUtils.isAllBlank(beneficiaryDTO.getIban(), beneficiaryDTO.getSwift(), beneficiaryDTO.getCard())) {
             throw new ValidationException("Beneficiary can't be created without any bank account information");
         }
 
+        if ((StringUtils.isNotBlank(beneficiaryDTO.getSwift()) && StringUtils.isBlank(beneficiaryDTO.getIban()))
+                || (StringUtils.isBlank(beneficiaryDTO.getSwift()) && StringUtils.isNotBlank(beneficiaryDTO.getIban()))) {
+            throw new ValidationException("Beneficiary can't have only one of IBAN or SWIFT");
+        }
+
         fieldValidator.validate(beneficiaryDTO, false,
-                BeneficiaryDTO.Fields.IBAN,
-                BeneficiaryDTO.Fields.SWIFT,
+                BeneficiaryDTO.Fields.iban,
+                BeneficiaryDTO.Fields.swift,
                 BeneficiaryDTO.Fields.card);
 
-        if (beneficiaryRepository.existsByIBANOrCard(beneficiaryDTO.getIBAN(), beneficiaryDTO.getCard())) {
+        if (beneficiaryRepository.existsByIbanOrCard(beneficiaryDTO.getIban(), beneficiaryDTO.getCard())) {
             throw new BusinessException("Beneficiary with IBAN '%s' or card '%s' already exists"
-                    .formatted(beneficiaryDTO.getIBAN(), beneficiaryDTO.getCard()));
+                    .formatted(beneficiaryDTO.getIban(), beneficiaryDTO.getCard()));
         }
 
         return beneficiaryRepository.save(Beneficiary.builder()
                 .name(beneficiaryDTO.getName())
-                .IBAN(beneficiaryDTO.getIBAN())
-                .SWIFT(beneficiaryDTO.getSWIFT())
+                .iban(beneficiaryDTO.getIban())
+                .swift(beneficiaryDTO.getSwift())
                 .card(beneficiaryDTO.getCard())
                 .isActive(beneficiaryDTO.getIsActive() != null && beneficiaryDTO.getIsActive())
                 .build());
@@ -111,28 +116,34 @@ public class BeneficiaryService {
 
         if (StringUtils.isNotBlank(beneficiaryDTO.getName())) {
             fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.name);
-            beneficiary.setName(beneficiaryDTO.getName());
+
+            if (!beneficiaryDTO.getName().equals(beneficiary.getName())) {
+                beneficiary.setName(beneficiaryDTO.getName());
+            }
         }
 
-        if (StringUtils.isNotBlank(beneficiaryDTO.getIBAN())) {
-            fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.IBAN);
+        if (StringUtils.isNotBlank(beneficiaryDTO.getIban())) {
+            fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.iban);
 
-            if (beneficiaryRepository.existsByIBAN(beneficiaryDTO.getIBAN())) {
-                throw new BusinessException("Beneficiary with IBAN '%s' already exists".formatted(beneficiaryDTO.getIBAN()));
+            if (!beneficiaryDTO.getIban().equals(beneficiary.getIban()) && beneficiaryRepository.existsByIban(beneficiaryDTO.getIban())) {
+                throw new BusinessException("Beneficiary with IBAN '%s' already exists".formatted(beneficiaryDTO.getIban()));
             }
 
-            beneficiary.setIBAN(beneficiaryDTO.getIBAN());
+            beneficiary.setIban(beneficiaryDTO.getIban());
         }
 
-        if (StringUtils.isNotBlank(beneficiaryDTO.getSWIFT())) {
-            fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.SWIFT);
-            beneficiary.setSWIFT(beneficiaryDTO.getSWIFT());
+        if (StringUtils.isNotBlank(beneficiaryDTO.getSwift())) {
+            fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.swift);
+
+            if (!beneficiaryDTO.getSwift().equals(beneficiary.getSwift())) {
+                beneficiary.setSwift(beneficiaryDTO.getSwift());
+            }
         }
 
         if (StringUtils.isNotBlank(beneficiaryDTO.getCard())) {
             fieldValidator.validate(beneficiaryDTO, true, BeneficiaryDTO.Fields.card);
 
-            if (beneficiaryRepository.existsByCard(beneficiaryDTO.getCard())) {
+            if (!beneficiaryDTO.getCard().equals(beneficiary.getCard()) && beneficiaryRepository.existsByCard(beneficiaryDTO.getCard())) {
                 throw new BusinessException("Beneficiary with card '%s' already exists".formatted(beneficiaryDTO.getCard()));
             }
 
@@ -141,6 +152,15 @@ public class BeneficiaryService {
 
         if (beneficiaryDTO.getIsActive() != null) {
             beneficiary.setIsActive(beneficiaryDTO.getIsActive());
+        }
+
+        if (StringUtils.isAllBlank(beneficiary.getIban(), beneficiary.getSwift(), beneficiary.getCard())) {
+            throw new ValidationException("Beneficiary can't be created without any bank account information");
+        }
+
+        if ((StringUtils.isNotBlank(beneficiary.getSwift()) && StringUtils.isBlank(beneficiary.getIban()))
+                || (StringUtils.isBlank(beneficiary.getSwift()) && StringUtils.isNotBlank(beneficiary.getIban()))) {
+            throw new ValidationException("Beneficiary can't have only one of IBAN or SWIFT");
         }
 
         return beneficiaryRepository.save(beneficiary);

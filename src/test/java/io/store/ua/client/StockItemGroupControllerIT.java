@@ -7,13 +7,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,117 +21,46 @@ class StockItemGroupControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/stockItemGroups/findAll")
-    class FindAllGroupsTests {
+    @DisplayName("GET /api/v1/stockItemGroups/findBy")
+    class FindByTests {
         @Test
-        @DisplayName("findAll_success_returnsPaginatedList")
-        void findAll_success_returnsPaginatedList() {
-            StockItemGroup firstGroup = generateStockItemGroup(true);
-            StockItemGroup otherGroup = generateStockItemGroup(true);
-            StockItemGroup anotherGroup = generateStockItemGroup(false);
+        @DisplayName("findBy_success_returnsGroupByCodeFilter")
+        void findBy_success_returnsGroupByCodeFilter() {
+            StockItemGroup stockItemGroup = generateStockItemGroup(true);
+            stockItemGroupRepository.save(stockItemGroup);
 
-            String firstPageUrl = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups/findAll")
-                    .queryParam("pageSize", 1)
+            String url = UriComponentsBuilder
+                    .fromPath("/api/v1/stockItemGroups/findBy")
+                    .queryParam("code", stockItemGroup.getCode())
+                    .queryParam("pageSize", 10)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            String tailPageUrl = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups/findAll")
-                    .queryParam("pageSize", 2)
-                    .queryParam("page", 2)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<List<StockItemGroup>> firstPage = restClient.exchange(
-                    firstPageUrl,
+            ResponseEntity<StockItemGroup[]> response = restClient.exchange(
+                    url,
                     HttpMethod.GET,
                     new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
-            ResponseEntity<List<StockItemGroup>> tailPage = restClient.exchange(
-                    tailPageUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
+                    StockItemGroup[].class
+            );
 
-            assertThat(firstPage.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(tailPage.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(firstPage.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-            assertThat(tailPage.getBody())
-                    .isNotNull()
-                    .hasSize(1);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
 
-            Set<Long> returnedIds = firstPage.getBody()
-                    .stream()
-                    .map(StockItemGroup::getId)
-                    .collect(Collectors.toSet());
-            returnedIds.addAll(tailPage.getBody()
-                    .stream()
-                    .map(StockItemGroup::getId)
-                    .toList());
+            StockItemGroup[] body = response.getBody();
+            assertThat(body).isNotEmpty();
 
-            assertThat(returnedIds)
-                    .containsAnyOf(firstGroup.getId(), otherGroup.getId(), anotherGroup.getId());
-        }
-
-        @Test
-        @DisplayName("findAll_fails_invalidPagination_returns4xx")
-        void findAll_fails_invalidPagination_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups/findAll")
-                    .queryParam("pageSize", 0)
-                    .queryParam("page", -1)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> response = restClient.exchange(url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    String.class);
-
-            assertThat(response.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/stockItemGroups/findBy/code")
-    class FindByCodeTests {
-        @Test
-        @DisplayName("findByCode_success_returnsGroupByCode")
-        void findByCode_success_returnsGroupByCode() {
-            StockItemGroup stockItemGroup = generateStockItemGroup(true);
-
-            String url = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups/findBy/code")
-                    .queryParam("code", stockItemGroup.getCode())
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<StockItemGroup> response = restClient.exchange(url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    StockItemGroup.class);
-
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody())
-                    .isNotNull();
-
-            StockItemGroup persisted = stockItemGroupRepository.findByCode(stockItemGroup.getCode())
+            StockItemGroup persisted = stockItemGroupRepository
+                    .findByCode(stockItemGroup.getCode())
                     .orElseThrow();
 
-            assertThat(response.getBody().getId())
-                    .isEqualTo(persisted.getId());
-            assertThat(response.getBody().getCode())
-                    .isEqualTo(persisted.getCode());
-            assertThat(response.getBody().getName())
-                    .isEqualTo(persisted.getName());
-            assertThat(response.getBody().getIsActive())
-                    .isEqualTo(persisted.getIsActive());
+            assertThat(body)
+                    .anySatisfy(group -> {
+                        assertThat(group.getId()).isEqualTo(persisted.getId());
+                        assertThat(group.getCode()).isEqualTo(persisted.getCode());
+                        assertThat(group.getName()).isEqualTo(persisted.getName());
+                        assertThat(group.getIsActive()).isEqualTo(persisted.getIsActive());
+                    });
         }
     }
 
@@ -188,7 +112,7 @@ class StockItemGroupControllerIT extends AbstractIT {
             String url = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups")
                     .queryParam("groupId", stockItemGroup.getId())
                     .queryParam("name", newName)
-                    .queryParam("is_active", false)
+                    .queryParam("isActive", false)
                     .build(true)
                     .toUriString();
 

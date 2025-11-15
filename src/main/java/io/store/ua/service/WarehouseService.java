@@ -11,6 +11,7 @@ import io.store.ua.utility.CodeGenerator;
 import io.store.ua.validations.FieldValidator;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,21 +37,33 @@ public class WarehouseService {
                 .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(code)));
     }
 
-    public Warehouse save(WarehouseDTO warehouseDTO) {
+    public Warehouse save(@NotNull(message = "Warehouse can't be null") WarehouseDTO warehouseDTO) {
+        fieldValidator.validateObjects(warehouseDTO, true,
+                WarehouseDTO.Fields.address,
+                WarehouseDTO.Fields.workingHours);
+
         String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
 
         Optional<Warehouse> warehouseOptional = warehouseRepository.findByCode(code);
+
+        if (warehouseOptional.isEmpty()) {
+            fieldValidator.validate(warehouseDTO, true,
+                    WarehouseDTO.Fields.name,
+                    WarehouseDTO.Fields.isActive);
+            fieldValidator.validateObjects(warehouseDTO, false, WarehouseDTO.Fields.phones);
+            fieldValidator.validate(warehouseDTO, WarehouseDTO.Fields.managerId, false);
+        }
 
         return warehouseOptional.orElseGet(() -> warehouseRepository.save(Warehouse.builder().code(code)
                 .name(warehouseDTO.getName())
                 .address(warehouseDTO.getAddress())
                 .workingHours(warehouseDTO.getWorkingHours())
                 .phones(warehouseDTO.getPhones())
-                .managerId(UserService.getCurrentlyAuthenticatedUserID())
+                .managerId(warehouseDTO.getManagerId() == null ? UserService.getCurrentlyAuthenticatedUserID() : warehouseDTO.getManagerId())
                 .isActive(warehouseDTO.getIsActive()).build()));
     }
 
-    public Warehouse update(WarehouseDTO warehouseDTO) {
+    public Warehouse update(@NotNull(message = "Warehouse can't be null") WarehouseDTO warehouseDTO) {
         User user =
                 UserService.getCurrentlyAuthenticatedUser()
                         .filter(authentication -> List.of(UserRole.OWNER, UserRole.MANAGER).contains(authentication.getRole()))

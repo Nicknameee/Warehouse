@@ -44,16 +44,16 @@ class BeneficiaryServiceIT extends AbstractIT {
         void save_success() {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .name(GENERATOR.nextAlphabetic(10))
-                    .IBAN("UA" + GENERATOR.nextNumeric(27))
-                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
+                    .iban("UA" + GENERATOR.nextNumeric(27))
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .build();
 
             Beneficiary beneficiary = beneficiaryService.save(beneficiaryDTO);
 
             assertThat(beneficiary.getId()).isNotNull();
             assertThat(beneficiary.getName()).isEqualTo(beneficiaryDTO.getName());
-            assertThat(beneficiary.getIBAN()).isEqualTo(beneficiaryDTO.getIBAN());
-            assertThat(beneficiary.getSWIFT()).isEqualTo(beneficiaryDTO.getSWIFT());
+            assertThat(beneficiary.getIban()).isEqualTo(beneficiaryDTO.getIban());
+            assertThat(beneficiary.getSwift()).isEqualTo(beneficiaryDTO.getSwift());
             assertThat(beneficiary.getCard()).isNull();
             assertThat(beneficiaryRepository.count()).isEqualTo(1);
         }
@@ -78,17 +78,19 @@ class BeneficiaryServiceIT extends AbstractIT {
 
             beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(10))
-                    .IBAN(iban)
+                    .iban(iban)
                     .card(card)
                     .isActive(true)
                     .build());
 
             BeneficiaryDTO beneficiaryDTOWithWrongIban = BeneficiaryDTO.builder()
                     .name(GENERATOR.nextAlphabetic(10))
-                    .IBAN(iban)
+                    .iban(iban)
+                    .card(GENERATOR.nextNumeric(16))
                     .build();
             BeneficiaryDTO beneficiaryDTOWithWrongCardNumber = BeneficiaryDTO.builder()
                     .name(GENERATOR.nextAlphabetic(10))
+                    .iban("UA" + GENERATOR.nextNumeric(27))
                     .card(card)
                     .build();
 
@@ -149,15 +151,15 @@ class BeneficiaryServiceIT extends AbstractIT {
 
             Beneficiary firstBeneficiary = Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
-                    .SWIFT("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
                     .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
                     .isActive(true)
                     .build();
             Beneficiary otherBeneficiary = Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
-                    .SWIFT("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
                     .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
                     .isActive(false)
                     .build();
@@ -180,8 +182,8 @@ class BeneficiaryServiceIT extends AbstractIT {
             assertThat(beneficiaries)
                     .isNotEmpty();
             assertThat(beneficiaries)
-                    .allMatch(beneficiary -> beneficiary.getIBAN().startsWith(ibanPrefix)
-                            || beneficiary.getSWIFT().startsWith(swiftPrefix)
+                    .allMatch(beneficiary -> beneficiary.getIban().startsWith(ibanPrefix)
+                            || beneficiary.getSwift().startsWith(swiftPrefix)
                             || beneficiary.getCard().startsWith(cardPrefix));
             assertThat(beneficiaries)
                     .allMatch(Beneficiary::getIsActive);
@@ -197,8 +199,8 @@ class BeneficiaryServiceIT extends AbstractIT {
         void update_success() {
             Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
-                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
+                    .iban("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .card(GENERATOR.nextNumeric(16))
                     .isActive(true)
                     .build());
@@ -206,8 +208,8 @@ class BeneficiaryServiceIT extends AbstractIT {
             BeneficiaryDTO beneficiaryDTO = BeneficiaryDTO.builder()
                     .id(beneficiary.getId())
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
-                    .SWIFT(GENERATOR.nextAlphabetic(8).toUpperCase())
+                    .iban("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .card(GENERATOR.nextNumeric(16))
                     .isActive(false)
                     .build();
@@ -218,10 +220,10 @@ class BeneficiaryServiceIT extends AbstractIT {
 
             assertThat(beneficiary.getName())
                     .isEqualTo(beneficiaryDTO.getName());
-            assertThat(beneficiary.getIBAN())
-                    .isEqualTo(beneficiaryDTO.getIBAN());
-            assertThat(beneficiary.getSWIFT())
-                    .isEqualTo(beneficiaryDTO.getSWIFT());
+            assertThat(beneficiary.getIban())
+                    .isEqualTo(beneficiaryDTO.getIban());
+            assertThat(beneficiary.getSwift())
+                    .isEqualTo(beneficiaryDTO.getSwift());
             assertThat(beneficiary.getCard())
                     .isEqualTo(beneficiaryDTO.getCard());
             assertThat(beneficiary.getIsActive())
@@ -264,21 +266,21 @@ class BeneficiaryServiceIT extends AbstractIT {
 
             Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN(initialIBAN)
+                    .iban(initialIBAN)
                     .card(initialCard)
                     .isActive(true)
                     .build());
 
             beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
-                    .IBAN(newIBAN)
+                    .iban(newIBAN)
                     .card(newCard)
                     .isActive(true)
                     .build());
 
             assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder()
                     .id(beneficiary.getId())
-                    .IBAN(newIBAN)
+                    .iban(newIBAN)
                     .build()))
                     .isInstanceOf(BusinessException.class);
             assertThatThrownBy(() -> beneficiaryService.update(BeneficiaryDTO.builder()

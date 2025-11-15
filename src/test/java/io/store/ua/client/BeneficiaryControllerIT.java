@@ -26,8 +26,8 @@ class BeneficiaryControllerIT extends AbstractIT {
     private Beneficiary generateBeneficiary(String name, String IBAN, String SWIFT, String card, boolean isActive) {
         return beneficiaryRepository.save(Beneficiary.builder()
                 .name(name)
-                .IBAN(IBAN)
-                .SWIFT(SWIFT)
+                .iban(IBAN)
+                .swift(SWIFT)
                 .card(card)
                 .isActive(isActive)
                 .build());
@@ -36,8 +36,8 @@ class BeneficiaryControllerIT extends AbstractIT {
     private BeneficiaryDTO generateBeneficiaryDTO() {
         return BeneficiaryDTO.builder()
                 .name(GENERATOR.nextAlphanumeric(10))
-                .IBAN("UA%s".formatted(GENERATOR.nextNumeric(27)))
-                .SWIFT("SW%s".formatted(GENERATOR.nextAlphanumeric(6).toUpperCase()))
+                .iban("UA%s".formatted(GENERATOR.nextNumeric(27)))
+                .swift("SW%s".formatted(GENERATOR.nextAlphanumeric(6).toUpperCase()))
                 .card(GENERATOR.nextNumeric(16))
                 .isActive(true)
                 .build();
@@ -106,8 +106,8 @@ class BeneficiaryControllerIT extends AbstractIT {
                     false);
 
             String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findBy")
-                    .queryParam("IBANPrefix", beneficiary.getIBAN().substring(0, 3))
-                    .queryParam("SWIFTPrefix", beneficiary.getSWIFT().substring(0, 3))
+                    .queryParam("IBANPrefix", beneficiary.getIban().substring(0, 3))
+                    .queryParam("SWIFTPrefix", beneficiary.getSwift().substring(0, 3))
                     .queryParam("cardPrefix", beneficiary.getCard().substring(0, 4))
                     .queryParam("name", beneficiary.getName().substring(0, 5))
                     .queryParam("isActive", beneficiary.getIsActive())
@@ -198,8 +198,8 @@ class BeneficiaryControllerIT extends AbstractIT {
 
             var beneficiaryDTO = BeneficiaryDTO.builder()
                     .name(GENERATOR.nextAlphanumeric(10))
-                    .IBAN(IBAN)
-                    .SWIFT(GENERATOR.nextAlphanumeric(6).toUpperCase())
+                    .iban(IBAN)
+                    .swift(GENERATOR.nextAlphanumeric(6).toUpperCase())
                     .card(null)
                     .isActive(true)
                     .build();
@@ -245,7 +245,7 @@ class BeneficiaryControllerIT extends AbstractIT {
             var beneficiaryDTO = BeneficiaryDTO.builder()
                     .id(beneficiary.getId())
                     .name(GENERATOR.nextAlphabetic(30))
-                    .SWIFT(GENERATOR.nextAlphanumeric(6).toUpperCase())
+                    .swift(GENERATOR.nextAlphanumeric(6).toUpperCase())
                     .build();
 
             ResponseEntity<Beneficiary> responseEntity = restClient.exchange("/api/v1/beneficiaries",
@@ -259,8 +259,8 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .isNotNull();
             assertThat(responseEntity.getBody().getName())
                     .isEqualTo(beneficiaryDTO.getName());
-            assertThat(responseEntity.getBody().getSWIFT())
-                    .isEqualTo(beneficiaryDTO.getSWIFT());
+            assertThat(responseEntity.getBody().getSwift())
+                    .isEqualTo(beneficiaryDTO.getSwift());
         }
 
         @Test

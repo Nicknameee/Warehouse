@@ -1,6 +1,5 @@
 package io.store.ua.models.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.data.WorkingHours;
 import jakarta.validation.constraints.NotBlank;
@@ -37,6 +36,5 @@ public class WarehouseDTO {
                     String> phones;
     @NotNull(message = "Activity state can't be null")
     private Boolean isActive;
-    @JsonProperty("reassign_manager")
     private Long managerId;
 }

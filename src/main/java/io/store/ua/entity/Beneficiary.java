@@ -19,9 +19,9 @@ public class Beneficiary {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(unique = true)
-    private String IBAN;
+    private String iban;
     @Column
-    private String SWIFT;
+    private String swift;
     @Column(nullable = false)
     private String name;
     @Column(unique = true)

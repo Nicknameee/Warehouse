@@ -61,8 +61,8 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> save(@RequestBody UserDTO regularUser) {
-        return ResponseEntity.ok(userService.save(regularUser));
+    public ResponseEntity<?> save(@RequestBody UserDTO userDTO) {
+        return ResponseEntity.ok(userService.save(userDTO));
     }
 
     @PutMapping("/all")
@@ -72,7 +72,7 @@ public class UserController {
     }
 
     @PutMapping
-    public ResponseEntity<?> update(@RequestBody UserDTO regularUser) {
-        return ResponseEntity.ok(userService.update(regularUser));
+    public ResponseEntity<?> update(@RequestBody UserDTO userDTO) {
+        return ResponseEntity.ok(userService.update(userDTO));
     }
 }

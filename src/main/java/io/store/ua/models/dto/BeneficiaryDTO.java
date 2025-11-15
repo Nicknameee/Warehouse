@@ -17,9 +17,9 @@ public class BeneficiaryDTO {
     @NotNull(message = "Beneficiary ID can't be null")
     private Long id;
     @NotBlank(message = "Beneficiary IBAN can't be blank")
-    private String IBAN;
+    private String iban;
     @NotNull(message = "Beneficiary SWIFT can't be null")
-    private String SWIFT;
+    private String swift;
     @NotBlank(message = "Beneficiary name can't be blank")
     private String name;
     @NotBlank(message = "Beneficiary card can't be blank")

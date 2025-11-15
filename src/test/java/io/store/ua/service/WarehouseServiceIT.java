@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -38,6 +39,7 @@ class WarehouseServiceIT extends AbstractIT {
     @Nested
     @DisplayName("save(warehouse: WarehouseDTO)")
     class SaveTests {
+
         @Test
         @DisplayName("save_success: creates a new Warehouse when absent")
         void save_success() {
@@ -61,6 +63,58 @@ class WarehouseServiceIT extends AbstractIT {
 
             assertThat(result.getId()).isEqualTo(first.getId());
             assertThat(warehouseRepository.count()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenNameMissing_forNewWarehouse")
+        void save_fail_whenNameMissing_forNewWarehouse() {
+            var warehouseDTO = buildWarehouseDTO();
+            warehouseDTO.setName(null);
+
+            assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenIsActiveMissing_forNewWarehouse")
+        void save_fail_whenIsActiveMissing_forNewWarehouse() {
+            var warehouseDTO = buildWarehouseDTO();
+            warehouseDTO.setIsActive(null);
+
+            assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenAddressMissing_forNewWarehouse")
+        void save_fail_whenAddressMissing_forNewWarehouse() {
+            var warehouseDTO = buildWarehouseDTO();
+            warehouseDTO.setAddress(null);
+
+            assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenWorkingHoursMissing_forNewWarehouse")
+        void save_fail_whenWorkingHoursMissing_forNewWarehouse() {
+            var warehouseDTO = buildWarehouseDTO();
+            warehouseDTO.setWorkingHours(null);
+
+            assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("save_fail_whenPhonesInvalid")
+        void save_fail_whenPhonesInvalid() {
+            var warehouseDTO = buildWarehouseDTO();
+            warehouseDTO.setPhones(new ArrayList<>() {{
+                add(null);
+            }});
+
+            assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
+                    .isInstanceOf(ValidationException.class);
         }
     }
 
@@ -213,6 +267,13 @@ class WarehouseServiceIT extends AbstractIT {
             assertThat(updated.getManagerId()).isEqualTo(extraUser.getId());
             Warehouse reloaded = warehouseRepository.findByCode(result.getCode()).orElseThrow();
             assertThat(reloaded.getManagerId()).isEqualTo(extraUser.getId());
+        }
+
+        @Test
+        @DisplayName("update_fail_whenWarehouseInvalid: throws ValidationException if warehouse is invalid")
+        void update_fail_whenWarehouseInvalid() {
+            assertThatThrownBy(() -> warehouseService.update(null))
+                    .isInstanceOf(ValidationException.class);
         }
 
         @Test

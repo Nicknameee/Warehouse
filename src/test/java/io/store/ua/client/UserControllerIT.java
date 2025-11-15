@@ -358,10 +358,10 @@ class UserControllerIT extends AbstractIT {
                     .password(passwordEncoder.encode(password))
                     .build());
 
-            var user = UserDTO.builder()
+            UserDTO userDTO = UserDTO.builder()
                     .username(actualUser.getUsername())
                     .email("%s@%s.%s".formatted(
-                            GENERATOR.nextAlphanumeric(10),
+                            GENERATOR.nextAlphanumeric(13),
                             GENERATOR.nextAlphanumeric(5),
                             GENERATOR.nextAlphanumeric(3)))
                     .role(UserRole.MANAGER.name())
@@ -373,23 +373,23 @@ class UserControllerIT extends AbstractIT {
 
             ResponseEntity<User> response = restClient.exchange("/api/v1/users",
                     HttpMethod.PUT,
-                    new HttpEntity<>(user, authenticationHeaders),
+                    new HttpEntity<>(userDTO, authenticationHeaders),
                     User.class);
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
 
-            User result = userRepository.findUserByUsername(user.getUsername());
+            User result = userRepository.findUserByUsername(userDTO.getUsername());
 
             assertThat(result)
                     .isNotNull();
             assertThat(result.getRole().name())
-                    .isEqualTo(user.getRole());
+                    .isEqualTo(userDTO.getRole());
             assertThat(result.getStatus().name())
-                    .isEqualTo(user.getStatus());
+                    .isEqualTo(userDTO.getStatus());
             assertThat(result.getTimezone())
-                    .isEqualTo(user.getTimezone());
-            assertThat(passwordEncoder.matches(user.getPassword(), result.getPassword()))
+                    .isEqualTo(userDTO.getTimezone());
+            assertThat(passwordEncoder.matches(userDTO.getPassword(), result.getPassword()))
                     .isTrue();
         }
     }

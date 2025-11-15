@@ -282,7 +282,7 @@ public abstract class AbstractIT {
 
     protected StockItemGroup generateStockItemGroup(boolean isActive) {
         return stockItemGroupRepository.save(StockItemGroup.builder()
-                .code(RandomStringUtils.secure().nextAlphanumeric(16))
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .name(RandomStringUtils.secure().nextAlphabetic(12))
                 .isActive(isActive)
                 .build());
@@ -330,8 +330,8 @@ public abstract class AbstractIT {
     protected Beneficiary generateBeneficiary() {
         return beneficiaryRepository.save(Beneficiary.builder()
                 .name(RandomStringUtils.secure().nextAlphabetic(10))
-                .IBAN("UA" + RandomStringUtils.secure().nextNumeric(27))
-                .SWIFT(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
+                .iban("UA" + RandomStringUtils.secure().nextNumeric(27))
+                .swift(RandomStringUtils.secure().nextAlphabetic(8).toUpperCase())
                 .card(RandomStringUtils.secure().nextNumeric(16))
                 .isActive(true)
                 .build());
