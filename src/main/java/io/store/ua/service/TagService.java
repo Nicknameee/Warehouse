@@ -34,7 +34,7 @@ public class TagService {
         return tagRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
     }
 
-    public List<Tag> findBy(List<@NotBlank(message = "Tag name cannot be blank") String> names,
+    public List<Tag> findBy(String name,
                             Boolean isActive,
                             @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                             @Min(value = 1, message = "A page number can't be less than 1") int page) {
@@ -44,8 +44,9 @@ public class TagService {
 
         List<Predicate> predicates = new java.util.ArrayList<>();
 
-        if (names != null && !names.isEmpty()) {
-            predicates.add(root.get(Tag.Fields.name).in(names));
+        if (StringUtils.isNotBlank(name)) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Tag.Fields.name)),
+                    "%" + name.toLowerCase() + "%"));
         }
 
         if (isActive != null) {
@@ -91,7 +92,7 @@ public class TagService {
         return tagRepository.save(tag);
     }
 
-    public void emptyTags() {
+    public void clearUnusedTags() {
         jdbcTemplate.execute(SqlResourceReader.getSQL("removeOrphanTags"));
     }
 }

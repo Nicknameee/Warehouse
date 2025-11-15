@@ -155,10 +155,10 @@ public class AnalyticsService {
 
         List<FinancialStatistic> rows = query.getResultList();
 
-        List<FinancialStatistic> stats = new ArrayList<>(rows.size());
+        List<FinancialStatistic> statistics = new ArrayList<>(rows.size());
 
         for (FinancialStatistic row : rows) {
-            stats.add(FinancialStatistic.builder()
+            statistics.add(FinancialStatistic.builder()
                     .currency(row.getCurrency())
                     .totalDebit(row.getTotalDebit() != null ? row.getTotalDebit() : BigInteger.ZERO)
                     .totalCredit(row.getTotalCredit() != null ? row.getTotalCredit() : BigInteger.ZERO)
@@ -169,7 +169,7 @@ public class AnalyticsService {
 
         return BeneficiaryFinancialFlowStatistic.builder()
                 .beneficiary(beneficiary)
-                .financialStatistic(stats)
+                .financialStatistic(statistics)
                 .build();
     }
 }

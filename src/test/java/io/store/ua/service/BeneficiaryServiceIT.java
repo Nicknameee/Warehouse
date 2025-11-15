@@ -95,9 +95,9 @@ class BeneficiaryServiceIT extends AbstractIT {
                     .build();
 
             assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTOWithWrongIban))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(ValidationException.class);
             assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTOWithWrongCardNumber))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(ValidationException.class);
         }
 
         @ParameterizedTest

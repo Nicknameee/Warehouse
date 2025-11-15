@@ -31,7 +31,7 @@ public class WarehouseDTO {
     @NotEmpty(message = "A list with phones can't be empty")
     private List<
             @NotBlank(message = "A phone can't be blank")
-            @Pattern(regexp = "\\+[1-9]\\d(?:[ \\-()]?\\d){6,13}",
+            @Pattern(regexp = "^\\+[0-9]{7,14}$",
                     message = "Phone must start with + and contain 8–15 digits")
                     String> phones;
     @NotNull(message = "Activity state can't be null")

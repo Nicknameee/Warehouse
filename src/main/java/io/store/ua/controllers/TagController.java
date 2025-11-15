@@ -5,8 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/tags")
 @RequiredArgsConstructor
@@ -20,11 +18,11 @@ public class TagController {
     }
 
     @GetMapping("/findBy")
-    public ResponseEntity<?> findBy(@RequestParam(name = "names", required = false) List<String> names,
+    public ResponseEntity<?> findBy(@RequestParam(name = "name", required = false) String name,
                                     @RequestParam(name = "isActive", required = false) Boolean isActive,
                                     @RequestParam(name = "pageSize") int pageSize,
                                     @RequestParam(name = "page") int page) {
-        return ResponseEntity.ok(tagService.findBy(names, isActive, pageSize, page));
+        return ResponseEntity.ok(tagService.findBy(name, isActive, pageSize, page));
     }
 
     @PostMapping
@@ -40,8 +38,8 @@ public class TagController {
     }
 
     @PutMapping("/clearAll")
-    public ResponseEntity<?> empty() {
-        tagService.emptyTags();
+    public ResponseEntity<?> clearUnusedTags() {
+        tagService.clearUnusedTags();
 
         return ResponseEntity.ok().build();
     }
