@@ -77,8 +77,9 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                         .build()
                 )
                 .orTimeout(10, TimeUnit.SECONDS)
-                .thenApply(ignore -> {
+                .thenApply(response -> {
                     IS_HEALTHY.set(true);
+                    response.close();
                     return null;
                 })
                 .exceptionally(ignore -> {

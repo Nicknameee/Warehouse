@@ -32,4 +32,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void updateLogoutTime(@Param("id") Long id);
 
     boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
 }

@@ -213,6 +213,21 @@ class UserServiceIT extends AbstractIT {
         }
 
         @Test
+        @DisplayName("update_success_whenEmailIsTheSame")
+        void update_success_whenEmailIsTheSame() {
+            User user = userRepository.save(generateUser(generateUserDTO()));
+
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(user.getUsername());
+            userDTO.setEmail(user.getEmail());
+
+            User updatedUser = userService.update(userDTO);
+
+            assertThat(updatedUser.getId()).isEqualTo(user.getId());
+            assertThat(updatedUser.getEmail()).isEqualTo(user.getEmail());
+        }
+
+        @Test
         @DisplayName("update_fail_whenMissingUsername")
         void update_fail_whenMissingUsername() {
             UserDTO userDTO = new UserDTO();
@@ -256,17 +271,31 @@ class UserServiceIT extends AbstractIT {
         @Test
         @DisplayName("update_fail_whenChangingRole")
         void update_fail_whenChangingRole() {
-            User existingUser = userRepository.save(generateUser(generateUserDTO()));
+            User user = userRepository.save(generateUser(generateUserDTO()));
 
             Authentication authentication =
-                    new UsernamePasswordAuthenticationToken(existingUser, null, existingUser.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
 
             UserDTO userDTO = new UserDTO();
-            userDTO.setUsername(existingUser.getUsername());
+            userDTO.setUsername(user.getUsername());
             userDTO.setRole(UserRole.MANAGER.name());
+
+            assertThatThrownBy(() -> userService.update(userDTO))
+                    .isInstanceOf(ValidationException.class);
+        }
+
+        @Test
+        @DisplayName("update_fail_whenEmailIsTaken")
+        void update_fail_whenEmailIsTaken() {
+            User user = userRepository.save(generateUser(generateUserDTO()));
+            User anotherUser = userRepository.save(generateUser(generateUserDTO()));
+
+            UserDTO userDTO = new UserDTO();
+            userDTO.setUsername(user.getUsername());
+            userDTO.setEmail(anotherUser.getEmail());
 
             assertThatThrownBy(() -> userService.update(userDTO))
                     .isInstanceOf(ValidationException.class);

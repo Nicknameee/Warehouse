@@ -36,7 +36,7 @@ public class CurrencyRateService {
             retryFor = Exception.class,
             noRetryFor = HealthCheckException.class
     )
-    @Scheduled(fixedRate = 15, timeUnit = TimeUnit.MINUTES, initialDelay = 0)
+    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.DAYS, initialDelay = 1)
     @Transactional
     public void refreshCurrencyRates() {
         var freshRates = openExchangeRateAPIService.refreshCurrencyRates();

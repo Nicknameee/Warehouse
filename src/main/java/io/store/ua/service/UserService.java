@@ -4,8 +4,8 @@ import io.store.ua.entity.User;
 import io.store.ua.enums.UserRole;
 import io.store.ua.enums.UserStatus;
 import io.store.ua.exceptions.ApplicationException;
-import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.BusinessException;
 import io.store.ua.mappers.UserMapper;
 import io.store.ua.models.dto.UserActionResultDTO;
 import io.store.ua.models.dto.UserDTO;
@@ -158,34 +158,42 @@ public class UserService {
         return Optional.ofNullable(userRepository.findUserByUsername(username));
     }
 
-    public List<User> saveAll(List<UserDTO> regularUsers) {
+    public List<User> saveAll(List<UserDTO> userDTOs) {
         List<User> users = new ArrayList<>();
 
         var currentUser = getCurrentlyAuthenticatedUser()
                 .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
-        for (UserDTO regularUser : regularUsers) {
-            fieldValidator.validate(regularUser, true, UserDTO.Fields.email, UserDTO.Fields.username, UserDTO.Fields.role);
-            User user = userMapper.toUser(regularUser);
+        for (UserDTO userDTO : userDTOs) {
+            fieldValidator.validate(userDTO, true,
+                    UserDTO.Fields.email,
+                    UserDTO.Fields.username,
+                    UserDTO.Fields.role);
+
+            User user = userMapper.toUser(userDTO);
 
             if (currentUser.getRole() == UserRole.MANAGER && user.getRole() != UserRole.OPERATOR) {
                 throw new BusinessException("Only operator can be created by manager");
             }
 
-            if (regularUser.getStatus() != null) {
-                fieldValidator.validate(regularUser, UserDTO.Fields.status, true);
-                user.setStatus(UserStatus.valueOf(regularUser.getStatus()));
+            if (userRepository.existsByEmail(user.getEmail()) && !userDTO.getEmail().equals(user.getEmail())) {
+                throw new ValidationException("Email %s is already taken".formatted(user.getEmail()));
             }
 
-            if (regularUser.getTimezone() != null) {
-                fieldValidator.validate(regularUser, UserDTO.Fields.timezone, true);
-                user.setTimezone(regularUser.getTimezone());
+            if (userDTO.getStatus() != null) {
+                fieldValidator.validate(userDTO, UserDTO.Fields.status, true);
+                user.setStatus(UserStatus.valueOf(userDTO.getStatus()));
+            }
+
+            if (userDTO.getTimezone() != null) {
+                fieldValidator.validate(userDTO, UserDTO.Fields.timezone, true);
+                user.setTimezone(userDTO.getTimezone());
             } else {
                 user.setTimezone(TimeZone.getTimeZone("UTC").getDisplayName());
             }
 
-            fieldValidator.validate(regularUser, UserDTO.Fields.password, true);
-            user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
+            fieldValidator.validate(userDTO, UserDTO.Fields.password, true);
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
 
             users.add(user);
         }
@@ -193,14 +201,14 @@ public class UserService {
         return userRepository.saveAll(users);
     }
 
-    public User save(UserDTO regularUser) {
-        fieldValidator.validate(regularUser, true,
+    public User save(UserDTO userDTO) {
+        fieldValidator.validate(userDTO, true,
                 UserDTO.Fields.email,
                 UserDTO.Fields.username,
                 UserDTO.Fields.role,
                 UserDTO.Fields.status);
 
-        User user = userMapper.toUser(regularUser);
+        User user = userMapper.toUser(userDTO);
 
         var currentUser = getCurrentlyAuthenticatedUser()
                 .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
@@ -209,63 +217,91 @@ public class UserService {
             throw new BusinessException("Only operator can be created by manager");
         }
 
-        if (regularUser.getTimezone() != null) {
-            fieldValidator.validate(regularUser, UserDTO.Fields.timezone, true);
-            user.setTimezone(regularUser.getTimezone());
+        if (userRepository.existsByEmail(user.getEmail()) && !userDTO.getEmail().equals(user.getEmail())) {
+            throw new ValidationException("Email %s is already taken".formatted(user.getEmail()));
+        }
+
+        if (userDTO.getTimezone() != null) {
+            fieldValidator.validate(userDTO, UserDTO.Fields.timezone, true);
+            user.setTimezone(userDTO.getTimezone());
         } else {
             user.setTimezone(TimeZone.getTimeZone("UTC").getDisplayName());
         }
 
-        fieldValidator.validate(regularUser, UserDTO.Fields.password, true);
-        user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
+        fieldValidator.validate(userDTO, UserDTO.Fields.password, true);
+        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
 
         return userRepository.save(user);
     }
 
-    public List<UserActionResultDTO> updateAll(List<UserDTO> regularUsers) {
+    public List<UserActionResultDTO> updateAll(List<UserDTO> userDTOs) {
         List<UserActionResultDTO> results = new ArrayList<>();
         List<User> users = new ArrayList<>();
         var currentUser = getCurrentlyAuthenticatedUser()
                 .orElseThrow(() -> new AuthenticationException("User is not authenticated"));
 
-        for (UserDTO regularUser : regularUsers) {
-            fieldValidator.validateObject(regularUser, UserDTO.Fields.username, true);
-            Optional<User> userOptional = findByUsername(regularUser.getUsername());
+        for (UserDTO userDTO : userDTOs) {
+            fieldValidator.validateObject(userDTO, UserDTO.Fields.username, true);
+            Optional<User> userOptional = findByUsername(userDTO.getUsername());
 
             if (userOptional.isEmpty()) {
                 results.add(UserActionResultDTO.builder()
-                        .user(User.builder().username(regularUser.getUsername()).build())
+                        .user(User.builder().username(userDTO.getUsername()).build())
                         .success(false)
-                        .error(new UsernameNotFoundException(regularUser.getUsername()))
+                        .error(new UsernameNotFoundException(userDTO.getUsername()))
                         .build());
             } else {
                 User user = userOptional.get();
 
-                if (regularUser.getPassword() != null) {
-                    fieldValidator.validateObject(regularUser, UserDTO.Fields.password, true);
-                    user.setPassword(passwordEncoder.encode(regularUser.getPassword()));
+                if (userDTO.getPassword() != null) {
+                    fieldValidator.validateObject(userDTO, UserDTO.Fields.password, true);
+                    user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
                 }
 
-                if (regularUser.getTimezone() != null) {
-                    fieldValidator.validateObject(regularUser, UserDTO.Fields.timezone, true);
-                    user.setTimezone(regularUser.getTimezone());
-                }
+                if (userDTO.getEmail() != null) {
+                    fieldValidator.validateObject(userDTO, UserDTO.Fields.email, true);
+                    if (userRepository.existsByEmail(userDTO.getEmail()) && !userDTO.getEmail().equals(user.getEmail())) {
+                        results.add(UserActionResultDTO.builder()
+                                .user(user)
+                                .success(false)
+                                .error(new ValidationException("Email %s is already taken".formatted(userDTO.getEmail())))
+                                .build());
 
-                if (regularUser.getStatus() != null) {
-                    fieldValidator.validateObject(regularUser, UserDTO.Fields.status, true);
-                    user.setStatus(UserStatus.valueOf(regularUser.getStatus()));
-                }
-
-                if (regularUser.getRole() != null) {
-                    if (currentUser.getRole() != UserRole.OWNER) {
-                        throw new BusinessException("Only owner can change user roles");
+                        continue;
                     }
 
-                    fieldValidator.validateObject(regularUser, UserDTO.Fields.role, true);
-                    user.setRole(UserRole.valueOf(regularUser.getRole()));
+                    user.setEmail(userDTO.getEmail());
                 }
 
-                results.add(UserActionResultDTO.builder().user(user).success(true).build());
+                if (userDTO.getTimezone() != null) {
+                    fieldValidator.validateObject(userDTO, UserDTO.Fields.timezone, true);
+                    user.setTimezone(userDTO.getTimezone());
+                }
+
+                if (userDTO.getStatus() != null) {
+                    fieldValidator.validateObject(userDTO, UserDTO.Fields.status, true);
+                    user.setStatus(UserStatus.valueOf(userDTO.getStatus()));
+                }
+
+                if (userDTO.getRole() != null) {
+                    if (currentUser.getRole() != UserRole.OWNER) {
+                        results.add(UserActionResultDTO.builder()
+                                .user(user)
+                                .success(false)
+                                .error(new BusinessException("Only owner can change user roles"))
+                                .build());
+
+                        continue;
+                    }
+
+                    fieldValidator.validateObject(userDTO, UserDTO.Fields.role, true);
+                    user.setRole(UserRole.valueOf(userDTO.getRole()));
+                }
+
+                results.add(UserActionResultDTO.builder()
+                        .user(user)
+                        .success(true)
+                        .build());
 
                 users.add(user);
             }
@@ -302,6 +338,16 @@ public class UserService {
             }
 
             user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        }
+
+        if (userDTO.getEmail() != null) {
+            fieldValidator.validate(userDTO, UserDTO.Fields.email, true);
+
+            if (userRepository.existsByEmail(userDTO.getEmail()) && !userDTO.getEmail().equals(user.getEmail())) {
+                throw new ValidationException("Email %s is already taken".formatted(userDTO.getEmail()));
+            }
+
+            user.setEmail(userDTO.getEmail());
         }
 
         if (userDTO.getTimezone() != null) {
