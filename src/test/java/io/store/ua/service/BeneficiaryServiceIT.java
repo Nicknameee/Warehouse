@@ -12,9 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +31,60 @@ class BeneficiaryServiceIT extends AbstractIT {
         return Stream.generate(this::generateBeneficiary)
                 .limit(count)
                 .toList();
+    }
+
+    @Nested
+    @DisplayName("findBy(...)")
+    class FindByTests {
+        @Test
+        @DisplayName("findBy_success: filters correctly by prefixes")
+        @Transactional
+        void findBy_success() {
+            String ibanPrefix = "UA12%s".formatted(GENERATOR.nextNumeric(23));
+            String swiftPrefix = GENERATOR.nextAlphabetic(4).toUpperCase();
+            String cardPrefix = GENERATOR.nextNumeric(4);
+
+            Beneficiary firstBeneficiary = Beneficiary.builder()
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
+                    .isActive(true)
+                    .build();
+            Beneficiary otherBeneficiary = Beneficiary.builder()
+                    .name(GENERATOR.nextAlphabetic(8))
+                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
+                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
+                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
+                    .isActive(false)
+                    .build();
+
+            List<Beneficiary> beneficiaries = new ArrayList<>(generateBeneficiaries(5));
+
+            beneficiaries.add(firstBeneficiary);
+            beneficiaries.add(otherBeneficiary);
+
+            beneficiaryRepository.saveAll(beneficiaries);
+
+            beneficiaries = beneficiaryService.findBy(ibanPrefix,
+                    swiftPrefix,
+                    cardPrefix,
+                    firstBeneficiary.getName().substring(1, 3),
+                    true,
+                    5,
+                    1);
+
+            assertThat(beneficiaries)
+                    .isNotEmpty();
+            assertThat(beneficiaries)
+                    .allMatch(beneficiary -> beneficiary.getIban().startsWith(ibanPrefix)
+                            || beneficiary.getSwift().startsWith(swiftPrefix)
+                            || beneficiary.getCard().startsWith(cardPrefix));
+            assertThat(beneficiaries)
+                    .allMatch(beneficiary -> beneficiary.getIsActive() != null
+                            && beneficiary.getIsActive()
+                            && beneficiary.getName().contains(firstBeneficiary.getName().substring(1, 3)));
+        }
     }
 
     @Nested
@@ -105,88 +157,6 @@ class BeneficiaryServiceIT extends AbstractIT {
         void save_fail_whenNullDTO(BeneficiaryDTO beneficiaryDTO) {
             assertThatThrownBy(() -> beneficiaryService.save(beneficiaryDTO))
                     .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findAll(pageSize: int, page: int)")
-    class FindAllTests {
-        @ParameterizedTest
-        @CsvSource({"1,1", "3,2", "5,3"})
-        @Transactional
-        void findAll_success(int pageSize, int page) {
-            beneficiaryRepository.saveAll(generateBeneficiaries(pageSize * page));
-
-            var beneficiaries = beneficiaryService.findAll(pageSize, page);
-
-            assertThat(beneficiaries).hasSize(pageSize);
-            assertThat(beneficiaries).allSatisfy(b -> assertThat(b.getId()).isNotNull());
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {0, -1, -5})
-        void findAll_fail_whenInvalidPageSize(int size) {
-            assertThatThrownBy(() -> beneficiaryService.findAll(size, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {0, -1, -10})
-        void findAll_fail_whenInvalidPage(int page) {
-            assertThatThrownBy(() -> beneficiaryService.findAll(10, page))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findBy(...)")
-    class FindByTests {
-        @Test
-        @DisplayName("findBy_success: filters correctly by prefixes")
-        @Transactional
-        void findBy_success() {
-            String ibanPrefix = "UA12%s".formatted(GENERATOR.nextNumeric(23));
-            String swiftPrefix = GENERATOR.nextAlphabetic(4).toUpperCase();
-            String cardPrefix = GENERATOR.nextNumeric(4);
-
-            Beneficiary firstBeneficiary = Beneficiary.builder()
-                    .name(GENERATOR.nextAlphabetic(8))
-                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
-                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
-                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
-                    .isActive(true)
-                    .build();
-            Beneficiary otherBeneficiary = Beneficiary.builder()
-                    .name(GENERATOR.nextAlphabetic(8))
-                    .iban("%s%s".formatted(ibanPrefix, GENERATOR.nextNumeric(4)))
-                    .swift("%s%s".formatted(swiftPrefix, GENERATOR.nextAlphabetic(4).toUpperCase()))
-                    .card("%s%s".formatted(cardPrefix, GENERATOR.nextNumeric(12)))
-                    .isActive(false)
-                    .build();
-
-            List<Beneficiary> beneficiaries = new ArrayList<>(generateBeneficiaries(5));
-
-            beneficiaries.add(firstBeneficiary);
-            beneficiaries.add(otherBeneficiary);
-
-            beneficiaryRepository.saveAll(beneficiaries);
-
-            beneficiaries = beneficiaryService.findBy(ibanPrefix,
-                    swiftPrefix,
-                    cardPrefix,
-                    "",
-                    true,
-                    5,
-                    1);
-
-            assertThat(beneficiaries)
-                    .isNotEmpty();
-            assertThat(beneficiaries)
-                    .allMatch(beneficiary -> beneficiary.getIban().startsWith(ibanPrefix)
-                            || beneficiary.getSwift().startsWith(swiftPrefix)
-                            || beneficiary.getCard().startsWith(cardPrefix));
-            assertThat(beneficiaries)
-                    .allMatch(Beneficiary::getIsActive);
         }
     }
 

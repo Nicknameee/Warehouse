@@ -25,7 +25,6 @@ public class ProductPhotoController {
     public ResponseEntity<Void> removeAll(@RequestParam("photoId") List<Long> photoIds) {
         productPhotoService.removeAll(photoIds);
 
-        return ResponseEntity.ok()
-                .build();
+        return ResponseEntity.ok().build();
     }
 }

@@ -52,43 +52,6 @@ class BeneficiaryControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/beneficiaries/findAll")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success_returnsPaged")
-        void findAll_success_returnsPaged() {
-            generateBeneficiary(GENERATOR.nextAlphabetic(10),
-                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    "5375%s".formatted(GENERATOR.nextNumeric(12)),
-                    true);
-            generateBeneficiary(GENERATOR.nextAlphabetic(10),
-                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    "4149%s".formatted(GENERATOR.nextNumeric(12)),
-                    false);
-
-            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findAll")
-                    .queryParam("pageSize", 1)
-                    .queryParam("page", 1)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    new org.springframework.core.ParameterizedTypeReference<>() {
-                    });
-
-            assertThat(responseEntity.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(responseEntity.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-        }
-    }
-
-    @Nested
     @DisplayName("GET /api/v1/beneficiaries/findBy")
     class FindByTests {
         @Test

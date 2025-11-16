@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS products
     title       VARCHAR               NOT NULL,
     description VARCHAR,
     price       BIGINT                NOT NULL,
+    currency    VARCHAR               NOT NULL,
     created_at  TIMESTAMPTZ           NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ           NOT NULL DEFAULT NOW(),
     weight      BIGINT                NOT NULL,

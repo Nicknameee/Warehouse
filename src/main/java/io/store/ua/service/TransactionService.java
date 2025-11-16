@@ -22,7 +22,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -57,11 +56,6 @@ public class TransactionService {
 
             throw new ValidationException("Invalid %s '%s'. Allowed values: [%s]".formatted(fieldName, value, allowed));
         }
-    }
-
-    public List<Transaction> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                     @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return transactionRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
     }
 
     public List<Transaction> findBy(String transactionId,

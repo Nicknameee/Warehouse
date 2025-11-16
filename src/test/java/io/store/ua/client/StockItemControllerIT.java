@@ -13,8 +13,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,89 +64,6 @@ class StockItemControllerIT extends AbstractIT {
                 .isActive(isActive)
                 .storageSectionId(sectionId)
                 .build());
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/stockItems/findAll")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success_returnsPaginatedList")
-        void findAll_success_returnsPaginatedList() {
-            StockItem first = generateStockItem(productA,
-                    groupA,
-                    warehouseA,
-                    true,
-                    5,
-                    null);
-            StockItem other = generateStockItem(productB,
-                    groupB,
-                    warehouseB,
-                    true,
-                    2,
-                    null);
-
-            String url = UriComponentsBuilder.fromPath("/api/v1/stockItems/findAll")
-                    .queryParam("pageSize", 1)
-                    .queryParam("page", 1)
-                    .build(true)
-                    .toUriString();
-
-            String otherUrl = UriComponentsBuilder.fromPath("/api/v1/stockItems/findAll")
-                    .queryParam("pageSize", 1)
-                    .queryParam("page", 2)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<List<StockItem>> page = restClient.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
-            ResponseEntity<List<StockItem>> otherPage = restClient.exchange(
-                    otherUrl, HttpMethod.GET, new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
-
-            assertThat(page.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(otherPage.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(page.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-            assertThat(otherPage.getBody())
-                    .isNotNull()
-                    .hasSize(1);
-
-            Set<Long> returnedIds = page.getBody()
-                    .stream()
-                    .map(StockItem::getId)
-                    .collect(Collectors.toSet());
-            returnedIds.addAll(otherPage.getBody()
-                    .stream()
-                    .map(StockItem::getId)
-                    .toList());
-
-            assertThat(returnedIds)
-                    .contains(first.getId(), other.getId());
-        }
-
-        @Test
-        @DisplayName("findAll_fails_invalidPagination_returns4xx")
-        void findAll_fails_invalidPagination_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/stockItems/findAll")
-                    .queryParam("pageSize", 0)
-                    .queryParam("page", 0)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> response = restClient.exchange(url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authenticationHeaders),
-                    String.class);
-
-            assertThat(response.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
     }
 
     @Nested

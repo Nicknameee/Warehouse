@@ -93,7 +93,7 @@ public class UserService {
                              List<UserStatus> statuses,
                              Boolean isOnline,
                              @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
-                             @Min(value = 1, message = "A number of page can't be less than one") int pageNumber) {
+                             @Min(value = 1, message = "A number of page can't be less than one") int page) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<User> criteriaQuery = criteriaBuilder.createQuery(User.class);
         Root<User> root = criteriaQuery.from(User.class);
@@ -141,7 +141,7 @@ public class UserService {
 
         return entityManager
                 .createQuery(criteriaQuery)
-                .setFirstResult(pageSize * (pageNumber - 1))
+                .setFirstResult(pageSize * (page - 1))
                 .setMaxResults(pageSize)
                 .getResultList();
     }

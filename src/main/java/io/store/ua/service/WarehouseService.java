@@ -9,14 +9,19 @@ import io.store.ua.models.dto.WarehouseDTO;
 import io.store.ua.repository.WarehouseRepository;
 import io.store.ua.utility.CodeGenerator;
 import io.store.ua.validations.FieldValidator;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,15 +31,44 @@ import java.util.Optional;
 public class WarehouseService {
     private final WarehouseRepository warehouseRepository;
     private final FieldValidator fieldValidator;
+    private final EntityManager entityManager;
 
-    public List<Warehouse> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                   @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return warehouseRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
-    }
+    public List<Warehouse> findBy(String codePrefix,
+                                  String namePrefix,
+                                  Long managerId,
+                                  Boolean isActive,
+                                  @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
+                                  @Min(value = 1, message = "A number of page can't be less than one") int page) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Warehouse> criteriaQuery = criteriaBuilder.createQuery(Warehouse.class);
+        Root<Warehouse> root = criteriaQuery.from(Warehouse.class);
 
-    public Warehouse findByCode(@NotBlank(message = "Warehouse code can't be blank") String code) {
-        return warehouseRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(code)));
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (codePrefix != null && !codePrefix.isEmpty()) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Warehouse.Fields.code)), codePrefix.toLowerCase() + "%"));
+        }
+
+        if (namePrefix != null && !namePrefix.isEmpty()) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Warehouse.Fields.name)), namePrefix.toLowerCase() + "%"));
+        }
+
+        if (managerId != null) {
+            predicates.add(criteriaBuilder.equal(root.get(Warehouse.Fields.managerId), managerId));
+        }
+
+        if (isActive != null) {
+            predicates.add(criteriaBuilder.equal(root.get(Warehouse.Fields.isActive), isActive));
+        }
+
+        criteriaQuery.where(predicates.toArray(new Predicate[0]));
+        criteriaQuery.orderBy(criteriaBuilder.asc(root.get(Warehouse.Fields.id)));
+
+        return entityManager
+                .createQuery(criteriaQuery)
+                .setFirstResult(pageSize * (page - 1))
+                .setMaxResults(pageSize)
+                .getResultList();
     }
 
     public Warehouse save(@NotNull(message = "Warehouse can't be null") WarehouseDTO warehouseDTO) {

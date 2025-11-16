@@ -15,21 +15,15 @@ import java.util.List;
 public class BeneficiaryController {
     private final BeneficiaryService beneficiaryService;
 
-    @GetMapping("/findAll")
-    public ResponseEntity<List<Beneficiary>> findAll(@RequestParam("pageSize") int pageSize,
-                                                     @RequestParam("page") int page) {
-        return ResponseEntity.ok(beneficiaryService.findAll(pageSize, page));
-    }
-
     @GetMapping("/findBy")
     public ResponseEntity<List<Beneficiary>> findBy(@RequestParam(value = "IBANPrefix", required = false) String IBANPrefix,
                                                     @RequestParam(value = "SWIFTPrefix", required = false) String SWIFTPrefix,
                                                     @RequestParam(value = "cardPrefix", required = false) String cardPrefix,
-                                                    @RequestParam(value = "name", required = false) String name,
+                                                    @RequestParam(value = "namePart", required = false) String namePart,
                                                     @RequestParam(value = "isActive", required = false) Boolean isActive,
                                                     @RequestParam("pageSize") int pageSize,
                                                     @RequestParam("page") int page) {
-        return ResponseEntity.ok(beneficiaryService.findBy(IBANPrefix, SWIFTPrefix, cardPrefix, name, isActive, pageSize, page));
+        return ResponseEntity.ok(beneficiaryService.findBy(IBANPrefix, SWIFTPrefix, cardPrefix, namePart, isActive, pageSize, page));
     }
 
     @PostMapping

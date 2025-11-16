@@ -19,7 +19,6 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -37,11 +36,6 @@ public class StockItemService {
     private final EntityManager entityManager;
     private final StockItemHistoryService stockItemHistoryService;
     private final SocketService socketService;
-
-    public List<StockItem> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                   @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return stockItemRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
-    }
 
     public List<StockItem> findBy(List<@NotNull(message = "Warehouse ID can't be null") Long> warehouseIDs,
                                   List<@NotNull(message = "Product ID can't be null") Long> productIDs,

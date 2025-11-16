@@ -2,6 +2,7 @@ package io.store.ua.models.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,9 @@ public class ProductDTO {
     @NotNull(message = "Price can't be null")
     @Min(value = 1, message = "Price can't be less than 1")
     private BigInteger price;
+    @NotBlank(message = "Currency can't be blank")
+    private String currency;
+    @NotEmpty(message = "Tags can't be empty")
     private Set<@NotNull(message = "Tag ID can't be null") Long> tags;
     @NotNull(message = "Weight can't be null")
     @Min(value = 1, message = "Weight can't be less than 1")

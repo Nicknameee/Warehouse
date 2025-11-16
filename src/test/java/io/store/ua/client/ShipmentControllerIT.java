@@ -131,79 +131,8 @@ class ShipmentControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/shipments/findAll")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success_returnsPaged")
-        void findAll_success_returnsPaged() {
-            postShipment(outgoingWithRecipient(), ownerAuthenticationHeaders);
-            postShipment(outgoingWithAddress(), ownerAuthenticationHeaders);
-            postShipment(outgoingWithRecipient(), ownerAuthenticationHeaders);
-
-            String firstPageUrl = UriComponentsBuilder.fromPath("/api/v1/shipments/findAll")
-                    .queryParam("pageSize", 2)
-                    .queryParam("page", 1)
-                    .build(true)
-                    .toUriString();
-
-            String secondPageUrl = UriComponentsBuilder.fromPath("/api/v1/shipments/findAll")
-                    .queryParam("pageSize", 2)
-                    .queryParam("page", 2)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<List<Shipment>> firstPageResponse = restClient.exchange(
-                    firstPageUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    }
-            );
-
-            ResponseEntity<List<Shipment>> secondPageResponse = restClient.exchange(
-                    secondPageUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(managerAuthenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    }
-            );
-
-            assertThat(firstPageResponse.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(secondPageResponse.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(firstPageResponse.getBody())
-                    .isNotNull()
-                    .hasSize(2);
-            assertThat(secondPageResponse.getBody())
-                    .isNotNull()
-                    .isNotEmpty();
-        }
-
-        @Test
-        @DisplayName("findAll_fail_invalidPagination_returns4xx")
-        void findAll_fail_invalidPagination_returns4xx() {
-            String invalidPaginationUrl = UriComponentsBuilder.fromPath("/api/v1/shipments/findAll")
-                    .queryParam("pageSize", 0)
-                    .queryParam("page", 0)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> responseEntity = restClient.exchange(
-                    invalidPaginationUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    String.class
-            );
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
-    }
-
-    @Nested
     @DisplayName("GET /api/v1/shipments/findBy")
-    class FindByCriteriaTests {
+    class FindByTests {
         @Test
         @DisplayName("findBy_success_filtersByAllFields")
         void findBy_success_filtersByAllFields() {
@@ -515,54 +444,6 @@ class ShipmentControllerIT extends AbstractIT {
 
             ResponseEntity<String> responseEntity = restClient.exchange(
                     url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    String.class
-            );
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/shipments/findBy/id")
-    class FindByIdTests {
-        @Test
-        @DisplayName("findById_success_returnsEntity")
-        void findById_success_returnsEntity() {
-            Shipment createdShipment = postShipment(outgoingWithRecipient(), ownerAuthenticationHeaders);
-
-            String findByIdUrl = UriComponentsBuilder.fromPath("/api/v1/shipments/findBy/id")
-                    .queryParam("shipmentId", createdShipment.getId())
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<Shipment> responseEntity = restClient.exchange(
-                    findByIdUrl,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    Shipment.class
-            );
-
-            assertThat(responseEntity.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(responseEntity.getBody())
-                    .isNotNull();
-            assertThat(responseEntity.getBody().getId())
-                    .isEqualTo(createdShipment.getId());
-        }
-
-        @Test
-        @DisplayName("findById_fail_notFound_returns4xx")
-        void findById_fail_notFound_returns4xx() {
-            String findByIdUrl = UriComponentsBuilder.fromPath("/api/v1/shipments/findBy/id")
-                    .queryParam("shipmentId", 9_999_999L)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> responseEntity = restClient.exchange(
-                    findByIdUrl,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerAuthenticationHeaders),
                     String.class

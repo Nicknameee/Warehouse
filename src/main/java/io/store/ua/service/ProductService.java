@@ -11,20 +11,18 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
 import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,34 +33,12 @@ public class ProductService {
     private final FieldValidator fieldValidator;
     private final TagRepository tagRepository;
 
-    public List<Product> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                 @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return productRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
-    }
-
-    public List<Product> findByTags(@NotEmpty(message = "Tag list can't be empty") List<@NotNull(message = "Tag ID can't e blank") Long> tagIds,
-                                    @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                    @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
-        Root<Product> product = criteriaQuery.from(Product.class);
-
-        Join<Product, Tag> tagJoin = product.join(Product.Fields.tags, JoinType.INNER);
-
-        criteriaQuery.select(product)
-                .where(tagJoin.get(Tag.Fields.id).in(tagIds))
-                .distinct(true);
-
-        return entityManager.createQuery(criteriaQuery)
-                .setFirstResult((page - 1) * pageSize)
-                .setMaxResults(pageSize)
-                .getResultList();
-    }
-
     public List<Product> findBy(String titlePart,
-                                BigDecimal minimumPrice,
-                                BigDecimal maximumPrice,
-                                List<@NotNull(message = "Tag ID can't be null") Long> tagIds,
+                                String codePart,
+                                BigInteger minimumPrice,
+                                BigInteger maximumPrice,
+                                List<@NotNull(message = "Tag ID can't be null")
+                                @Min(value = 1, message = "Tag ID can't be less than 1") Long> tagIds,
                                 LocalDateTime from,
                                 LocalDateTime to,
                                 @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
@@ -77,10 +53,16 @@ public class ProductService {
         List<Predicate> predicateList = new ArrayList<>();
 
         if (!StringUtils.isBlank(titlePart)) {
+            predicateList.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(productRoot.get(Product.Fields.title)),
+                    "%" + titlePart.toLowerCase() + "%"));
+        }
+
+        if (!StringUtils.isBlank(codePart)) {
             predicateList.add(
                     criteriaBuilder.like(
-                            criteriaBuilder.lower(productRoot.get(Product.Fields.title)),
-                            "%" + titlePart.toLowerCase() + "%"
+                            criteriaBuilder.lower(productRoot.get(Product.Fields.code)),
+                            "%" + codePart.toLowerCase() + "%"
                     )
             );
         }
@@ -92,12 +74,15 @@ public class ProductService {
         if (minimumPrice != null) {
             predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.price), minimumPrice));
         }
+
         if (maximumPrice != null) {
             predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.price), maximumPrice));
         }
+
         if (from != null) {
             predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.createdAt), from));
         }
+
         if (to != null) {
             predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.createdAt), to));
         }
@@ -122,26 +107,22 @@ public class ProductService {
                 .getResultList();
     }
 
-    public Product findByCode(@NotBlank String code) {
-        return productRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Product with code '%s' was not found".formatted(code)));
-    }
-
     public Product save(@NotNull(message = "Product can't be null") ProductDTO productDTO) {
         fieldValidator.validate(productDTO, true,
                 ProductDTO.Fields.code,
                 ProductDTO.Fields.title,
                 ProductDTO.Fields.description,
                 ProductDTO.Fields.price,
+                ProductDTO.Fields.currency,
                 ProductDTO.Fields.weight,
                 ProductDTO.Fields.length,
                 ProductDTO.Fields.width,
                 ProductDTO.Fields.height);
 
-        var existingProduct = productRepository.findByCode(productDTO.getCode());
+        Optional<Product> optionalProduct = productRepository.findByCode(productDTO.getCode());
 
-        if (existingProduct.isPresent()) {
-            return existingProduct.get();
+        if (optionalProduct.isPresent()) {
+            return optionalProduct.get();
         }
 
         Product product = Product.builder()
@@ -149,13 +130,15 @@ public class ProductService {
                 .title(productDTO.getTitle())
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
+                .currency(productDTO.getCurrency())
                 .weight(productDTO.getWeight())
                 .length(productDTO.getLength())
                 .width(productDTO.getWidth())
                 .height(productDTO.getHeight())
                 .build();
 
-        if (productDTO.getTags() != null && !productDTO.getTags().isEmpty()) {
+        if (productDTO.getTags() != null) {
+            fieldValidator.validateObject(productDTO, ProductDTO.Fields.tags, true);
             var foundTags = tagRepository.findDistinctByIdIn(productDTO.getTags());
 
             if (foundTags.size() != productDTO.getTags().size()) {
@@ -171,7 +154,6 @@ public class ProductService {
 
     public Product update(@NotNull(message = "Product can't be null") ProductDTO productDTO) {
         fieldValidator.validate(productDTO, ProductDTO.Fields.code, true);
-
         Product product = productRepository.findByCode(productDTO.getCode())
                 .orElseThrow(() -> new NotFoundException("Product with code '%s' was not found".formatted(productDTO.getCode())));
 
@@ -188,6 +170,11 @@ public class ProductService {
         if (productDTO.getPrice() != null) {
             fieldValidator.validate(productDTO, ProductDTO.Fields.price, true);
             product.setPrice(productDTO.getPrice());
+        }
+
+        if (productDTO.getCurrency() != null) {
+            fieldValidator.validate(productDTO, ProductDTO.Fields.currency, true);
+            product.setCurrency(productDTO.getCurrency());
         }
 
         if (productDTO.getWeight() != null) {

@@ -16,7 +16,6 @@ import io.store.ua.models.dto.TransactionDTO;
 import io.store.ua.service.external.DataTransAPIService;
 import io.store.ua.service.external.LiqPayAPIService;
 import io.store.ua.utility.CodeGenerator;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -190,52 +189,6 @@ class TransactionServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findAll(...)")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success: findAll returns paged results")
-        void findAll_success() {
-            Transaction firstTransaction = transactionRepository.save(Transaction.builder()
-                    .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
-                    .reference(RandomStringUtils.secure().nextAlphanumeric(16))
-                    .flowType(TransactionFlowType.CREDIT)
-                    .purpose(TransactionPurpose.OTHER)
-                    .status(TransactionStatus.INITIATED)
-                    .amount(BigInteger.valueOf(100_000))
-                    .currency(Currency.USD.name())
-                    .beneficiaryId(beneficiary.getId())
-                    .paymentProvider(PaymentProvider.DATA_TRANS)
-                    .build());
-
-            List<Transaction> result = transactionService.findAll(1, 1);
-
-            assertNotNull(result);
-            assertThat(result).isNotEmpty();
-            assertThat(result.getFirst().getId()).isIn(firstTransaction.getId());
-        }
-
-        @Test
-        @DisplayName("findAll_success_emptyResultSet: findAll returns paged results")
-        void findAll_success_emptyResultSet() {
-            assertThat(transactionService.findAll(1, 1)).isEmpty();
-        }
-
-        @ParameterizedTest
-        @CsvSource({
-                "0, 1",
-                "1, 0",
-                "-1, 1",
-                "1, -1",
-                "0, 0"
-        })
-        @DisplayName("findAll_fails_whenInvalidPageOrSize: throws ConstraintViolationException for invalid page or size")
-        void findAll_fails_whenInvalidPageOrSize(int pageSize, int pageNumber) {
-            assertThrows(ConstraintViolationException.class,
-                    () -> transactionService.findAll(pageSize, pageNumber));
-        }
-    }
-
-    @Nested
     @DisplayName("initiateIncomingPayment(transactionDTO: TransactionDTO, autoSettle: Boolean)")
     class InitiateIncomingPaymentTests {
         public static Stream<UnaryOperator<TransactionDTO>> generateTransactionMutationFlows() {
@@ -363,7 +316,9 @@ class TransactionServiceIT extends AbstractIT {
 
             verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
             verify(liqPayService, never()).initiateIncomingPayment(any(), anyBoolean());
-        }@Test
+        }
+
+        @Test
         @DisplayName("initiateIncomingPayment_fails_whenFinancialServiceIsNotFoundForProvider: throws NotFoundException when financial service is not found for provider")
         void initiateIncomingPayment_fails_whenBeneficiary() {
             when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);

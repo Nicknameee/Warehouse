@@ -15,12 +15,6 @@ import java.util.List;
 public class StockItemController {
     private final StockItemService stockItemService;
 
-    @GetMapping("/findAll")
-    public ResponseEntity<List<StockItem>> findAll(@RequestParam(name = "pageSize") int pageSize,
-                                                   @RequestParam(name = "page") int page) {
-        return ResponseEntity.ok(stockItemService.findAll(pageSize, page));
-    }
-
     @GetMapping("/findBy")
     public ResponseEntity<List<StockItem>> findBy(@RequestParam(name = "warehouse_id", required = false) List<Long> warehouseIds,
                                                   @RequestParam(name = "product_id", required = false) List<Long> productIds,

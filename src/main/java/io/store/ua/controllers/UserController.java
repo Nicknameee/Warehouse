@@ -1,7 +1,9 @@
 package io.store.ua.controllers;
 
+import io.store.ua.entity.User;
 import io.store.ua.enums.UserRole;
 import io.store.ua.enums.UserStatus;
+import io.store.ua.models.dto.UserActionResultDTO;
 import io.store.ua.models.dto.UserDTO;
 import io.store.ua.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -22,57 +24,42 @@ public class UserController {
     public ResponseEntity<?> getUser() {
         return UserService.getCurrentlyAuthenticatedUser()
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND.value()).build());
-    }
-
-    @GetMapping("/findBy/role")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> findByRole(@RequestParam("role") UserRole role,
-                                        @RequestParam(value = "pageSize") int pageSize,
-                                        @RequestParam(value = "page") int page) {
-        return ResponseEntity.ok(userService.findByRole(role, pageSize, page));
-    }
-
-    @GetMapping("/findBy/status")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> findByStatus(@RequestParam("status") UserStatus status,
-                                          @RequestParam(value = "pageSize") int pageSize,
-                                          @RequestParam(value = "page") int page) {
-        return ResponseEntity.ok(userService.findByStatus(status, pageSize, page));
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND.value())
+                        .build());
     }
 
     @GetMapping("/findBy")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> findBy(@RequestParam(value = "username", required = false) String usernamePrefix,
-                                    @RequestParam(value = "email", required = false) String emailPart,
-                                    @RequestParam(value = "roles", required = false) List<UserRole> roles,
-                                    @RequestParam(value = "statuses", required = false) List<UserStatus> statuses,
-                                    @RequestParam(value = "isOnline", required = false) Boolean isOnline,
-                                    @RequestParam(value = "pageSize") int pageSize,
-                                    @RequestParam(value = "page") int page) {
+    public ResponseEntity<List<User>> findBy(@RequestParam(value = "username", required = false) String usernamePrefix,
+                                             @RequestParam(value = "email", required = false) String emailPart,
+                                             @RequestParam(value = "role", required = false) List<UserRole> roles,
+                                             @RequestParam(value = "status", required = false) List<UserStatus> statuses,
+                                             @RequestParam(value = "isOnline", required = false) Boolean isOnline,
+                                             @RequestParam(value = "pageSize") int pageSize,
+                                             @RequestParam(value = "page") int page) {
         return ResponseEntity.ok(userService.findBy(usernamePrefix, emailPart, roles, statuses, isOnline, pageSize, page));
     }
 
     @PostMapping("/all")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> saveAll(@RequestBody List<UserDTO> userDTOS) {
+    public ResponseEntity<List<User>> saveAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.saveAll(userDTOS));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> save(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<User> save(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.save(userDTO));
     }
 
     @PutMapping("/all")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> updateAll(@RequestBody List<UserDTO> userDTOS) {
+    public ResponseEntity<List<UserActionResultDTO>> updateAll(@RequestBody List<UserDTO> userDTOS) {
         return ResponseEntity.ok(userService.updateAll(userDTOS));
     }
 
     @PutMapping
-    public ResponseEntity<?> update(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<User> update(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.update(userDTO));
     }
 }

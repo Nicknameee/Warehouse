@@ -1,5 +1,7 @@
 package io.store.ua.controllers;
 
+import io.store.ua.models.data.BeneficiaryFinancialFlowStatistic;
+import io.store.ua.models.data.ItemSellingStatistic;
 import io.store.ua.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/analytics")
@@ -18,13 +21,13 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     @GetMapping("/fetchItemSellingStatistic")
-    public ResponseEntity<?> fetchItemSellingStatistic(@RequestParam(name = "stockItemId") Long stockItemId,
-                                                       @RequestParam(name = "from", required = false)
-                                                       @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
-                                                       @RequestParam(name = "to", required = false)
-                                                       @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
-                                                       @RequestParam(name = "pageSize") int pageSize,
-                                                       @RequestParam(name = "page") int page) {
+    public ResponseEntity<List<ItemSellingStatistic>> fetchItemSellingStatistic(@RequestParam(name = "stockItemId") Long stockItemId,
+                                                                                @RequestParam(name = "from", required = false)
+                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
+                                                                                @RequestParam(name = "to", required = false)
+                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
+                                                                                @RequestParam(name = "pageSize") int pageSize,
+                                                                                @RequestParam(name = "page") int page) {
         return ResponseEntity.ok(analyticsService.fetchItemSellingStatistic(stockItemId,
                 from,
                 to,
@@ -33,13 +36,13 @@ public class AnalyticsController {
     }
 
     @GetMapping("/fetchBeneficiaryFinancialStatistic")
-    public ResponseEntity<?> fetchBeneficiaryFinancialStatistic(@RequestParam(name = "beneficiaryId") Long beneficiaryId,
-                                                                @RequestParam(name = "from", required = false)
-                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
-                                                                @RequestParam(name = "to", required = false)
-                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
-                                                                @RequestParam(name = "pageSize") int pageSize,
-                                                                @RequestParam(name = "page") int page) {
+    public ResponseEntity<BeneficiaryFinancialFlowStatistic> fetchBeneficiaryFinancialStatistic(@RequestParam(name = "beneficiaryId") Long beneficiaryId,
+                                                                                                @RequestParam(name = "from", required = false)
+                                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
+                                                                                                @RequestParam(name = "to", required = false)
+                                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
+                                                                                                @RequestParam(name = "pageSize") int pageSize,
+                                                                                                @RequestParam(name = "page") int page) {
         return ResponseEntity.ok(analyticsService.fetchBeneficiaryFinancialStatistic(beneficiaryId,
                 from,
                 to,

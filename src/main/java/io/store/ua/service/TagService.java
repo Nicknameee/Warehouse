@@ -14,7 +14,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -28,11 +27,6 @@ public class TagService {
     private final TagRepository tagRepository;
     private final JdbcTemplate jdbcTemplate;
     private final EntityManager entityManager;
-
-    public List<Tag> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                             @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return tagRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
-    }
 
     public List<Tag> findBy(String name,
                             Boolean isActive,

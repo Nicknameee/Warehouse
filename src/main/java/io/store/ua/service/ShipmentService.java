@@ -9,6 +9,7 @@ import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ShipmentDTO;
 import io.store.ua.models.dto.StockItemDTO;
 import io.store.ua.repository.ShipmentRepository;
+import io.store.ua.repository.WarehouseRepository;
 import io.store.ua.utility.CodeGenerator;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
@@ -23,7 +24,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -41,7 +41,7 @@ public class ShipmentService {
     private final StockItemService stockItemService;
     private final FieldValidator fieldValidator;
     private final EntityManager entityManager;
-    private final WarehouseService warehouseService;
+    private final WarehouseRepository warehouseRepository;
 
     private static <E extends Enum<E>> E parseEnumOrThrow(String value, Class<E> type, String fieldName) {
         try {
@@ -59,11 +59,6 @@ public class ShipmentService {
 
             throw new ValidationException("Invalid %s '%s'. Allowed values: [%s]".formatted(fieldName, value, allowed));
         }
-    }
-
-    public List<Shipment> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                  @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return shipmentRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
     }
 
     public List<Shipment> findBy(Long warehouseIdSender,
@@ -120,11 +115,6 @@ public class ShipmentService {
                 .getResultList();
     }
 
-    public Shipment findById(@NotNull(message = "Shipment ID can't be null") Long shipmentId) {
-        return shipmentRepository.findById(shipmentId)
-                .orElseThrow(() -> new NotFoundException("Shipment with ID '%s' was not found".formatted(shipmentId)));
-    }
-
     @Transactional
     public Shipment save(@NotNull(message = "Shipment can't be null") ShipmentDTO shipmentDTO) {
         if (ObjectUtils.allNull(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode(), shipmentDTO.getAddress())) {
@@ -145,12 +135,16 @@ public class ShipmentService {
 
         if (shipmentDTO.getSenderCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
-            shipmentBuilder.warehouseIdSender(warehouseService.findByCode(shipmentDTO.getSenderCode()).getId());
+            var warehouse = warehouseRepository.findByCode(shipmentDTO.getSenderCode())
+                    .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(shipmentDTO.getSenderCode())));
+            shipmentBuilder.warehouseIdSender(warehouse.getId());
         }
 
         if (shipmentDTO.getRecipientCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.recipientCode, true);
-            shipmentBuilder.warehouseIdRecipient(warehouseService.findByCode(shipmentDTO.getRecipientCode()).getId());
+            var warehouse = warehouseRepository.findByCode(shipmentDTO.getRecipientCode())
+                    .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(shipmentDTO.getRecipientCode())));
+            shipmentBuilder.warehouseIdRecipient(warehouse.getId());
         }
 
         if (shipmentDTO.getAddress() != null) {
@@ -239,14 +233,16 @@ public class ShipmentService {
 
         if (shipmentDTO.getSenderCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.senderCode, true);
-            var warehouseSender = warehouseService.findByCode(shipmentDTO.getSenderCode());
+            var warehouseSender = warehouseRepository.findByCode(shipmentDTO.getSenderCode())
+                    .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(shipmentDTO.getSenderCode())));
             entity.setWarehouseIdSender(warehouseSender.getId());
             actualSender = warehouseSender.getId();
         }
 
         if (shipmentDTO.getRecipientCode() != null) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.recipientCode, true);
-            var warehouseRecipient = warehouseService.findByCode(shipmentDTO.getRecipientCode());
+            var warehouseRecipient = warehouseRepository.findByCode(shipmentDTO.getRecipientCode())
+                    .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(shipmentDTO.getRecipientCode())));
             entity.setWarehouseIdRecipient(warehouseRecipient.getId());
             actualRecipient = warehouseRecipient.getId();
         }

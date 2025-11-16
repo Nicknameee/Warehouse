@@ -36,7 +36,7 @@ public class CurrencyRateService {
             retryFor = Exception.class,
             noRetryFor = HealthCheckException.class
     )
-    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.DAYS, initialDelay = 1)
+    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.DAYS, initialDelay = 0)
     @Transactional
     public void refreshCurrencyRates() {
         var freshRates = openExchangeRateAPIService.refreshCurrencyRates();
@@ -47,21 +47,6 @@ public class CurrencyRateService {
 
     public List<CurrencyRate> findAll() {
         return currencyRateRepository.findAll();
-    }
-
-    public CurrencyRate findByCurrency(@NotBlank(message = "Currency can't be blank") String currency) {
-        return currencyRateRepository.findById(currency)
-                .orElseThrow(() -> new NotFoundException("Currency rate for currency '%s' was not found".formatted(currency)));
-    }
-
-    private void saveAll(@NotNull(message = "Currency rates can't be null")
-                         @NotEmpty(message = "Currency rates can't be empty")
-                         List<@NotNull(message = "Currency rate can't be null") CurrencyRate> currencyRates) {
-        currencyRateRepository.saveAll(currencyRates);
-    }
-
-    private void clearAll() {
-        currencyRateRepository.deleteAll();
     }
 
     public BigInteger convert(@NotBlank(message = "Base currency can't be blank") String baseCurrency,
@@ -97,4 +82,15 @@ public class CurrencyRateService {
                                                      BigInteger amount) {
         return new BigDecimal(convert(baseCurrency, targetCurrency, amount)).movePointLeft(2);
     }
+
+    private void saveAll(@NotNull(message = "Currency rates can't be null")
+                         @NotEmpty(message = "Currency rates can't be empty")
+                         List<@NotNull(message = "Currency rate can't be null") CurrencyRate> currencyRates) {
+        currencyRateRepository.saveAll(currencyRates);
+    }
+
+    private void clearAll() {
+        currencyRateRepository.deleteAll();
+    }
+
 }

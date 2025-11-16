@@ -32,6 +32,8 @@ public class Product {
     private String description;
     @Column(nullable = false)
     private BigInteger price;
+    @Column(nullable = false)
+    private String currency;
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "product_tags",

@@ -8,7 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,28 +18,11 @@ import java.util.List;
 public class ProductController {
     private final ProductService productService;
 
-    @GetMapping("/findAll")
-    public ResponseEntity<List<Product>> findAll(@RequestParam("pageSize") int pageSize,
-                                                 @RequestParam("page") int page) {
-        return ResponseEntity.ok(productService.findAll(pageSize, page));
-    }
-
-    @GetMapping("/findBy/code")
-    public ResponseEntity<Product> findByCode(@RequestParam("code") String code) {
-        return ResponseEntity.ok(productService.findByCode(code));
-    }
-
-    @GetMapping("/findBy/tags")
-    public ResponseEntity<List<Product>> findByTags(@RequestParam("tagId") List<Long> tagIds,
-                                                    @RequestParam("pageSize") int pageSize,
-                                                    @RequestParam("page") int page) {
-        return ResponseEntity.ok(productService.findByTags(tagIds, pageSize, page));
-    }
-
     @GetMapping("/findBy")
     public ResponseEntity<List<Product>> findBy(@RequestParam(value = "titlePart", required = false) String titlePart,
-                                                @RequestParam(value = "minimumPrice", required = false) BigDecimal minimumPrice,
-                                                @RequestParam(value = "maximumPrice", required = false) BigDecimal maximumPrice,
+                                                @RequestParam(value = "codePart", required = false) String codePart,
+                                                @RequestParam(value = "minimumPrice", required = false) BigInteger minimumPrice,
+                                                @RequestParam(value = "maximumPrice", required = false) BigInteger maximumPrice,
                                                 @RequestParam(value = "tagId", required = false) List<Long> tagIds,
                                                 @RequestParam(value = "from", required = false)
                                                 @DateTimeFormat(pattern = "dd-MM-yyyy'At'HH:mm:ss") LocalDateTime from,
@@ -48,6 +31,7 @@ public class ProductController {
                                                 @RequestParam("pageSize") int pageSize,
                                                 @RequestParam("page") int pageNumber) {
         return ResponseEntity.ok(productService.findBy(titlePart,
+                codePart,
                 minimumPrice,
                 maximumPrice,
                 tagIds,

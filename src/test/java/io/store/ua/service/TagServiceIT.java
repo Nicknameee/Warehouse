@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -88,41 +87,6 @@ class TagServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findAll(pageSize: int, page: int)")
-    class FindAllTests {
-        @ParameterizedTest(name = "findAll_success: returns a paged slice")
-        @CsvSource({"1, 1", "3, 3", "5, 5"})
-        @Transactional
-        void findAll_success(int pageSize, int page) {
-            var tags = tagRepository.saveAll(generateTags(pageSize * page));
-
-            var result = tagService.findAll(pageSize, page);
-
-            assertThat(result).hasSize(pageSize);
-            assertThat(result)
-                    .extracting(Tag::getName)
-                    .containsExactlyInAnyOrderElementsOf(tags.subList((page - 1) * pageSize, page * pageSize)
-                            .stream()
-                            .map(Tag::getName)
-                            .toList());
-        }
-
-        @ParameterizedTest(name = "findAll_fail_whenPageSizeIsInvalid: pageSize={0} (must be >=1)")
-        @ValueSource(ints = {0, -1, -5})
-        void findAll_fail_whenPageSizeIsInvalid(int pageSize) {
-            assertThatThrownBy(() -> tagService.findAll(pageSize, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest(name = "findAll_fail_whenPageIsInvalid: page={0} (must be >=1)")
-        @ValueSource(ints = {0, -1, -10})
-        void findAll_fail_whenPageIsInvalid(int page) {
-            assertThatThrownBy(() -> tagService.findAll(10, page))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
     @DisplayName("update(tagId: long, tagName: string, isActive: boolean)")
     class UpdateTests {
         @Test
@@ -187,6 +151,7 @@ class TagServiceIT extends AbstractIT {
                     .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
         }
     }
+
     @Nested
     @DisplayName("findBy(name: String, isActive: Boolean, pageSize: int, page: int)")
     class FindByTests {

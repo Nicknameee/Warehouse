@@ -5,9 +5,9 @@ import io.store.ua.entity.*;
 import io.store.ua.enums.ShipmentDirection;
 import io.store.ua.enums.ShipmentStatus;
 import io.store.ua.enums.StockItemStatus;
+import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
-import io.store.ua.exceptions.AuthenticationException;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.ShipmentDTO;
 import jakarta.validation.ValidationException;
@@ -87,111 +87,8 @@ class ShipmentServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findAll(pageSize: int, page: int)")
-    class FindAllShipmentsTests {
-        @Test
-        @DisplayName("findAll_success: returns shipments when page exists and size is valid")
-        void findAll_success() {
-            ShipmentDTO firstShipmentDTO = ShipmentDTO.builder()
-                    .senderCode(warehouse.getCode())
-                    .address(randomAddress())
-                    .stockItemId(stockItem.getId())
-                    .stockItemQuantity(3L)
-                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
-                    .build();
-
-            ShipmentDTO secondShipmentDTO = ShipmentDTO.builder()
-                    .senderCode(warehouse.getCode())
-                    .address(randomAddress())
-                    .stockItemId(stockItem.getId())
-                    .stockItemQuantity(5L)
-                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
-                    .build();
-
-            Shipment firstCreatedShipment = shipmentService.save(firstShipmentDTO);
-            Shipment secondCreatedShipment = shipmentService.save(secondShipmentDTO);
-
-            List<Shipment> pagedShipments = shipmentService.findAll(10, 1);
-
-            assertThat(pagedShipments).isNotEmpty();
-            assertThat(pagedShipments)
-                    .extracting(Shipment::getId)
-                    .contains(firstCreatedShipment.getId(), secondCreatedShipment.getId());
-        }
-
-        @Test
-        @DisplayName("findAll_success_empty: returns empty list when page has no results")
-        void findAll_success_empty() {
-            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
-                    .senderCode(warehouse.getCode())
-                    .address(randomAddress())
-                    .stockItemId(stockItem.getId())
-                    .stockItemQuantity(2L)
-                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
-                    .build();
-            shipmentService.save(shipmentDTO);
-
-            List<Shipment> pagedShipments = shipmentService.findAll(10, 99);
-
-            assertThat(pagedShipments).isEmpty();
-        }
-
-        @Test
-        @DisplayName("findAll_fail_invalidPageSize: throws ValidationException for invalid page size")
-        void findAll_fail_invalidPageSize() {
-            assertThatThrownBy(() -> shipmentService.findAll(0, 1))
-                    .isInstanceOf(ValidationException.class);
-        }
-
-        @Test
-        @DisplayName("findAll_fail_invalidPageNumber: throws ValidationException for invalid page number")
-        void findAll_fail_invalidPageNumber() {
-            assertThatThrownBy(() -> shipmentService.findAll(10, 0))
-                    .isInstanceOf(ValidationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findById(id: Long)")
-    class FindShipmentByIdTests {
-        @Test
-        @DisplayName("findById_success: returns shipment when it exists")
-        void findById_success() {
-            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
-                    .senderCode(warehouse.getCode())
-                    .address(randomAddress())
-                    .stockItemId(stockItem.getId())
-                    .stockItemQuantity(3L)
-                    .shipmentDirection(ShipmentDirection.OUTCOMING.name())
-                    .build();
-
-            Shipment createdShipment = shipmentService.save(shipmentDTO);
-
-            Shipment foundShipment = shipmentService.findById(createdShipment.getId());
-
-            assertThat(foundShipment).isNotNull();
-            assertThat(foundShipment.getId()).isEqualTo(createdShipment.getId());
-        }
-
-        @Test
-        @DisplayName("findById_fail_notFound: throws NotFoundException when shipment does not exist")
-        void findById_fail_notFound() {
-            assertThatThrownBy(() -> shipmentService.findById(9999L))
-                    .isInstanceOf(NotFoundException.class)
-                    .hasMessageContaining("Shipment with ID '9999' was not found");
-        }
-
-        @Test
-        @DisplayName("findById_fail_null: throws ValidationException when id is null")
-        void findById_fail_null() {
-            assertThatThrownBy(() -> shipmentService.findById(null))
-                    .isInstanceOf(ValidationException.class);
-        }
-    }
-
-    @Nested
     @DisplayName("findBy(warehouseIdSender, warehouseIdRecipient, stockItemId, status, shipmentDirection, from, to, pageSize, page)")
-    class FindByShipmentsCriteriaTests {
+    class FindByTests {
         @Test
         @DisplayName("findBy_success_filtersByAllFields")
         void findBy_success_filtersByAllFields() {

@@ -88,47 +88,8 @@ class StockItemServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findAll(pageSize: int, page: int)")
-    class FindAllTests {
-        @Test
-        @DisplayName("findAll_success")
-        void findAll_success() {
-            StockItem firstStockItem = generateStockItem(productA.getId(), stockItemGroupA.getId(), warehouseA.getId());
-            StockItem extraStockItem = generateStockItem(productB.getId(), stockItemGroupB.getId(), warehouseB.getId());
-            StockItem anotherStockItem = generateStockItem(productC.getId(), stockItemGroupC.getId(), warehouseC.getId());
-
-            List<StockItem> stockItems = stockItemService.findAll(3, 1);
-
-            assertThat(stockItems)
-                    .hasSize(3);
-            assertThat(stockItems)
-                    .extracting(StockItem::getId)
-                    .contains(firstStockItem.getId(), extraStockItem.getId(), anotherStockItem.getId());
-        }
-
-        @Test
-        @DisplayName("findAll_success_empty")
-        void findAll_success_empty() {
-            List<StockItem> stockItems = stockItemService.findAll(1, 1);
-
-            assertThat(stockItems)
-                    .isEmpty();
-        }
-
-        @Test
-        @DisplayName("findAll_fail_invalidPageSize")
-        void findAll_fail_invalidPageSize() {
-            assertThatThrownBy(() -> stockItemService.findAll(0, 1))
-                    .isInstanceOf(ValidationException.class);
-        }
-
-        @Test
-        @DisplayName("findAll_fail_invalidPage")
-        void findAll_fail_invalidPage() {
-            assertThatThrownBy(() -> stockItemService.findAll(10, 0))
-                    .isInstanceOf(ValidationException.class);
-        }
-
+    @DisplayName("findBy(...)")
+    class FindByTests {
         @Test
         @DisplayName("findBy_success_filtersByActivity")
         void findBy_success_onlyActive() {
@@ -164,11 +125,7 @@ class StockItemServiceIT extends AbstractIT {
                     .extracting(StockItem::getId)
                     .doesNotContain(stockItemEntityInInactiveGroup.getId(), incativeStockItem.getId());
         }
-    }
 
-    @Nested
-    @DisplayName("findBy(...)")
-    class FindByTests {
         @Test
         @DisplayName("findBy_success_filtersByWarehouseAndStatusLists")
         void findBy_success_filtersByWarehouseAndStatusLists() {

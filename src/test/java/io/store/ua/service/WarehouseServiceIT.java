@@ -16,18 +16,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,7 +36,6 @@ class WarehouseServiceIT extends AbstractIT {
     @Nested
     @DisplayName("save(warehouse: WarehouseDTO)")
     class SaveTests {
-
         @Test
         @DisplayName("save_success: creates a new Warehouse when absent")
         void save_success() {
@@ -115,71 +111,6 @@ class WarehouseServiceIT extends AbstractIT {
 
             assertThatThrownBy(() -> warehouseService.save(warehouseDTO))
                     .isInstanceOf(ValidationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findAll(pageSize: int, page: int)")
-    class FindAllTests {
-        @ParameterizedTest(name = "findAll_success: returns a paged slice")
-        @CsvSource({"1, 1", "3, 3", "5, 5"})
-        void findAll_success(int pageSize, int page) {
-            var warehouses = Stream.generate(WarehouseServiceIT.this::generateWarehouse).limit((long) pageSize * page).toList();
-
-            var result = warehouseService.findAll(pageSize, page);
-
-            assertThat(result).hasSize(pageSize);
-            assertThat(result)
-                    .extracting(Warehouse::getCode)
-                    .containsExactlyInAnyOrderElementsOf(
-                            warehouses.subList((page - 1) * pageSize, page * pageSize).stream()
-                                    .map(Warehouse::getCode)
-                                    .toList());
-        }
-
-        @ParameterizedTest(name = "findAll_fail_whenPageSizeIsInvalid: pageSize={0} (must be >=1)")
-        @ValueSource(ints = {0, -1, -5})
-        void findAll_fail_whenPageSizeIsInvalid(int pageSize) {
-            assertThatThrownBy(() -> warehouseService.findAll(pageSize, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest(name = "findAll_fail_whenPageIsInvalid: page={0} (must be >=1)")
-        @ValueSource(ints = {0, -1, -10})
-        void findAll_fail_whenPageIsInvalid(int page) {
-            assertThatThrownBy(() -> warehouseService.findAll(10, page))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findByCode(code: string)")
-    class FindByCodeTests {
-        @Test
-        @DisplayName("findByCode_success: loads by code")
-        @Transactional
-        void findByCode_success() {
-            Warehouse warehouse = generateWarehouse();
-
-            Warehouse fetchWarehouse = warehouseService.findByCode(warehouse.getCode());
-
-            assertThat(fetchWarehouse.getId()).isNotNull();
-            assertThat(fetchWarehouse.getCode()).isEqualTo(warehouse.getCode());
-        }
-
-        @ParameterizedTest(name = "findByCode_fail_whenInvalidCode: ''{0}''")
-        @NullAndEmptySource
-        @ValueSource(strings = {" ", "\t", "\n"})
-        void findByCode_fail_whenInvalidCode(String code) {
-            assertThatThrownBy(() -> warehouseService.findByCode(code))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @Test
-        @DisplayName("findByCode_fail_whenNotFound: throws NotFoundException when warehouse is not found by code")
-        void findByCode_fail_whenNotFound() {
-            assertThatThrownBy(() -> warehouseService.findByCode(RandomStringUtils.secure().nextAlphanumeric(24)))
-                    .isInstanceOf(NotFoundException.class);
         }
     }
 

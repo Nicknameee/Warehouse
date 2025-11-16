@@ -17,7 +17,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -32,15 +31,10 @@ public class BeneficiaryService {
     private final FieldValidator fieldValidator;
     private final EntityManager entityManager;
 
-    public List<Beneficiary> findAll(@Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                     @Min(value = 1, message = "A page number can't be less than 1") int page) {
-        return beneficiaryRepository.findAll(Pageable.ofSize(pageSize).withPage(page - 1)).getContent();
-    }
-
     public List<Beneficiary> findBy(String IBANPrefix,
                                     String SWIFTPrefix,
                                     String cardPrefix,
-                                    String name,
+                                    String namePart,
                                     Boolean isActive,
                                     @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                     @Min(value = 1, message = "A page number can't be less than 1") int page) {
@@ -62,8 +56,8 @@ public class BeneficiaryService {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.card)), cardPrefix.toLowerCase() + "%"));
         }
 
-        if (!StringUtils.isBlank(name)) {
-            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.name)), "%" + name.toLowerCase() + "%"));
+        if (!StringUtils.isBlank(namePart)) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(Beneficiary.Fields.name)), "%" + namePart.toLowerCase() + "%"));
         }
 
         if (isActive != null) {

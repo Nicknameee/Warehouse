@@ -18,7 +18,7 @@ public class SinkController {
     private final SinkProducer sinkProducer;
 
     @PostMapping("/shipments")
-    public ResponseEntity<?> enqueueShipment(@RequestBody ShipmentDTO shipmentDTO) {
+    public ResponseEntity<QueueResponseDTO> enqueueShipment(@RequestBody ShipmentDTO shipmentDTO) {
         String key = sinkProducer.produceShipment(shipmentDTO);
 
         return ResponseEntity.accepted()
@@ -30,7 +30,7 @@ public class SinkController {
     }
 
     @PostMapping("/transactions")
-    public ResponseEntity<?> enqueueTransactions(@RequestBody TransactionDTO transactionDTO) {
+    public ResponseEntity<QueueResponseDTO> enqueueTransactions(@RequestBody TransactionDTO transactionDTO) {
         String key = sinkProducer.produceTransaction(transactionDTO);
 
         return ResponseEntity.accepted()
