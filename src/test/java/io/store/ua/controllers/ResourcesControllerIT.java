@@ -1,4 +1,4 @@
-package io.store.ua.controller;
+package io.store.ua.controllers;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.enums.*;

@@ -1,6 +1,5 @@
-package io.store.ua.controller;
+package io.store.ua.controllers;
 
-import io.store.ua.controllers.SinkController;
 import io.store.ua.enums.*;
 import io.store.ua.models.dto.QueueResponseDTO;
 import io.store.ua.models.dto.ShipmentDTO;
