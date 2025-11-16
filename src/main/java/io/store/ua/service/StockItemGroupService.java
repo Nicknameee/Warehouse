@@ -50,7 +50,10 @@ public class StockItemGroupService {
             predicates.add(criteriaBuilder.equal(root.get(StockItemGroup.Fields.isActive), isActive));
         }
 
-        criteriaQuery.where(predicates.toArray(new Predicate[0]));
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(StockItemGroup.Fields.id)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

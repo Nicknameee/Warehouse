@@ -47,13 +47,10 @@ public class TagService {
             predicates.add(criteriaBuilder.equal(root.get(Tag.Fields.isActive), isActive));
         }
 
-        criteriaQuery.select(root);
-
-        if (!predicates.isEmpty()) {
-            criteriaQuery.where(criteriaBuilder.and(predicates.toArray(Predicate[]::new)));
-        }
-
-        criteriaQuery.orderBy(criteriaBuilder.desc(root.get(Tag.Fields.id)));
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(Tag.Fields.id)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

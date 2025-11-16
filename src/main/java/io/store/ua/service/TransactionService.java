@@ -138,7 +138,10 @@ public class TransactionService {
             predicates.add(criteriaBuilder.equal(root.get(Transaction.Fields.paymentProvider), parsed));
         }
 
-        criteriaQuery.select(root).where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
+        criteriaQuery
+                .select(root)
+                .where(criteriaBuilder.and(predicates.toArray(new Predicate[0])))
+                .orderBy(criteriaBuilder.asc(root.get(Transaction.Fields.createdAt)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

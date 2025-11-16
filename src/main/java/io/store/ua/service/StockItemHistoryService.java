@@ -75,10 +75,10 @@ public class StockItemHistoryService {
             predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(StockItemHistory.Fields.newExpiration), to.toLocalDate()));
         }
 
-        criteriaQuery.where(predicates.toArray(Predicate[]::new));
-        criteriaQuery.orderBy(criteriaBuilder.desc(root.get(StockItemHistory.Fields.id)));
-
-        criteriaQuery.select(root).where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.desc(root.get(StockItemHistory.Fields.loggedAt)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

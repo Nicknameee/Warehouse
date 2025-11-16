@@ -49,19 +49,19 @@ public class ProductService {
 
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
-        Root<Product> productRoot = criteriaQuery.from(Product.class);
+        Root<Product> root = criteriaQuery.from(Product.class);
         List<Predicate> predicateList = new ArrayList<>();
 
         if (!StringUtils.isBlank(titlePart)) {
             predicateList.add(criteriaBuilder.like(
-                    criteriaBuilder.lower(productRoot.get(Product.Fields.title)),
+                    criteriaBuilder.lower(root.get(Product.Fields.title)),
                     "%" + titlePart.toLowerCase() + "%"));
         }
 
         if (!StringUtils.isBlank(codePart)) {
             predicateList.add(
                     criteriaBuilder.like(
-                            criteriaBuilder.lower(productRoot.get(Product.Fields.code)),
+                            criteriaBuilder.lower(root.get(Product.Fields.code)),
                             "%" + codePart.toLowerCase() + "%"
                     )
             );
@@ -72,34 +72,36 @@ public class ProductService {
         }
 
         if (minimumPrice != null) {
-            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.price), minimumPrice));
+            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get(Product.Fields.price), minimumPrice));
         }
 
         if (maximumPrice != null) {
-            predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.price), maximumPrice));
+            predicateList.add(criteriaBuilder.lessThanOrEqualTo(root.get(Product.Fields.price), maximumPrice));
         }
 
         if (from != null) {
-            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(productRoot.get(Product.Fields.createdAt), from));
+            predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get(Product.Fields.createdAt), from));
         }
 
         if (to != null) {
-            predicateList.add(criteriaBuilder.lessThanOrEqualTo(productRoot.get(Product.Fields.createdAt), to));
+            predicateList.add(criteriaBuilder.lessThanOrEqualTo(root.get(Product.Fields.createdAt), to));
         }
 
         Join<Product, Tag> tagsJoin;
         Expression<Long> distinctTagCount;
 
         if (tagIds != null && !tagIds.isEmpty()) {
-            tagsJoin = productRoot.join(Product.Fields.tags, JoinType.INNER);
+            tagsJoin = root.join(Product.Fields.tags, JoinType.INNER);
             predicateList.add(tagsJoin.get(Tag.Fields.id).in(tagIds));
-            criteriaQuery.groupBy(productRoot.get(Product.Fields.id));
+            criteriaQuery.groupBy(root.get(Product.Fields.id));
             distinctTagCount = criteriaBuilder.countDistinct(tagsJoin.get(Tag.Fields.id));
             criteriaQuery.having(criteriaBuilder.equal(distinctTagCount, (long) tagIds.size()));
         }
 
-        criteriaQuery.where(predicateList.toArray(new Predicate[0]));
-        criteriaQuery.orderBy(criteriaBuilder.asc(productRoot.get(Product.Fields.id)));
+        criteriaQuery
+                .select(root)
+                .where(predicateList.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(Product.Fields.id)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult(pageSize * (pageNumber - 1))

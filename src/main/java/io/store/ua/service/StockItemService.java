@@ -86,13 +86,11 @@ public class StockItemService {
             predicates.add(criteriaBuilder.equal(groupJoin.get(StockItemGroup.Fields.isActive), isItemGroupActive));
         }
 
-        criteriaQuery.select(root);
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(StockItem.Fields.id)));
 
-        if (!predicates.isEmpty()) {
-            criteriaQuery.where(criteriaBuilder.and(predicates.toArray(Predicate[]::new)));
-        }
-
-        criteriaQuery.orderBy(criteriaBuilder.desc(root.get(StockItem.Fields.id)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

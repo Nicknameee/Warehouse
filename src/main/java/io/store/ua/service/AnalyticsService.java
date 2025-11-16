@@ -83,7 +83,7 @@ public class AnalyticsService {
                         criteriaBuilder.sum(revenue)))
                 .where(predicates.toArray(Predicate[]::new))
                 .groupBy(startDate)
-                .orderBy(criteriaBuilder.asc(startDate));
+                .orderBy(criteriaBuilder.desc(startDate));
 
         return entityManager.createQuery(criteriaQuery)
                 .setMaxResults(pageSize)

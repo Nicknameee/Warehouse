@@ -64,7 +64,10 @@ public class BeneficiaryService {
             predicates.add(criteriaBuilder.equal(root.get(Beneficiary.Fields.isActive), isActive));
         }
 
-        criteriaQuery.select(root).where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
+        criteriaQuery
+                .select(root)
+                .where(criteriaBuilder.and(predicates.toArray(new Predicate[0])))
+                .orderBy(criteriaBuilder.asc(root.get(Beneficiary.Fields.id)));
 
         return entityManager.createQuery(criteriaQuery)
                 .setFirstResult((page - 1) * pageSize)

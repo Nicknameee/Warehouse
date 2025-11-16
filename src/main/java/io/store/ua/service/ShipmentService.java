@@ -105,7 +105,8 @@ public class ShipmentService {
             predicates.add(criteriaBuilder.lessThanOrEqualTo(shipmentRoot.get(Shipment.Fields.createdAt), to));
         }
 
-        criteriaQuery.select(shipmentRoot)
+        criteriaQuery
+                .select(shipmentRoot)
                 .where(predicates.toArray(new Predicate[0]))
                 .orderBy(criteriaBuilder.desc(shipmentRoot.get(Shipment.Fields.createdAt)));
 

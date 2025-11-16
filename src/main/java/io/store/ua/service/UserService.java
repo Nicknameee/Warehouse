@@ -137,7 +137,10 @@ public class UserService {
             }
         }
 
-        criteriaQuery.where(predicates.toArray(new Predicate[0]));
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(User.Fields.id)));
 
         return entityManager
                 .createQuery(criteriaQuery)
