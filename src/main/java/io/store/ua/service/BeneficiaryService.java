@@ -84,14 +84,21 @@ public class BeneficiaryService {
             throw new ValidationException("Beneficiary can't have only one of IBAN or SWIFT");
         }
 
-        fieldValidator.validate(beneficiaryDTO, false,
+        fieldValidator.validate(beneficiaryDTO, true,
                 BeneficiaryDTO.Fields.iban,
-                BeneficiaryDTO.Fields.swift,
-                BeneficiaryDTO.Fields.card);
+                BeneficiaryDTO.Fields.swift);
+        fieldValidator.validate(beneficiaryDTO, false, BeneficiaryDTO.Fields.card);
 
-        if (beneficiaryRepository.existsByIbanOrCard(beneficiaryDTO.getIban(), beneficiaryDTO.getCard())) {
-            throw new BusinessException("Beneficiary with IBAN '%s' or card '%s' already exists"
-                    .formatted(beneficiaryDTO.getIban(), beneficiaryDTO.getCard()));
+        if (StringUtils.isNotBlank(beneficiaryDTO.getIban())
+                && beneficiaryRepository.existsByIban(beneficiaryDTO.getIban())) {
+            throw new BusinessException("Beneficiary with IBAN '%s' already exists"
+                    .formatted(beneficiaryDTO.getIban()));
+        }
+
+        if (StringUtils.isNotBlank(beneficiaryDTO.getCard())
+                && beneficiaryRepository.existsByCard(beneficiaryDTO.getCard())) {
+            throw new BusinessException("Beneficiary with card '%s' already exists"
+                    .formatted(beneficiaryDTO.getCard()));
         }
 
         return beneficiaryRepository.save(Beneficiary.builder()

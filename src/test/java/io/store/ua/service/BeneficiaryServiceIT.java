@@ -131,6 +131,7 @@ class BeneficiaryServiceIT extends AbstractIT {
             beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(10))
                     .iban(iban)
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .card(card)
                     .isActive(true)
                     .build());
@@ -237,6 +238,7 @@ class BeneficiaryServiceIT extends AbstractIT {
             Beneficiary beneficiary = beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
                     .iban(initialIBAN)
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
                     .card(initialCard)
                     .isActive(true)
                     .build());
@@ -244,6 +246,8 @@ class BeneficiaryServiceIT extends AbstractIT {
             beneficiaryRepository.save(Beneficiary.builder()
                     .name(GENERATOR.nextAlphabetic(8))
                     .iban(newIBAN)
+                    .swift(GENERATOR.nextAlphabetic(8).toUpperCase())
+
                     .card(newCard)
                     .isActive(true)
                     .build());
