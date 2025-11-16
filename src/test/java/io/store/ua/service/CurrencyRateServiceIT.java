@@ -15,6 +15,7 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -61,6 +62,45 @@ class CurrencyRateServiceIT extends AbstractIT {
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(0, RoundingMode.HALF_UP)
                 .toBigIntegerExact();
+    }
+
+    @Nested
+    @DisplayName("findAll()")
+    class FindAllTests {
+        @Test
+        @DisplayName("findAll_success_returnsAllPersistedRates")
+        void findAll_success_returnsAllPersistedRates() {
+            upsertRates(
+                    new BigDecimal("1.0000"),
+                    new BigDecimal("0.9300"),
+                    new BigDecimal("0.9800"),
+                    new BigDecimal("41.0000")
+            );
+
+            List<CurrencyRate> currencyRates = currencyRateService.findAll();
+
+            assertThat(currencyRates)
+                    .hasSize(4);
+            assertThat(currencyRates)
+                    .extracting(CurrencyRate::getCurrencyCode)
+                    .containsExactlyInAnyOrder(
+                            Currency.USD.name(),
+                            Currency.EUR.name(),
+                            Currency.CHF.name(),
+                            Currency.UAH.name()
+                    );
+        }
+
+        @Test
+        @DisplayName("findAll_success_returnsEmptyListWhenNoRates")
+        void findAll_success_returnsEmptyListWhenNoRates() {
+            currencyRateRepository.deleteAll();
+
+            List<CurrencyRate> currencyRates = currencyRateService.findAll();
+
+            assertThat(currencyRates)
+                    .isEmpty();
+        }
     }
 
     @Nested

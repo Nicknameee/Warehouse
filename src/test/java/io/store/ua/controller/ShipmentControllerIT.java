@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
@@ -55,6 +55,7 @@ class ShipmentControllerIT extends AbstractIT {
                 .title(RandomStringUtils.secure().nextAlphabetic(12))
                 .description(RandomStringUtils.secure().nextAlphanumeric(40))
                 .price(BigInteger.valueOf(RandomUtils.secure().randomLong(500, 50000)))
+                .currency(Currency.EUR.name())
                 .weight(BigInteger.valueOf(RandomUtils.secure().randomLong(100, 5000)))
                 .length(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
                 .width(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
@@ -88,7 +89,7 @@ class ShipmentControllerIT extends AbstractIT {
                 .build();
     }
 
-    private HttpHeaders jsonHeaders(HttpHeaders baseHeaders) {
+    private HttpHeaders allHeaders(HttpHeaders baseHeaders) {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.putAll(baseHeaders);
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -120,7 +121,7 @@ class ShipmentControllerIT extends AbstractIT {
         ResponseEntity<Shipment> responseEntity = restClient.exchange(
                 "/api/v1/shipments",
                 HttpMethod.POST,
-                new HttpEntity<>(shipmentDTO, jsonHeaders(authenticationHeaders)),
+                new HttpEntity<>(shipmentDTO, allHeaders(authenticationHeaders)),
                 Shipment.class
         );
         assertThat(responseEntity.getStatusCode())
@@ -465,7 +466,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<Shipment> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.POST,
-                    new HttpEntity<>(shipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(shipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     Shipment.class
             );
 
@@ -491,7 +492,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<Shipment> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.POST,
-                    new HttpEntity<>(shipmentDTO, jsonHeaders(managerAuthenticationHeaders)),
+                    new HttpEntity<>(shipmentDTO, allHeaders(managerAuthenticationHeaders)),
                     Shipment.class
             );
 
@@ -519,7 +520,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.POST,
-                    new HttpEntity<>(shipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(shipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -542,7 +543,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.POST,
-                    new HttpEntity<>(shipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(shipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -568,7 +569,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<Shipment> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.PUT,
-                    new HttpEntity<>(updateShipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(updateShipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     Shipment.class
             );
 
@@ -598,7 +599,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.PUT,
-                    new HttpEntity<>(updateShipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(updateShipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -619,7 +620,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.PUT,
-                    new HttpEntity<>(updateShipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(updateShipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -637,7 +638,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.PUT,
-                    new HttpEntity<>(updateShipmentDTO, jsonHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(updateShipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 

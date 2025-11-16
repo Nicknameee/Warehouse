@@ -52,6 +52,141 @@ class StockItemHistoryServiceIT extends AbstractIT {
     }
 
     @Nested
+    @DisplayName("findBy(stockItemId: Long, from: LocalDateTime, to: LocalDateTime, pageSize: int, page: int)")
+    class FindByTests {
+        @Test
+        @DisplayName("findBy_success_filter")
+        void findBy_success_filter() {
+            stockItemHistoryRepository.saveAll(List.of(
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(generateStockItem(product.getId(), groupInitial.getId(), generateWarehouse().getId()).getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build()
+            ));
+
+            var result = stockItemHistoryService.findBy(stockItem.getId(), null, null, 10, 1);
+
+            assertThat(result).allMatch(stockItemHistory -> stockItemHistory.getStockItemId().equals(stockItem.getId()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_pagination")
+        void findBy_success_pagination() {
+            stockItemHistoryRepository.saveAll(List.of(
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build()
+            ));
+
+            var page = stockItemHistoryService.findBy(stockItem.getId(), null, null, 3, 1);
+            var tail = stockItemHistoryService.findBy(stockItem.getId(), null, null, 1, 4);
+
+            assertThat(page).hasSize(3);
+            assertThat(tail).hasSize(1);
+            assertThat(page).doesNotContainAnyElementsOf(tail);
+        }
+
+        @Test
+        @DisplayName("findBy_success_allWhenNull")
+        void findBy_success_allWhenNull() {
+            var saved = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+                    .stockItemId(stockItem.getId())
+                    .currentProductPrice(product.getPrice())
+                    .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                    .build()));
+
+            var result = stockItemHistoryService.findBy(null, null, null, 5, 1);
+
+            assertThat(result).hasSize(saved.size());
+        }
+
+        @Test
+        @DisplayName("findBy_success_dateRange")
+        void findBy_success_dateRange() {
+            var future5Days = LocalDate.now().plusDays(5);
+            var future10Days = LocalDate.now().plusDays(10);
+            var future30Days = LocalDate.now().plusDays(30);
+
+            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(future5Days)
+                            .newExpiration(future10Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(future10Days)
+                            .newExpiration(future30Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build(),
+                    StockItemHistory.builder()
+                            .stockItemId(stockItem.getId())
+                            .currentProductPrice(product.getPrice())
+                            .oldExpiration(future30Days)
+                            .newExpiration(future30Days)
+                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
+                            .build()
+            ));
+
+            var from = future10Days.atStartOfDay();
+            var to = future30Days.atTime(23, 59);
+
+            var result = stockItemHistoryService.findBy(stockItem.getId(), from, to, 50, 1);
+
+            assertThat(result)
+                    .isNotEmpty();
+            assertThat(result).allMatch(stockItemHistory ->
+                    (stockItemHistory.getOldExpiration() == null || !stockItemHistory.getOldExpiration().isBefore(from.toLocalDate())) &&
+                            (stockItemHistory.getNewExpiration() == null || !stockItemHistory.getNewExpiration().isAfter(to.toLocalDate()))
+            );
+        }
+
+        @ParameterizedTest(name = "findBy_fail_invalidSize {0}")
+        @ValueSource(ints = {0, -1})
+        void findBy_fail_invalidSize(int size) {
+            assertThatThrownBy(() -> stockItemHistoryService.findBy(null, null, null, size, 1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_invalidPage {0}")
+        @ValueSource(ints = {0, -1})
+        void findBy_fail_invalidPage(int page) {
+            assertThatThrownBy(() -> stockItemHistoryService.findBy(null, null, null, 10, page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("save(stockItemHistoryDTO: StockItemHistoryDTO)")
     class SaveTests {
         @Test
@@ -267,141 +402,6 @@ class StockItemHistoryServiceIT extends AbstractIT {
 
             assertThatThrownBy(() -> stockItemHistoryService.save(stockItemHistoryDTO))
                     .isInstanceOf(ValidationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findBy(stockItemId: Long, from: LocalDateTime, to: LocalDateTime, pageSize: int, page: int)")
-    class FindByTests {
-        @Test
-        @DisplayName("findBy_success_filter")
-        void findBy_success_filter() {
-            stockItemHistoryRepository.saveAll(List.of(
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(generateStockItem(product.getId(), groupInitial.getId(), generateWarehouse().getId()).getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build()
-            ));
-
-            var result = stockItemHistoryService.findBy(stockItem.getId(), null, null, 10, 1);
-
-            assertThat(result).allMatch(stockItemHistory -> stockItemHistory.getStockItemId().equals(stockItem.getId()));
-        }
-
-        @Test
-        @DisplayName("findBy_success_pagination")
-        void findBy_success_pagination() {
-            stockItemHistoryRepository.saveAll(List.of(
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build()
-            ));
-
-            var page = stockItemHistoryService.findBy(stockItem.getId(), null, null, 3, 1);
-            var tail = stockItemHistoryService.findBy(stockItem.getId(), null, null, 1, 4);
-
-            assertThat(page).hasSize(3);
-            assertThat(tail).hasSize(1);
-            assertThat(page).doesNotContainAnyElementsOf(tail);
-        }
-
-        @Test
-        @DisplayName("findBy_success_allWhenNull")
-        void findBy_success_allWhenNull() {
-            var saved = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
-                    .stockItemId(stockItem.getId())
-                    .currentProductPrice(product.getPrice())
-                    .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                    .build()));
-
-            var result = stockItemHistoryService.findBy(null, null, null, 5, 1);
-
-            assertThat(result).hasSize(saved.size());
-        }
-
-        @Test
-        @DisplayName("findBy_success_dateRange")
-        void findBy_success_dateRange() {
-            var future5Days = LocalDate.now().plusDays(5);
-            var future10Days = LocalDate.now().plusDays(10);
-            var future30Days = LocalDate.now().plusDays(30);
-
-            stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .oldExpiration(future5Days)
-                            .newExpiration(future10Days)
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .oldExpiration(future10Days)
-                            .newExpiration(future30Days)
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build(),
-                    StockItemHistory.builder()
-                            .stockItemId(stockItem.getId())
-                            .currentProductPrice(product.getPrice())
-                            .oldExpiration(future30Days)
-                            .newExpiration(future30Days)
-                            .loggedAt(LocalDateTime.now(Clock.systemUTC()))
-                            .build()
-            ));
-
-            var from = future10Days.atStartOfDay();
-            var to = future30Days.atTime(23, 59);
-
-            var result = stockItemHistoryService.findBy(stockItem.getId(), from, to, 50, 1);
-
-            assertThat(result)
-                    .isNotEmpty();
-            assertThat(result).allMatch(stockItemHistory ->
-                    (stockItemHistory.getOldExpiration() == null || !stockItemHistory.getOldExpiration().isBefore(from.toLocalDate())) &&
-                            (stockItemHistory.getNewExpiration() == null || !stockItemHistory.getNewExpiration().isAfter(to.toLocalDate()))
-            );
-        }
-
-        @ParameterizedTest(name = "findBy_fail_invalidSize {0}")
-        @ValueSource(ints = {0, -1})
-        void findBy_fail_invalidSize(int size) {
-            assertThatThrownBy(() -> stockItemHistoryService.findBy(null, null, null, size, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest(name = "findBy_fail_invalidPage {0}")
-        @ValueSource(ints = {0, -1})
-        void findBy_fail_invalidPage(int page) {
-            assertThatThrownBy(() -> stockItemHistoryService.findBy(null, null, null, 10, page))
-                    .isInstanceOf(ConstraintViolationException.class);
         }
     }
 }

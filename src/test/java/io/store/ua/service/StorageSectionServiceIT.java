@@ -46,6 +46,52 @@ class StorageSectionServiceIT extends AbstractIT {
     }
 
     @Nested
+    @DisplayName("findBy(warehouseId: Long|null, pageSize: int, page: int)")
+    class FindByTests {
+        @ParameterizedTest(name = "findBy_success_specificWarehouse_paged: pageSize={0}, page={1}")
+        @CsvSource({"1,1", "2,1", "2,2"})
+        @Transactional
+        void findBy_success_specificWarehouse_paged(int pageSize, int page) {
+            storageSectionRepository.saveAll(generateSections(5));
+            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
+
+            var result = storageSectionService.findBy(warehouse.getId(), true, pageSize, page);
+
+            assertThat(result).hasSizeLessThanOrEqualTo(pageSize);
+            assertThat(result).allMatch(storageSection -> storageSection.getWarehouseId().equals(warehouse.getId()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_nullWarehouse_returnsAllPaginated")
+        @Transactional
+        void findBy_success_nullWarehouse_returnsAllPaginated() {
+            storageSectionRepository.saveAll(generateSections(3));
+            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
+
+            var firstBatch = storageSectionService.findBy(null, null, 3, 1);
+            var otherBatch = storageSectionService.findBy(null, null, 3, 2);
+
+            assertThat(firstBatch).hasSize(3);
+            assertThat(otherBatch).hasSize(3);
+            assertThat(firstBatch).doesNotContainAnyElementsOf(otherBatch);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageSizeInvalid: pageSize={0}")
+        @ValueSource(ints = {0, -1, -5})
+        void findBy_fail_whenPageSizeInvalid(int pageSize) {
+            assertThatThrownBy(() -> storageSectionService.findBy(null, null, pageSize, 1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageInvalid: page={0}")
+        @ValueSource(ints = {0, -1, -10})
+        void findBy_fail_whenPageInvalid(int page) {
+            assertThatThrownBy(() -> storageSectionService.findBy(null, null, 10, page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("save(warehouseId: long, code: string)")
     class SaveTests {
         @Test
@@ -178,52 +224,6 @@ class StorageSectionServiceIT extends AbstractIT {
         @ValueSource(strings = {" ", "\t", "\n"})
         void update_fail_whenCodeInvalid(String code) {
             assertThatThrownBy(() -> storageSectionService.update(1L, null, code))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findBy(warehouseId: Long|null, pageSize: int, page: int)")
-    class FindByTests {
-        @ParameterizedTest(name = "findBy_success_specificWarehouse_paged: pageSize={0}, page={1}")
-        @CsvSource({"1,1", "2,1", "2,2"})
-        @Transactional
-        void findBy_success_specificWarehouse_paged(int pageSize, int page) {
-            storageSectionRepository.saveAll(generateSections(5));
-            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
-
-            var result = storageSectionService.findBy(warehouse.getId(), true, pageSize, page);
-
-            assertThat(result).hasSizeLessThanOrEqualTo(pageSize);
-            assertThat(result).allMatch(storageSection -> storageSection.getWarehouseId().equals(warehouse.getId()));
-        }
-
-        @Test
-        @DisplayName("findBy_success_nullWarehouse_returnsAllPaginated")
-        @Transactional
-        void findBy_success_nullWarehouse_returnsAllPaginated() {
-            storageSectionRepository.saveAll(generateSections(3));
-            storageSectionRepository.saveAll(generateSections(generateWarehouse().getId(), 3));
-
-            var firstBatch = storageSectionService.findBy(null, null, 3, 1);
-            var otherBatch = storageSectionService.findBy(null, null, 3, 2);
-
-            assertThat(firstBatch).hasSize(3);
-            assertThat(otherBatch).hasSize(3);
-            assertThat(firstBatch).doesNotContainAnyElementsOf(otherBatch);
-        }
-
-        @ParameterizedTest(name = "findBy_fail_whenPageSizeInvalid: pageSize={0}")
-        @ValueSource(ints = {0, -1, -5})
-        void findBy_fail_whenPageSizeInvalid(int pageSize) {
-            assertThatThrownBy(() -> storageSectionService.findBy(null, null, pageSize, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest(name = "findBy_fail_whenPageInvalid: page={0}")
-        @ValueSource(ints = {0, -1, -10})
-        void findBy_fail_whenPageInvalid(int page) {
-            assertThatThrownBy(() -> storageSectionService.findBy(null, null, 10, page))
                     .isInstanceOf(ConstraintViolationException.class);
         }
     }

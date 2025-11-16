@@ -16,11 +16,11 @@ public class StockItemGroupController {
     private final StockItemGroupService stockItemGroupService;
 
     @GetMapping("/findBy")
-    public ResponseEntity<List<StockItemGroup>> findBy(@RequestParam(name = "code", required = false) String code,
+    public ResponseEntity<List<StockItemGroup>> findBy(@RequestParam(name = "codePart", required = false) String codePart,
                                                        @RequestParam(name = "isActive", required = false) Boolean isActive,
                                                        @RequestParam(name = "pageSize") int pageSize,
                                                        @RequestParam(name = "page") int page) {
-        return ResponseEntity.ok(stockItemGroupService.findBy(code, isActive, pageSize, page));
+        return ResponseEntity.ok(stockItemGroupService.findBy(codePart, isActive, pageSize, page));
     }
 
     @PostMapping

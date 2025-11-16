@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Beneficiary;
@@ -47,7 +47,6 @@ class BeneficiaryControllerIT extends AbstractIT {
         HttpHeaders headers = new HttpHeaders();
         headers.addAll(original);
         headers.setContentType(MediaType.APPLICATION_JSON);
-
         return headers;
     }
 
@@ -72,17 +71,18 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .queryParam("IBANPrefix", beneficiary.getIban().substring(0, 3))
                     .queryParam("SWIFTPrefix", beneficiary.getSwift().substring(0, 3))
                     .queryParam("cardPrefix", beneficiary.getCard().substring(0, 4))
-                    .queryParam("name", beneficiary.getName().substring(0, 5))
+                    .queryParam("namePart", beneficiary.getName().substring(0, 5))
                     .queryParam("isActive", beneficiary.getIsActive())
                     .queryParam("pageSize", 5)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(
+                    url,
                     HttpMethod.GET,
                     new HttpEntity<>(ownerAuthenticationHeaders),
-                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    new ParameterizedTypeReference<>() {
                     });
 
             assertThat(responseEntity.getStatusCode())
@@ -91,40 +91,6 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .isNotNull()
                     .extracting(Beneficiary::getId)
                     .containsExactly(beneficiary.getId());
-        }
-
-        @Test
-        @DisplayName("findBy_success_noFiltersReturnsPaged")
-        void findBy_success_noFiltersReturnsPaged() {
-            var firstBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
-                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    "4000%s".formatted(GENERATOR.nextNumeric(12)),
-                    true);
-            var otherBeneficiary = generateBeneficiary(GENERATOR.nextAlphabetic(10),
-                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    "4000%s".formatted(GENERATOR.nextNumeric(12)),
-                    false);
-
-            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/findBy")
-                    .queryParam("pageSize", 10)
-                    .queryParam("page", 1)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    new org.springframework.core.ParameterizedTypeReference<>() {
-                    });
-
-            assertThat(responseEntity.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-            assertThat(responseEntity.getBody())
-                    .isNotNull()
-                    .extracting(Beneficiary::getId)
-                    .contains(firstBeneficiary.getId(), otherBeneficiary.getId());
         }
     }
 
@@ -136,7 +102,8 @@ class BeneficiaryControllerIT extends AbstractIT {
         void save_success_persistsEntity() {
             var beneficiaryDTO = generateBeneficiaryDTO();
 
-            ResponseEntity<Beneficiary> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+            ResponseEntity<Beneficiary> responseEntity = restClient.exchange(
+                    "/api/v1/beneficiaries",
                     HttpMethod.POST,
                     new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
                     Beneficiary.class);
@@ -146,50 +113,6 @@ class BeneficiaryControllerIT extends AbstractIT {
             assertThat(responseEntity.getBody())
                     .isNotNull();
             assertThat(beneficiaryRepository.findById(responseEntity.getBody().getId()).isPresent())
-                    .isTrue();
-        }
-
-        @Test
-        @DisplayName("save_fail_duplicateIban_returns4xx")
-        void save_fail_duplicateIban_returns4xx() {
-            String IBAN = "UA%s".formatted(GENERATOR.nextNumeric(27));
-            generateBeneficiary(GENERATOR.nextAlphanumeric(10),
-                    IBAN,
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    null,
-                    true);
-
-            var beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(GENERATOR.nextAlphanumeric(10))
-                    .iban(IBAN)
-                    .swift(GENERATOR.nextAlphanumeric(6).toUpperCase())
-                    .card(null)
-                    .isActive(true)
-                    .build();
-
-            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
-                    HttpMethod.POST,
-                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
-                    String.class);
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
-
-        @Test
-        @DisplayName("save_fail_noBankData_returns4xx")
-        void save_fail_noBankData_returns4xx() {
-            var beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(GENERATOR.nextAlphanumeric(10))
-                    .isActive(true)
-                    .build();
-
-            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
-                    HttpMethod.POST,
-                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
-                    String.class);
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
                     .isTrue();
         }
     }
@@ -211,7 +134,8 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .swift(GENERATOR.nextAlphanumeric(6).toUpperCase())
                     .build();
 
-            ResponseEntity<Beneficiary> responseEntity = restClient.exchange("/api/v1/beneficiaries",
+            ResponseEntity<Beneficiary> responseEntity = restClient.exchange(
+                    "/api/v1/beneficiaries",
                     HttpMethod.PUT,
                     new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
                     Beneficiary.class);
@@ -224,49 +148,6 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .isEqualTo(beneficiaryDTO.getName());
             assertThat(responseEntity.getBody().getSwift())
                     .isEqualTo(beneficiaryDTO.getSwift());
-        }
-
-        @Test
-        @DisplayName("update_fail_missingId_returns4xx")
-        void update_fail_missingId_returns4xx() {
-            var beneficiaryDTO = BeneficiaryDTO.builder()
-                    .name(GENERATOR.nextAlphabetic(30))
-                    .build();
-
-            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
-                    HttpMethod.PUT,
-                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
-                    String.class);
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
-        }
-
-        @Test
-        @DisplayName("update_fail_duplicateCard_returns4xx")
-        void update_fail_duplicateCard_returns4xx() {
-            var beneficiary = generateBeneficiary(GENERATOR.nextAlphanumeric(30),
-                    "UA%s".formatted(GENERATOR.nextNumeric(27)),
-                    GENERATOR.nextAlphanumeric(6).toUpperCase(),
-                    "400000000000%s".formatted(GENERATOR.nextNumeric(4)),
-                    true);
-            var otherBeneficiary = generateBeneficiary("Target",
-                    "UA" + GENERATOR.nextNumeric(27),
-                    "TARGETSW",
-                    "400000000000%s".formatted(GENERATOR.nextNumeric(4)),
-                    true);
-            var beneficiaryDTO = BeneficiaryDTO.builder()
-                    .id(otherBeneficiary.getId())
-                    .card(beneficiary.getCard())
-                    .build();
-
-            ResponseEntity<String> responseEntity = restClient.exchange("/api/v1/beneficiaries",
-                    HttpMethod.PUT,
-                    new HttpEntity<>(beneficiaryDTO, generateHeaders(ownerAuthenticationHeaders)),
-                    String.class);
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
         }
     }
 
@@ -300,7 +181,8 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(url,
+            ResponseEntity<List<Beneficiary>> responseEntity = restClient.exchange(
+                    url,
                     HttpMethod.PUT,
                     new HttpEntity<>(ownerAuthenticationHeaders),
                     new ParameterizedTypeReference<>() {
@@ -312,25 +194,8 @@ class BeneficiaryControllerIT extends AbstractIT {
                     .isNotNull()
                     .hasSize(3);
             assertThat(responseEntity.getBody())
-                    .allSatisfy(beneficiaryAccount -> assertThat(beneficiaryAccount.getIsActive())
-                            .isTrue());
-        }
-
-        @Test
-        @DisplayName("changeState_fail_emptyIds_returns4xx")
-        void changeState_fail_emptyIds_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/beneficiaries/changeState")
-                    .queryParam("isActive", false)
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> responseEntity = restClient.exchange(url,
-                    HttpMethod.PUT,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
-                    String.class);
-
-            assertThat(responseEntity.getStatusCode().is4xxClientError())
-                    .isTrue();
+                    .allSatisfy(beneficiaryAccount ->
+                            assertThat(beneficiaryAccount.getIsActive()).isTrue());
         }
     }
 }

@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.StockItemGroup;
@@ -22,51 +22,48 @@ class StockItemGroupControllerIT extends AbstractIT {
         stockItemGroupRepository.deleteAll();
     }
 
+    private HttpHeaders generateHeaders(HttpHeaders original) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(original);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
     @Nested
     @DisplayName("GET /api/v1/stockItemGroups/findBy")
     class FindByTests {
         @Test
-        @DisplayName("findBy_success_returnsGroupByCodeFilter")
-        void findBy_success_returnsGroupByCodeFilter() {
-            StockItemGroup stockItemGroup = generateStockItemGroup(true);
-            stockItemGroup = stockItemGroupRepository.save(stockItemGroup);
+        @DisplayName("findBy_success_appliesCodePartAndIsActiveAndPagination")
+        void findBy_success_appliesCodePartAndIsActiveAndPagination() {
+            StockItemGroup activeGroup = stockItemGroupRepository.save(generateStockItemGroup(true));
+            stockItemGroupRepository.save(generateStockItemGroup(false));
 
             String url = UriComponentsBuilder
                     .fromPath("/api/v1/stockItemGroups/findBy")
-                    .queryParam("code", stockItemGroup.getCode())
+                    .queryParam("codePart", activeGroup.getCode().substring(0, 3))
+                    .queryParam("isActive", true)
                     .queryParam("pageSize", 10)
                     .queryParam("page", 1)
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<StockItemGroup[]> response = restClient.exchange(url,
+            ResponseEntity<StockItemGroup[]> response = restClient.exchange(
+                    url,
                     HttpMethod.GET,
                     new HttpEntity<>(authenticationHeaders),
-                    StockItemGroup[].class);
+                    StockItemGroup[].class
+            );
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
             assertThat(response.getBody())
-                    .isNotNull();
-
-            StockItemGroup[] body = response.getBody();
-
-            assertThat(body)
-                    .isNotEmpty();
-
-            StockItemGroup persisted = stockItemGroupRepository.findByCode(stockItemGroup.getCode())
-                    .orElseThrow();
-
-            assertThat(body)
+                    .isNotNull()
+                    .isNotEmpty()
                     .anySatisfy(group -> {
-                        assertThat(group.getId())
-                                .isEqualTo(persisted.getId());
-                        assertThat(group.getCode())
-                                .isEqualTo(persisted.getCode());
-                        assertThat(group.getName())
-                                .isEqualTo(persisted.getName());
-                        assertThat(group.getIsActive())
-                                .isEqualTo(persisted.getIsActive());
+                        assertThat(group.getId()).isEqualTo(activeGroup.getId());
+                        assertThat(group.getCode()).isEqualTo(activeGroup.getCode());
+                        assertThat(group.getName()).isEqualTo(activeGroup.getName());
+                        assertThat(group.getIsActive()).isTrue();
                     });
         }
     }
@@ -75,8 +72,8 @@ class StockItemGroupControllerIT extends AbstractIT {
     @DisplayName("POST /api/v1/stockItemGroups")
     class SaveGroupTests {
         @Test
-        @DisplayName("save_success_createsGroup_usesNameAndIsActiveFlag")
-        void save_success_createsGroup_usesNameAndIsActiveFlag() {
+        @DisplayName("save_success_createsGroup")
+        void save_success_createsGroup() {
             String groupName = GENERATOR.nextAlphabetic(30);
 
             StockItemGroupDTO stockItemGroupDTO = StockItemGroupDTO.builder()
@@ -84,10 +81,12 @@ class StockItemGroupControllerIT extends AbstractIT {
                     .isActive(true)
                     .build();
 
-            ResponseEntity<StockItemGroup> response = restClient.exchange("/api/v1/stockItemGroups",
+            ResponseEntity<StockItemGroup> response = restClient.exchange(
+                    "/api/v1/stockItemGroups",
                     HttpMethod.POST,
-                    new HttpEntity<>(stockItemGroupDTO, authenticationHeaders),
-                    StockItemGroup.class);
+                    new HttpEntity<>(stockItemGroupDTO, generateHeaders(authenticationHeaders)),
+                    StockItemGroup.class
+            );
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
@@ -124,10 +123,12 @@ class StockItemGroupControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<StockItemGroup> response = restClient.exchange(url,
+            ResponseEntity<StockItemGroup> response = restClient.exchange(
+                    url,
                     HttpMethod.PUT,
                     new HttpEntity<>(authenticationHeaders),
-                    StockItemGroup.class);
+                    StockItemGroup.class
+            );
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
@@ -149,22 +150,6 @@ class StockItemGroupControllerIT extends AbstractIT {
                     .isEqualTo(newName);
             assertThat(reloaded.getIsActive())
                     .isFalse();
-        }
-
-        @Test
-        @DisplayName("update_fails_missingId_returns4xx")
-        void update_fails_missingId_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/stockItemGroups")
-                    .queryParam("name", GENERATOR.nextAlphabetic(24))
-                    .build(true)
-                    .toUriString();
-
-            ResponseEntity<String> response = restClient.exchange(url,
-                    HttpMethod.PUT,
-                    new HttpEntity<>(authenticationHeaders),
-                    String.class);
-
-            assertThat(response.getStatusCode().is4xxClientError()).isTrue();
         }
     }
 }

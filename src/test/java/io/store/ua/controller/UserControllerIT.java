@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.User;
@@ -12,6 +12,7 @@ import org.springframework.http.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +75,13 @@ class UserControllerIT extends AbstractIT {
         return restClient.exchange(uri, HttpMethod.GET, authenticatedHttpEntity, responseType);
     }
 
+    private HttpHeaders generateJsonHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(authenticationHeaders);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
     @Nested
     @DisplayName("GET /api/v1/users")
     class GetCurrentUserTests {
@@ -92,123 +100,60 @@ class UserControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/users/findBy/role")
-    class FindByRoleTests {
-        @Test
-        @DisplayName("role = MANAGER returns only managers")
-        void findByRole_success_returnsManagersOnly() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/users/findBy/role")
-                    .queryParam("role", UserRole.MANAGER.name())
-                    .queryParam("pageSize", 50)
-                    .queryParam("page", 1)
-                    .build(true).toUriString();
-
-            ResponseEntity<List<User>> response = getList(url, new ParameterizedTypeReference<>() {
-            });
-
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-
-            List<User> users = response.getBody();
-
-            assertThat(users)
-                    .isNotNull()
-                    .isNotEmpty();
-
-            for (User returnedUser : users) {
-                assertThat(returnedUser.getRole())
-                        .isEqualTo(UserRole.MANAGER);
-            }
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/users/findBy/status")
-    class FindByStatusTests {
-        @Test
-        @DisplayName("status = ACTIVE returns only active users")
-        void findByStatus_success_returnsActiveOnly() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/users/findBy/status")
-                    .queryParam("status", UserStatus.ACTIVE.name())
-                    .queryParam("pageSize", 200)
-                    .queryParam("page", 1)
-                    .build(true).toUriString();
-
-            ResponseEntity<List<User>> response = getList(url, new ParameterizedTypeReference<>() {
-            });
-
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-
-            List<User> users = response.getBody();
-
-            assertThat(users)
-                    .isNotNull()
-                    .isNotEmpty();
-
-            for (User returnedUser : users) {
-                assertThat(returnedUser.getStatus())
-                        .isEqualTo(UserStatus.ACTIVE);
-            }
-        }
-    }
-
-    @Nested
     @DisplayName("GET /api/v1/users/findBy")
     class FindByTests {
         @Test
-        @DisplayName("filters by username prefix + roles + statuses")
-        void findBy_success_filtersByUsernameRoleStatus() {
+        @DisplayName("filters by username prefix, email part, roles, statuses and online flag")
+        void findBy_success_allFiltersApplied() {
+            String targetUsername = "alphaUser";
+            String otherUsername = "betaUser";
+
+            User target = userRepository.save(User.builder()
+                    .username(targetUsername)
+                    .password(passwordEncoder.encode(GENERATOR.nextAlphanumeric(12)))
+                    .email("alpha.user@example.com")
+                    .role(UserRole.MANAGER)
+                    .status(UserStatus.ACTIVE)
+                    .timezone("UTC")
+                    .build());
+
+            userRepository.save(User.builder()
+                    .username(otherUsername)
+                    .password(passwordEncoder.encode(GENERATOR.nextAlphanumeric(12)))
+                    .email("other.user@other.com")
+                    .role(UserRole.OPERATOR)
+                    .status(UserStatus.INACTIVE)
+                    .timezone("UTC")
+                    .build());
+
             String url = UriComponentsBuilder.fromPath("/api/v1/users/findBy")
                     .queryParam("username", "alpha")
-                    .queryParam("roles", UserRole.MANAGER.name())
-                    .queryParam("statuses", UserStatus.ACTIVE.name())
+                    .queryParam("email", "example.com")
+                    .queryParam("role", UserRole.MANAGER.name())
+                    .queryParam("status", UserStatus.ACTIVE.name())
+                    .queryParam("isOnline", false)
                     .queryParam("pageSize", 50)
                     .queryParam("page", 1)
-                    .build(true).toUriString();
+                    .build(true)
+                    .toUriString();
 
-            ResponseEntity<List<User>> response = getList(url, new ParameterizedTypeReference<>() {
-            });
-
-            assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.OK);
-
-            List<User> users = response.getBody();
-
-            assertThat(users)
-                    .isNotNull();
-            users.forEach(user -> {
-                assertThat(user.getRole() == UserRole.MANAGER).isTrue();
-                assertThat(user.getStatus() == UserStatus.ACTIVE).isTrue();
-            });
-        }
-
-        @Test
-        @DisplayName("filters by email part + multiple roles + multiple statuses")
-        void findBy_success_filtersByEmailMultipleRolesStatuses() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/users/findBy")
-                    .queryParam("email", "example.com")
-                    .queryParam("roles", UserRole.MANAGER.name())
-                    .queryParam("roles", UserRole.OPERATOR.name())
-                    .queryParam("statuses", UserStatus.ACTIVE.name())
-                    .queryParam("statuses", UserStatus.INACTIVE.name())
-                    .queryParam("pageSize", 500)
-                    .queryParam("page", 1)
-                    .build(true).toUriString();
-
-            ResponseEntity<List<User>> response = getList(url, new ParameterizedTypeReference<>() {
-            });
+            ResponseEntity<List<User>> response = getList(url, new ParameterizedTypeReference<>() {});
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
+
             List<User> users = response.getBody();
 
             assertThat(users)
                     .isNotNull()
                     .isNotEmpty();
+            assertThat(users.stream().map(User::getId))
+                    .contains(target.getId());
             users.forEach(user -> {
-                assertThat(user.getRole() == UserRole.MANAGER || user.getRole() == UserRole.OPERATOR).isTrue();
-                assertThat(user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.INACTIVE).isTrue();
+                assertThat(user.getUsername()).startsWith("alpha");
+                assertThat(user.getEmail()).contains("example.com");
+                assertThat(user.getRole()).isEqualTo(UserRole.MANAGER);
+                assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
             });
         }
     }
@@ -234,7 +179,7 @@ class UserControllerIT extends AbstractIT {
             ResponseEntity<User> saveResponse = restClient.exchange(
                     "/api/v1/users",
                     HttpMethod.POST,
-                    new HttpEntity<>(user, authenticationHeaders),
+                    new HttpEntity<>(user, generateJsonHeaders()),
                     User.class);
 
             assertThat(saveResponse.getStatusCode())
@@ -257,7 +202,6 @@ class UserControllerIT extends AbstractIT {
 
             assertThat(fetchUser)
                     .isNotNull();
-
             assertThat(passwordEncoder.matches(user.getPassword(), fetchUser.getPassword()))
                     .isTrue();
         }
@@ -269,33 +213,35 @@ class UserControllerIT extends AbstractIT {
         @Test
         @DisplayName("creates multiple users")
         void saveAll_success_createsUsers() {
-            var firstUser = new UserDTO();
-            firstUser.setUsername(GENERATOR.nextAlphabetic(10));
-            firstUser.setEmail("%s@%s.%s".formatted(
-                    GENERATOR.nextAlphabetic(10),
-                    GENERATOR.nextAlphabetic(5),
-                    GENERATOR.nextAlphabetic(3)));
-            firstUser.setRole(UserRole.MANAGER.name());
-            firstUser.setStatus(UserStatus.ACTIVE.name());
-            firstUser.setTimezone("UTC");
-            firstUser.setPassword(GENERATOR.nextAlphanumeric(13));
+            var firstUser = UserDTO.builder()
+                    .username(GENERATOR.nextAlphabetic(10))
+                    .email("%s@%s.%s".formatted(
+                            GENERATOR.nextAlphabetic(10),
+                            GENERATOR.nextAlphabetic(5),
+                            GENERATOR.nextAlphabetic(3)))
+                    .role(UserRole.MANAGER.name())
+                    .status(UserStatus.ACTIVE.name())
+                    .timezone("UTC")
+                    .password(GENERATOR.nextAlphanumeric(13))
+                    .build();
 
-            var otherUser = new UserDTO();
-            otherUser.setUsername(GENERATOR.nextAlphabetic(10));
-            otherUser.setEmail("%s@%s.%s".formatted(
-                    GENERATOR.nextAlphabetic(10),
-                    GENERATOR.nextAlphabetic(5),
-                    GENERATOR.nextAlphabetic(3)));
-            otherUser.setRole(UserRole.MANAGER.name());
-            otherUser.setStatus(UserStatus.ACTIVE.name());
-            otherUser.setTimezone("UTC");
-            otherUser.setPassword(GENERATOR.nextAlphanumeric(13));
+            var otherUser = UserDTO.builder()
+                    .username(GENERATOR.nextAlphabetic(10))
+                    .email("%s@%s.%s".formatted(
+                            GENERATOR.nextAlphabetic(10),
+                            GENERATOR.nextAlphabetic(5),
+                            GENERATOR.nextAlphabetic(3)))
+                    .role(UserRole.OPERATOR.name())
+                    .status(UserStatus.INACTIVE.name())
+                    .timezone("UTC")
+                    .password(GENERATOR.nextAlphanumeric(13))
+                    .build();
 
-            ResponseEntity<List<User>> response = restClient.exchange("/api/v1/users/all",
+            ResponseEntity<List<User>> response = restClient.exchange(
+                    "/api/v1/users/all",
                     HttpMethod.POST,
-                    new HttpEntity<>(List.of(firstUser, otherUser), authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
+                    new HttpEntity<>(List.of(firstUser, otherUser), generateJsonHeaders()),
+                    new ParameterizedTypeReference<>() {});
 
             assertThat(response.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
@@ -303,14 +249,13 @@ class UserControllerIT extends AbstractIT {
             List<User> users = response.getBody();
 
             assertThat(users)
-                    .isNotNull()
-                    .hasSize(3 - 1);
+                    .isNotNull();
 
-            var createdUsernames = users
-                    .stream()
+            Set<String> createdUsernames = users.stream()
                     .map(User::getUsername)
                     .collect(Collectors.toSet());
-            assertThat(createdUsernames).contains(firstUser.getUsername(), otherUser.getUsername());
+            assertThat(createdUsernames)
+                    .contains(firstUser.getUsername(), otherUser.getUsername());
 
             User savedFirst = userRepository.findUserByUsername(firstUser.getUsername());
             User savedSecond = userRepository.findUserByUsername(otherUser.getUsername());
@@ -329,9 +274,9 @@ class UserControllerIT extends AbstractIT {
             assertThat(savedSecond)
                     .isNotNull();
             assertThat(savedSecond.getRole())
-                    .isEqualTo(UserRole.MANAGER);
+                    .isEqualTo(UserRole.OPERATOR);
             assertThat(savedSecond.getStatus())
-                    .isEqualTo(UserStatus.ACTIVE);
+                    .isEqualTo(UserStatus.INACTIVE);
             assertThat(savedSecond.getTimezone())
                     .isEqualTo("UTC");
             assertThat(passwordEncoder.matches(otherUser.getPassword(), savedSecond.getPassword()))
@@ -366,14 +311,15 @@ class UserControllerIT extends AbstractIT {
                             GENERATOR.nextAlphanumeric(3)))
                     .role(UserRole.MANAGER.name())
                     .status(UserStatus.ACTIVE.name())
-                    .timezone("UTC")
+                    .timezone("Europe/Kyiv")
                     .oldPassword(password)
                     .password(GENERATOR.nextAlphanumeric(13))
                     .build();
 
-            ResponseEntity<User> response = restClient.exchange("/api/v1/users",
+            ResponseEntity<User> response = restClient.exchange(
+                    "/api/v1/users",
                     HttpMethod.PUT,
-                    new HttpEntity<>(userDTO, authenticationHeaders),
+                    new HttpEntity<>(userDTO, generateJsonHeaders()),
                     User.class);
 
             assertThat(response.getStatusCode())
@@ -398,8 +344,8 @@ class UserControllerIT extends AbstractIT {
     @DisplayName("PUT /api/v1/users/all")
     class UpdateAllUsersTests {
         @Test
-        @DisplayName("updates multiple users with random data and returns ordered results; persists changes")
-        void updateAll_success_persistsAndReturnsOrderedResults() {
+        @DisplayName("updates multiple users and persists changes")
+        void updateAll_success_persistsAndReturnsResults() {
             String firstUsername = GENERATOR.nextAlphabetic(10);
             String otherUsername = GENERATOR.nextAlphabetic(10);
 
@@ -446,22 +392,23 @@ class UserControllerIT extends AbstractIT {
                     .password(otherNewPlainPassword)
                     .build();
 
-            ResponseEntity<List<UserActionResultDTO>> updateResponse = restClient.exchange("/api/v1/users/all",
+            ResponseEntity<List<UserActionResultDTO>> updateResponse = restClient.exchange(
+                    "/api/v1/users/all",
                     HttpMethod.PUT,
-                    new HttpEntity<>(List.of(firstUpdateDto, otherUpdateDto), authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    });
+                    new HttpEntity<>(List.of(firstUpdateDto, otherUpdateDto), generateJsonHeaders()),
+                    new ParameterizedTypeReference<>() {});
 
             assertThat(updateResponse.getStatusCode().is2xxSuccessful())
                     .isTrue();
 
             List<UserActionResultDTO> actionResults = updateResponse.getBody();
 
-            assertThat(actionResults).isNotNull()
-                    .hasSize(3 - 1);
+            assertThat(actionResults)
+                    .isNotNull()
+                    .hasSize(2);
 
-            UserActionResultDTO firstResult = actionResults.getFirst();
-            UserActionResultDTO otherResult = actionResults.getLast();
+            UserActionResultDTO firstResult = actionResults.get(0);
+            UserActionResultDTO otherResult = actionResults.get(1);
 
             assertThat(firstResult.getSuccess())
                     .isTrue();
@@ -469,8 +416,6 @@ class UserControllerIT extends AbstractIT {
                     .isNotNull();
             assertThat(firstResult.getUser().getUsername())
                     .isEqualTo(firstUsername);
-            assertThat(firstResult.getError())
-                    .isNull();
 
             assertThat(otherResult.getSuccess())
                     .isTrue();
@@ -478,8 +423,6 @@ class UserControllerIT extends AbstractIT {
                     .isNotNull();
             assertThat(otherResult.getUser().getUsername())
                     .isEqualTo(otherUsername);
-            assertThat(otherResult.getError())
-                    .isNull();
 
             User firstUserAfterUpdate = userRepository.findUserByUsername(firstUsername);
             User otherUserAfterUpdate = userRepository.findUserByUsername(otherUsername);

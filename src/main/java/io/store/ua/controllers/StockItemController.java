@@ -16,13 +16,13 @@ public class StockItemController {
     private final StockItemService stockItemService;
 
     @GetMapping("/findBy")
-    public ResponseEntity<List<StockItem>> findBy(@RequestParam(name = "warehouse_id", required = false) List<Long> warehouseIds,
-                                                  @RequestParam(name = "product_id", required = false) List<Long> productIds,
-                                                  @RequestParam(name = "stock_item_group_id", required = false) List<Long> stockItemGroupIds,
+    public ResponseEntity<List<StockItem>> findBy(@RequestParam(name = "warehouseId", required = false) List<Long> warehouseIds,
+                                                  @RequestParam(name = "productId", required = false) List<Long> productIds,
+                                                  @RequestParam(name = "stockItemGroupId", required = false) List<Long> stockItemGroupIds,
                                                   @RequestParam(name = "status", required = false) List<String> statuses,
-                                                  @RequestParam(name = "storage_section_id", required = false) List<Long> storageSectionIds,
-                                                  @RequestParam(name = "is_item_active", required = false) Boolean isItemActive,
-                                                  @RequestParam(name = "is_item_group_active", required = false) Boolean isItemGroupActive,
+                                                  @RequestParam(name = "storageSectionId", required = false) List<Long> storageSectionIds,
+                                                  @RequestParam(name = "isItemActive", required = false) Boolean isItemActive,
+                                                  @RequestParam(name = "isItemGroupActive", required = false) Boolean isItemGroupActive,
                                                   @RequestParam(name = "pageSize") int pageSize,
                                                   @RequestParam(name = "page") int page) {
 

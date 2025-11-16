@@ -3,6 +3,8 @@ package io.store.ua.service;
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
 import io.store.ua.entity.Tag;
+import io.store.ua.entity.immutable.ProductTagLink;
+import io.store.ua.enums.Currency;
 import io.store.ua.exceptions.NotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,13 +31,168 @@ class TagServiceIT extends AbstractIT {
     @Autowired
     private TagService tagService;
 
-    private List<Tag> generateTags(int count) {
-        return Stream.generate(() -> Tag.builder()
-                        .name(RandomStringUtils.secure().nextAlphanumeric(10))
-                        .isActive(true)
-                        .build())
-                .limit(count)
-                .toList();
+    @Nested
+    @DisplayName("findBy(name: String, isActive: Boolean, pageSize: int, page: int)")
+    class FindByTests {
+        @Test
+        @DisplayName("findBy_success_nameOnly_filtersBySubstringIgnoringCase")
+        @Transactional
+        void findBy_success_nameOnly_filtersBySubstringIgnoringCase() {
+            Tag first = tagRepository.save(Tag.builder()
+                    .name("apple")
+                    .isActive(true)
+                    .build());
+            Tag second = tagRepository.save(Tag.builder()
+                    .name("Application")
+                    .isActive(false)
+                    .build());
+            tagRepository.save(Tag.builder()
+                    .name("banana")
+                    .isActive(true)
+                    .build());
+
+            List<Tag> result = tagService.findBy("app", null, 10, 1);
+
+            assertThat(result)
+                    .extracting(Tag::getName)
+                    .containsExactlyInAnyOrder(first.getName(), second.getName());
+        }
+
+        @Test
+        @DisplayName("findBy_success_isActiveOnly_true")
+        @Transactional
+        void findBy_success_isActiveOnly_true() {
+            tagRepository.save(Tag.builder()
+                    .name("tag1")
+                    .isActive(true)
+                    .build());
+            tagRepository.save(Tag.builder()
+                    .name("tag2")
+                    .isActive(true)
+                    .build());
+            tagRepository.save(Tag.builder()
+                    .name("tag3")
+                    .isActive(false)
+                    .build());
+
+            List<Tag> result = tagService.findBy(null, true, 10, 1);
+
+            assertThat(result).isNotEmpty();
+            assertThat(result).allMatch(tag -> Boolean.TRUE.equals(tag.getIsActive()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_isActiveOnly_false")
+        @Transactional
+        void findBy_success_isActiveOnly_false() {
+            tagRepository.save(Tag.builder()
+                    .name("active1")
+                    .isActive(true)
+                    .build());
+            Tag first = tagRepository.save(Tag.builder()
+                    .name("inactive1")
+                    .isActive(false)
+                    .build());
+            Tag second = tagRepository.save(Tag.builder()
+                    .name("inactive2")
+                    .isActive(false)
+                    .build());
+
+            List<Tag> result = tagService.findBy(null, false, 10, 1);
+
+            assertThat(result)
+                    .extracting(Tag::getName)
+                    .containsExactlyInAnyOrder(first.getName(), second.getName());
+            assertThat(result).allMatch(tag -> Boolean.FALSE.equals(tag.getIsActive()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_nameAndActive_combinedFilter")
+        @Transactional
+        void findBy_success_nameAndActive_combinedFilter() {
+            Tag activeApple = tagRepository.save(Tag.builder()
+                    .name("Apple")
+                    .isActive(true)
+                    .build());
+            tagRepository.save(Tag.builder()
+                    .name("apple-past")
+                    .isActive(false)
+                    .build());
+            Tag activePineapple = tagRepository.save(Tag.builder()
+                    .name("Pineapple")
+                    .isActive(true)
+                    .build());
+            tagRepository.save(Tag.builder()
+                    .name("banana")
+                    .isActive(true)
+                    .build());
+
+            List<Tag> result = tagService.findBy("app", true, 10, 1);
+
+            assertThat(result)
+                    .extracting(Tag::getName)
+                    .containsExactlyInAnyOrder(activeApple.getName(), activePineapple.getName());
+            assertThat(result)
+                    .allMatch(t -> Boolean.TRUE.equals(t.getIsActive()));
+        }
+
+        @Test
+        @DisplayName("findBy_success_pagination_splitsResultsAcrossPages")
+        @Transactional
+        void findBy_success_pagination_splitsResultsAcrossPages() {
+            Tag t1 = tagRepository.save(Tag.builder()
+                    .name("tag1")
+                    .isActive(true)
+                    .build());
+            Tag t2 = tagRepository.save(Tag.builder()
+                    .name("tag2")
+                    .isActive(true)
+                    .build());
+            Tag t3 = tagRepository.save(Tag.builder()
+                    .name("tag3")
+                    .isActive(true)
+                    .build());
+            Tag t4 = tagRepository.save(Tag.builder()
+                    .name("tag4")
+                    .isActive(true)
+                    .build());
+
+            List<Tag> firstPage = tagService.findBy(null,
+                    true,
+                    3,
+                    1);
+            List<Tag> secondPage = tagService.findBy(null,
+                    true,
+                    1,
+                    4);
+
+            assertThat(firstPage)
+                    .hasSize(3);
+            assertThat(secondPage)
+                    .hasSize(1);
+            assertThat(firstPage)
+                    .doesNotContainAnyElementsOf(secondPage);
+            assertThat(firstPage)
+                    .extracting(Tag::getName)
+                    .containsAnyOf(t1.getName(), t2.getName(), t3.getName(), t4.getName());
+            assertThat(secondPage)
+                    .extracting(Tag::getName)
+                    .containsAnyOf(t1.getName(), t2.getName(), t3.getName(), t4.getName());
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageSizeIsInvalid: pageSize={0}")
+        @ValueSource(ints = {0, -1})
+        void findBy_fail_whenPageSizeIsInvalid(int pageSize) {
+            assertThatThrownBy(() -> tagService.findBy(null, null, pageSize, 1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest(name = "findBy_fail_whenPageIsInvalid: page={0}")
+        @ValueSource(ints = {0, -1})
+        void findBy_fail_whenPageIsInvalid(int page) {
+            assertThatThrownBy(() -> tagService.findBy(null, null, 10, page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
     }
 
     @Nested
@@ -153,166 +309,15 @@ class TagServiceIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("findBy(name: String, isActive: Boolean, pageSize: int, page: int)")
-    class FindByTests {
-        @Test
-        @DisplayName("findBy_success_nameOnly_filtersBySubstringIgnoringCase")
-        @Transactional
-        void findBy_success_nameOnly_filtersBySubstringIgnoringCase() {
-            Tag first = tagRepository.save(Tag.builder()
-                    .name("apple")
-                    .isActive(true)
-                    .build());
-            Tag second = tagRepository.save(Tag.builder()
-                    .name("Application")
-                    .isActive(false)
-                    .build());
-            tagRepository.save(Tag.builder()
-                    .name("banana")
-                    .isActive(true)
-                    .build());
-
-            List<Tag> result = tagService.findBy("app", null, 10, 1);
-
-            assertThat(result)
-                    .extracting(Tag::getName)
-                    .containsExactlyInAnyOrder(first.getName(), second.getName());
-        }
-
-        @Test
-        @DisplayName("findBy_success_isActiveOnly_true")
-        @Transactional
-        void findBy_success_isActiveOnly_true() {
-            tagRepository.save(Tag.builder()
-                    .name("tag1")
-                    .isActive(true)
-                    .build());
-            tagRepository.save(Tag.builder()
-                    .name("tag2")
-                    .isActive(true)
-                    .build());
-            tagRepository.save(Tag.builder()
-                    .name("tag3")
-                    .isActive(false)
-                    .build());
-
-            List<Tag> result = tagService.findBy(null, true, 10, 1);
-
-            assertThat(result).isNotEmpty();
-            assertThat(result).allMatch(tag -> Boolean.TRUE.equals(tag.getIsActive()));
-        }
-
-        @Test
-        @DisplayName("findBy_success_isActiveOnly_false")
-        @Transactional
-        void findBy_success_isActiveOnly_false() {
-            tagRepository.save(Tag.builder()
-                    .name("active1")
-                    .isActive(true)
-                    .build());
-            Tag first = tagRepository.save(Tag.builder()
-                    .name("inactive1")
-                    .isActive(false)
-                    .build());
-            Tag second = tagRepository.save(Tag.builder()
-                    .name("inactive2")
-                    .isActive(false)
-                    .build());
-
-            List<Tag> result = tagService.findBy(null, false, 10, 1);
-
-            assertThat(result)
-                    .extracting(Tag::getName)
-                    .containsExactlyInAnyOrder(first.getName(), second.getName());
-            assertThat(result).allMatch(tag -> Boolean.FALSE.equals(tag.getIsActive()));
-        }
-
-        @Test
-        @DisplayName("findBy_success_nameAndActive_combinedFilter")
-        @Transactional
-        void findBy_success_nameAndActive_combinedFilter() {
-            Tag activeApple = tagRepository.save(Tag.builder()
-                    .name("Apple")
-                    .isActive(true)
-                    .build());
-            Tag inactiveApple = tagRepository.save(Tag.builder()
-                    .name("apple-past")
-                    .isActive(false)
-                    .build());
-            Tag activePineapple = tagRepository.save(Tag.builder()
-                    .name("Pineapple")
-                    .isActive(true)
-                    .build());
-            tagRepository.save(Tag.builder()
-                    .name("banana")
-                    .isActive(true)
-                    .build());
-
-            List<Tag> result = tagService.findBy("app", true, 10, 1);
-
-            assertThat(result)
-                    .extracting(Tag::getName)
-                    .containsExactlyInAnyOrder(activeApple.getName(), activePineapple.getName());
-            assertThat(result).allMatch(t -> Boolean.TRUE.equals(t.getIsActive()));
-        }
-
-        @Test
-        @DisplayName("findBy_success_pagination_splitsResultsAcrossPages")
-        @Transactional
-        void findBy_success_pagination_splitsResultsAcrossPages() {
-            Tag t1 = tagRepository.save(Tag.builder()
-                    .name("tag1")
-                    .isActive(true)
-                    .build());
-            Tag t2 = tagRepository.save(Tag.builder()
-                    .name("tag2")
-                    .isActive(true)
-                    .build());
-            Tag t3 = tagRepository.save(Tag.builder()
-                    .name("tag3")
-                    .isActive(true)
-                    .build());
-            Tag t4 = tagRepository.save(Tag.builder()
-                    .name("tag4")
-                    .isActive(true)
-                    .build());
-
-            List<Tag> firstPage = tagService.findBy(null, true, 3, 1);
-            List<Tag> secondPage = tagService.findBy(null, true, 1, 4);
-
-            assertThat(firstPage).hasSize(3);
-            assertThat(secondPage).hasSize(1);
-            assertThat(firstPage).doesNotContainAnyElementsOf(secondPage);
-            assertThat(firstPage)
-                    .extracting(Tag::getName)
-                    .containsAnyOf(t1.getName(), t2.getName(), t3.getName(), t4.getName());
-            assertThat(secondPage)
-                    .extracting(Tag::getName)
-                    .containsAnyOf(t1.getName(), t2.getName(), t3.getName(), t4.getName());
-        }
-
-        @ParameterizedTest(name = "findBy_fail_whenPageSizeIsInvalid: pageSize={0}")
-        @ValueSource(ints = {0, -1})
-        void findBy_fail_whenPageSizeIsInvalid(int pageSize) {
-            assertThatThrownBy(() -> tagService.findBy(null, null, pageSize, 1))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest(name = "findBy_fail_whenPageIsInvalid: page={0}")
-        @ValueSource(ints = {0, -1})
-        void findBy_fail_whenPageIsInvalid(int page) {
-            assertThatThrownBy(() -> tagService.findBy(null, null, 10, page))
-                    .isInstanceOf(ConstraintViolationException.class);
-        }
-    }
-
-    @Nested
     @DisplayName("emptyTags()")
     class EmptyTagsTests {
         @Test
         @DisplayName("emptyTags_success: clears all tags that are not attached to any existing product")
         void emptyTags_success() {
-            tagRepository.saveAll(generateTags(1));
+            tagRepository.save(Tag.builder()
+                    .name(GENERATOR.nextAlphanumeric(10))
+                    .isActive(true)
+                    .build());
             tagService.clearUnusedTags();
             assertEquals(0, tagRepository.count());
         }
@@ -340,18 +345,18 @@ class TagServiceIT extends AbstractIT {
                     .title(RandomStringUtils.secure().nextAlphabetic(10))
                     .description(RandomStringUtils.secure().nextAlphanumeric(40))
                     .price(BigInteger.valueOf(RandomUtils.secure().randomInt(10, 500)))
+                    .currency(Currency.USD.name())
                     .weight(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                     .length(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                     .width(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                     .height(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                     .build());
 
-            entityManager.createNativeQuery(
-                            "INSERT INTO product_tags (product_id, tag_id) VALUES (:a, :b)")
-                    .setParameter("a", product.getId())
-                    .setParameter("b", attachedTag.getId())
-                    .executeUpdate();
-
+            entityManager.persist(ProductTagLink.builder()
+                    .id(RandomUtils.secure().randomLong(1, 1000))
+                    .productId(product.getId())
+                    .tagId(attachedTag.getId())
+                    .build());
             entityManager.flush();
             entityManager.clear();
 

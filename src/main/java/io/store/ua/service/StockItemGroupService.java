@@ -31,7 +31,7 @@ public class StockItemGroupService {
     private final FieldValidator fieldValidator;
     private final EntityManager entityManager;
 
-    public List<StockItemGroup> findBy(String code,
+    public List<StockItemGroup> findBy(String codePart,
                                        Boolean isActive,
                                        @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
                                        @Min(value = 1, message = "A page number can't be less than 1") int page) {
@@ -41,9 +41,9 @@ public class StockItemGroupService {
 
         List<Predicate> predicates = new ArrayList<>();
 
-        if (StringUtils.isNotBlank(code)) {
+        if (StringUtils.isNotBlank(codePart)) {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(StockItemGroup.Fields.code)),
-                    "%" + "%s".formatted(code).toLowerCase() + "%"));
+                    "%" + "%s".formatted(codePart).toLowerCase() + "%"));
         }
 
         if (isActive != null) {

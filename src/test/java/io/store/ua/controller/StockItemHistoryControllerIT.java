@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
@@ -46,7 +46,6 @@ class StockItemHistoryControllerIT extends AbstractIT {
     @Nested
     @DisplayName("GET /api/v1/stockItemsHistory/findBy")
     class FindByTests {
-
         @Test
         @DisplayName("findBy_success_filtersByStockItemIdAndDateRange_pagination")
         void findBy_success_filtersByStockItemIdAndDateRange_pagination() {

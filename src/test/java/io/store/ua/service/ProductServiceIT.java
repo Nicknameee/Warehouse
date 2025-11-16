@@ -75,6 +75,171 @@ class ProductServiceIT extends AbstractIT {
     }
 
     @Nested
+    @DisplayName("findBy(...)")
+    class FindByTests {
+        @Test
+        @DisplayName("findBy_success: filters by title part, price range, created range and all tagIds (AND)")
+        @Transactional
+        void findBy_success_allFilters() {
+            List<Tag> tags = tagRepository.saveAll(generateTags(3));
+            Tag tagX = tags.get(0);
+            Tag tagY = tags.get(1);
+
+            ProductDTO productDTO = buildProductDTO();
+            productDTO.setTitle(GENERATOR.nextAlphanumeric(10));
+            productDTO.setPrice(BigInteger.valueOf(500));
+            productDTO.setCurrency(Currency.USD.name());
+
+            Product product = saveProduct(productDTO);
+            product.setTags(new ArrayList<>(List.of(tagX, tagY)));
+            productRepository.save(product);
+
+            LocalDateTime from = LocalDateTime.now().minusDays(1);
+            LocalDateTime to = LocalDateTime.now().plusDays(1);
+
+            List<Product> result = productService.findBy(productDTO.getTitle().substring(0, 5),
+                    product.getCode().substring(3, 9),
+                    BigInteger.valueOf(100),
+                    BigInteger.valueOf(1_000),
+                    List.of(tagX.getId(), tagY.getId()),
+                    from,
+                    to,
+                    10,
+                    1);
+
+            assertThat(result).extracting(Product::getId)
+                    .containsExactly(product.getId());
+        }
+
+        @Test
+        @DisplayName("findBy_fail: throws ValidationException when 'to' is before 'from'")
+        void findBy_fail_toBeforeFrom() {
+            LocalDateTime from = LocalDateTime.now().plusDays(1);
+            LocalDateTime to = LocalDateTime.now().minusDays(1);
+
+            assertThatThrownBy(() -> productService.findBy("gamma",
+                    null,
+                    null,
+                    null,
+                    null,
+                    from,
+                    to,
+                    10,
+                    1))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("A 'to' can't be before 'from'");
+        }
+
+        @Test
+        @DisplayName("findBy_success: filters by all criteria and includes photos for matching products")
+        void findBy_success_allFilters_withPhotos() {
+            List<Tag> tags = tagRepository.saveAll(generateTags(3));
+            Tag tag = tags.get(0);
+            Tag otherTag = tags.get(1);
+
+            String titleToken = GENERATOR.nextAlphabetic(6);
+
+            ProductDTO productDTO = buildProductDTO();
+            productDTO.setTitle(titleToken + "-" + GENERATOR.nextAlphanumeric(8));
+            productDTO.setPrice(BigInteger.valueOf(RandomUtils.secure().randomLong(400, 800)));
+
+            Product product = saveProduct(productDTO);
+            product.setTags(new ArrayList<>(List.of(tag, otherTag)));
+            product = productRepository.save(product);
+
+            String photoUrlMatch = "https://cdn." + GENERATOR.nextAlphanumeric(6) + ".example/" +
+                    GENERATOR.nextAlphanumeric(10) + ".png";
+            String photoRefMatch = GENERATOR.nextAlphanumeric(18);
+
+            productPhotoRepository.save(ProductPhoto.builder()
+                    .productId(product.getId())
+                    .photoUrl(photoUrlMatch)
+                    .externalReference(photoRefMatch)
+                    .build());
+
+            LocalDateTime createdFrom = LocalDateTime.now().minusDays(1);
+            LocalDateTime createdTo = LocalDateTime.now().plusDays(1);
+            BigInteger minPrice = BigInteger.valueOf(100);
+            BigInteger maxPrice = BigInteger.valueOf(1_000);
+
+            List<Product> result = productService.findBy(titleToken.toLowerCase(),
+                    product.getCode().substring(3, 9),
+                    minPrice,
+                    maxPrice,
+                    List.of(tag.getId(), otherTag.getId()),
+                    createdFrom,
+                    createdTo,
+                    10,
+                    1
+            );
+
+            assertThat(result).extracting(Product::getId)
+                    .containsExactly(product.getId());
+
+            Product fetch = result.getFirst();
+
+            assertThat(fetch.getPhotos())
+                    .isNotEmpty();
+            assertThat(fetch.getPhotos())
+                    .extracting(ProductPhoto::getExternalReference)
+                    .contains(photoRefMatch);
+            assertThat(fetch.getPhotos())
+                    .extracting(ProductPhoto::getPhotoUrl)
+                    .contains(photoUrlMatch);
+        }
+
+        @Test
+        @DisplayName("findBy_fail: throws ValidationException when minPrice > maxPrice")
+        void findBy_fail_minGreaterThanMax() {
+            assertThatThrownBy(() -> productService.findBy(null,
+                    null,
+                    BigInteger.valueOf(200),
+                    BigInteger.valueOf(100),
+                    null,
+                    null,
+                    null,
+                    10,
+                    1))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("Minimum price can't be greater than max price");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("findBy_fail: throws ConstraintViolationException when pageSize invalid")
+        void findBy_fail_whenPageSizeInvalid(int pageSize) {
+            assertThatThrownBy(() -> productService.findBy(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    pageSize,
+                    1))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("findBy_fail: throws ConstraintViolationException when page invalid")
+        void findBy_fail_whenPageInvalid(int page) {
+            assertThatThrownBy(() -> productService.findBy(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    10,
+                    page))
+                    .isInstanceOf(ConstraintViolationException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("save(productDTO: ProductDTO)")
     class SaveTests {
         @Test
@@ -270,170 +435,6 @@ class ProductServiceIT extends AbstractIT {
 
             assertThatThrownBy(() -> productService.update(updateDTO))
                     .isInstanceOf(NotFoundException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("findBy(...)")
-    class FindByTests {
-        @Test
-        @DisplayName("findBy_success: filters by title part, price range, created range and all tagIds (AND)")
-        @Transactional
-        void findBy_success_allFilters() {
-            List<Tag> tags = tagRepository.saveAll(generateTags(3));
-            Tag tagX = tags.get(0);
-            Tag tagY = tags.get(1);
-
-            ProductDTO productDTO = buildProductDTO();
-            productDTO.setTitle(GENERATOR.nextAlphanumeric(10));
-            productDTO.setPrice(BigInteger.valueOf(500));
-            productDTO.setCurrency(Currency.USD.name());
-
-            Product product = saveProduct(productDTO);
-            product.setTags(new ArrayList<>(List.of(tagX, tagY)));
-            productRepository.save(product);
-
-            LocalDateTime from = LocalDateTime.now().minusDays(1);
-            LocalDateTime to = LocalDateTime.now().plusDays(1);
-
-            List<Product> result = productService.findBy(productDTO.getTitle().substring(0, 5),
-                    null,
-                    BigInteger.valueOf(100),
-                    BigInteger.valueOf(1_000),
-                    List.of(tagX.getId(), tagY.getId()),
-                    from,
-                    to,
-                    10,
-                    1);
-
-            assertThat(result).extracting(Product::getId)
-                    .containsExactly(product.getId());
-        }
-
-        @Test
-        @DisplayName("findBy_fail: throws ValidationException when 'to' is before 'from'")
-        void findBy_fail_toBeforeFrom() {
-            LocalDateTime from = LocalDateTime.now().plusDays(1);
-            LocalDateTime to = LocalDateTime.now().minusDays(1);
-
-            assertThatThrownBy(() -> productService.findBy("gamma",
-                    null,
-                    null,
-                    null,
-                    null,
-                    from,
-                    to,
-                    10,
-                    1))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("A 'to' can't be before 'from'");
-        }
-
-        @Test
-        @DisplayName("findBy_success: filters by all criteria and includes photos for matching products")
-        void findBy_success_allFilters_withPhotos() {
-            List<Tag> tags = tagRepository.saveAll(generateTags(3));
-            Tag tagX = tags.get(0);
-            Tag tagY = tags.get(1);
-
-            String titleToken = GENERATOR.nextAlphabetic(6);
-
-            ProductDTO dtoMatch = buildProductDTO();
-            dtoMatch.setTitle(titleToken + "-" + GENERATOR.nextAlphanumeric(8));
-            dtoMatch.setPrice(BigInteger.valueOf(RandomUtils.secure().randomLong(400, 800)));
-
-            Product productMatch = saveProduct(dtoMatch);
-            productMatch.setTags(new ArrayList<>(List.of(tagX, tagY)));
-            productMatch = productRepository.save(productMatch);
-
-            String photoUrlMatch = "https://cdn." + GENERATOR.nextAlphanumeric(6) + ".example/" +
-                    GENERATOR.nextAlphanumeric(10) + ".png";
-            String photoRefMatch = GENERATOR.nextAlphanumeric(18);
-            productPhotoRepository.save(ProductPhoto.builder()
-                    .productId(productMatch.getId())
-                    .photoUrl(photoUrlMatch)
-                    .externalReference(photoRefMatch)
-                    .build());
-
-            LocalDateTime createdFrom = LocalDateTime.now().minusDays(1);
-            LocalDateTime createdTo = LocalDateTime.now().plusDays(1);
-            BigInteger minPrice = BigInteger.valueOf(100);
-            BigInteger maxPrice = BigInteger.valueOf(1_000);
-
-            List<Product> result = productService.findBy(
-                    titleToken.toLowerCase(),
-                    null,
-                    minPrice,
-                    maxPrice,
-                    List.of(tagX.getId(), tagY.getId()),
-                    createdFrom,
-                    createdTo,
-                    10,
-                    1
-            );
-
-            assertThat(result).extracting(Product::getId)
-                    .containsExactly(productMatch.getId());
-
-            Product returned = result.getFirst();
-            assertThat(returned.getPhotos()).isNotEmpty();
-            assertThat(returned.getPhotos())
-                    .extracting(ProductPhoto::getExternalReference)
-                    .contains(photoRefMatch);
-            assertThat(returned.getPhotos())
-                    .extracting(ProductPhoto::getPhotoUrl)
-                    .contains(photoUrlMatch);
-        }
-
-        @Test
-        @DisplayName("findBy_fail: throws ValidationException when minPrice > maxPrice")
-        void findBy_fail_minGreaterThanMax() {
-            assertThatThrownBy(() -> productService.findBy(
-                    null,
-                    null,
-                    BigInteger.valueOf(200),
-                    BigInteger.valueOf(100),
-                    null,
-                    null,
-                    null,
-                    10,
-                    1
-            )).isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("Minimum price can't be greater than max price");
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {0, -1})
-        @DisplayName("findBy_fail: throws ConstraintViolationException when pageSize invalid")
-        void findBy_fail_whenPageSizeInvalid(int pageSize) {
-            assertThatThrownBy(() -> productService.findBy(
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    pageSize,
-                    1
-            )).isInstanceOf(ConstraintViolationException.class);
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {0, -1})
-        @DisplayName("findBy_fail: throws ConstraintViolationException when page invalid")
-        void findBy_fail_whenPageInvalid(int page) {
-            assertThatThrownBy(() -> productService.findBy(
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    10,
-                    page
-            )).isInstanceOf(ConstraintViolationException.class);
         }
     }
 }

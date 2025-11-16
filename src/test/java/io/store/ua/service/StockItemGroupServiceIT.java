@@ -153,7 +153,7 @@ class StockItemGroupServiceIT extends AbstractIT {
                     .isActive(true)
                     .build());
 
-            List<StockItemGroup> result = stockItemGroupService.findBy(stockItemGroup.getCode(),
+            List<StockItemGroup> result = stockItemGroupService.findBy(stockItemGroup.getCode().substring(7, 9),
                     null,
                     10,
                     1);

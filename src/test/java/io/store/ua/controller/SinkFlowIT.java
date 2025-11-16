@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
@@ -65,6 +65,7 @@ class SinkFlowIT extends AbstractIT {
                 .title(GENERATOR.nextAlphabetic(12))
                 .description(GENERATOR.nextAlphanumeric(40))
                 .price(BigInteger.valueOf(RandomUtils.secure().randomLong(500, 50_000)))
+                .currency(Currency.EUR.name())
                 .weight(BigInteger.valueOf(RandomUtils.secure().randomLong(100, 5_000)))
                 .length(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))
                 .width(BigInteger.valueOf(RandomUtils.secure().randomLong(5, 100)))

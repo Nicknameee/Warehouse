@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Product;
@@ -57,7 +57,7 @@ class ProductPhotoControllerIT extends AbstractIT {
 
     @Nested
     @DisplayName("POST /api/v1/productPhotos/saveAll")
-    class SaveAllEndpointTests {
+    class SaveAllTests {
         @Test
         @DisplayName("saveAll_success_multipleFiles")
         void saveAll_success_multipleFiles() {
@@ -237,7 +237,7 @@ class ProductPhotoControllerIT extends AbstractIT {
 
     @Nested
     @DisplayName("DELETE /api/v1/productPhotos/removeAll")
-    class RemoveAllEndpointTests {
+    class RemoveAllTests {
         @Test
         @DisplayName("removeAll_success_deletesByIds")
         void removeAll_success_deletesByIds() {

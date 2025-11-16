@@ -272,6 +272,7 @@ public abstract class AbstractIT {
                 .title(RandomStringUtils.secure().nextAlphabetic(10))
                 .description(RandomStringUtils.secure().nextAlphanumeric(40))
                 .price(BigInteger.valueOf(RandomUtils.secure().randomInt(10, 500)))
+                .currency(Currency.EUR.name())
                 .weight(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                 .length(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))
                 .width(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 100)))

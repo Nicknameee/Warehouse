@@ -17,7 +17,7 @@ public class StorageSectionController {
     private final StorageSectionService storageSectionService;
 
     @GetMapping("/findBy")
-    public ResponseEntity<List<StorageSection>> findBy(@RequestParam(name = "warehouse_id", required = false) Long warehouseId,
+    public ResponseEntity<List<StorageSection>> findBy(@RequestParam(name = "warehouseId", required = false) Long warehouseId,
                                                        @RequestParam(name = "isActive", required = false) Boolean isActive,
                                                        @RequestParam(name = "pageSize") int pageSize,
                                                        @RequestParam(name = "page") int page) {
@@ -25,7 +25,7 @@ public class StorageSectionController {
     }
 
     @PostMapping
-    public ResponseEntity<StorageSection> save(@RequestParam(name = "warehouse_id") Long warehouseId,
+    public ResponseEntity<StorageSection> save(@RequestParam(name = "warehouseId") Long warehouseId,
                                                @RequestParam(name = "code") String code) {
         return ResponseEntity.ok(storageSectionService.save(warehouseId, code));
     }

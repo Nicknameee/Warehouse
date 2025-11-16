@@ -23,8 +23,8 @@ public class TransactionController {
     public ResponseEntity<List<Transaction>> findBy(@RequestParam(name = "transactionId", required = false) String transactionId,
                                                     @RequestParam(name = "reference", required = false) String reference,
                                                     @RequestParam(name = "currency", required = false) String currency,
-                                                    @RequestParam(name = "minAmount", required = false) BigInteger minAmount,
-                                                    @RequestParam(name = "maxAmount", required = false) BigInteger maxAmount,
+                                                    @RequestParam(name = "amountFrom", required = false) BigInteger amountFrom,
+                                                    @RequestParam(name = "amountTo", required = false) BigInteger amountTo,
                                                     @RequestParam(name = "createdFrom", required = false)
                                                     @DateTimeFormat(pattern = "dd-MM-yyyy'At'HH:mm:ss") LocalDateTime createdFrom,
                                                     @RequestParam(name = "createdTo", required = false)
@@ -43,8 +43,8 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.findBy(transactionId,
                 reference,
                 currency,
-                minAmount,
-                maxAmount,
+                amountFrom,
+                amountTo,
                 createdFrom,
                 createdTo,
                 paidFrom,

@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.configuration.ApplicationWebsocketConfiguration;
@@ -57,7 +57,7 @@ class WebSocketIT extends AbstractIT {
 
     @Test
     void testStompMessageBroker() throws Exception {
-        String messageToSend = RandomStringUtils.randomAlphanumeric(10);
+        String messageToSend = GENERATOR.nextAlphanumeric(10);
         StompSessionHandlerAdapter sessionHandler = new StompSessionHandler(messageFuture, messageToSend);
         StompSession session = stompClient.connectAsync(WEBSOCKET_URI, sessionHandler).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 

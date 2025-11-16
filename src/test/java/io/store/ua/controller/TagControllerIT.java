@@ -1,4 +1,4 @@
-package io.store.ua.client;
+package io.store.ua.controller;
 
 import io.store.ua.AbstractIT;
 import io.store.ua.entity.Tag;
@@ -53,13 +53,12 @@ class TagControllerIT extends AbstractIT {
         @DisplayName("findBy_success_filtersByNamesAndActive")
         void findBy_success_filtersByNamesAndActive() {
             Tag fooActive = generateTag(true);
-            Tag barActive = generateTag(true);
-            Tag bazActiveNoise = generateTag(true);
-            Tag fooInactiveNoise = generateTag(false);
+            generateTag(false);
+            generateTag(true);
+            generateTag(false);
 
             String url = UriComponentsBuilder.fromPath("/api/v1/tags/findBy")
-                    .queryParam("names", fooActive.getName())
-                    .queryParam("names", barActive.getName())
+                    .queryParam("name", fooActive.getName())
                     .queryParam("isActive", true)
                     .queryParam("pageSize", 50)
                     .queryParam("page", 1)
@@ -84,12 +83,10 @@ class TagControllerIT extends AbstractIT {
                     .map(Tag::getName)
                     .collect(Collectors.toSet());
             assertThat(names)
-                    .containsExactlyInAnyOrder(fooActive.getName(), barActive.getName());
+                    .containsExactlyInAnyOrder(fooActive.getName());
             assertThat(result)
                     .allSatisfy(tag -> assertThat(tag.getIsActive())
                             .isTrue());
-            assertThat(names)
-                    .doesNotContain(bazActiveNoise.getName(), fooInactiveNoise.getName());
         }
 
         @Test

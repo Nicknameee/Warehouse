@@ -33,8 +33,10 @@ class TransactionAdapterServiceIT extends AbstractIT {
         @Test
         @DisplayName("initiateIncomingPayment_success(transaction: Transaction, settleOnInitiation: boolean, provider: PaymentProvider): delegates to matching provider")
         void initiateIncomingPayment_success_delegates() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
             Transaction transaction = Transaction.builder()
                     .currency(RandomStringUtils.secure().nextAlphabetic(3).toUpperCase())
@@ -48,17 +50,22 @@ class TransactionAdapterServiceIT extends AbstractIT {
                     .reference(RandomStringUtils.secure().nextAlphanumeric(16))
                     .build();
 
-            when(dataTransService.initiateIncomingPayment(transaction, true)).thenReturn(financialInformation);
+            when(dataTransService.initiateIncomingPayment(transaction, true))
+                    .thenReturn(financialInformation);
 
             CheckoutFinancialInformation result = transactionAdapterService.initiateIncomingPayment(transaction,
                     true,
                     PaymentProvider.DATA_TRANS);
 
-            assertThat(result).isNotNull();
+            assertThat(result)
+                    .isNotNull();
             assertSame(financialInformation, result);
-            assertThat(result.getPaymentProvider()).isEqualTo(PaymentProvider.DATA_TRANS);
-            verify(dataTransService, times(1)).initiateIncomingPayment(transaction, true);
-            verify(liqPayService, never()).initiateIncomingPayment(any(), anyBoolean());
+            assertThat(result.getPaymentProvider())
+                    .isEqualTo(PaymentProvider.DATA_TRANS);
+            verify(dataTransService, times(1))
+                    .initiateIncomingPayment(transaction, true);
+            verify(liqPayService, never())
+                    .initiateIncomingPayment(any(), anyBoolean());
         }
 
         @Test
@@ -72,8 +79,10 @@ class TransactionAdapterServiceIT extends AbstractIT {
             assertThrows(NotFoundException.class, () -> transactionAdapterService.initiateIncomingPayment(transaction,
                     false,
                     PaymentProvider.GOOGLE_PAY));
-            verify(dataTransService, never()).initiateIncomingPayment(any(), anyBoolean());
-            verify(liqPayService, never()).initiateIncomingPaymentAPICall(any());
+            verify(dataTransService, never())
+                    .initiateIncomingPayment(any(), anyBoolean());
+            verify(liqPayService, never())
+                    .initiateIncomingPaymentAPICall(any());
         }
     }
 
@@ -83,38 +92,47 @@ class TransactionAdapterServiceIT extends AbstractIT {
         @Test
         @DisplayName("initiateOutcomingPayment_success(transaction: Transaction, settleOnInitiation: boolean, provider: PaymentProvider): delegates to matching provider")
         void initiateOutcomingPayment_success_delegates() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
             Transaction transaction = Transaction.builder()
                     .reference(RandomStringUtils.secure().nextAlphanumeric(16))
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
                     .build();
 
-            when(liqPayService.initiateOutcomingPayment(transaction, false)).thenReturn(transaction);
+            when(liqPayService.initiateOutcomingPayment(transaction, false))
+                    .thenReturn(transaction);
 
             Transaction result = transactionAdapterService.initiateOutcomingPayment(transaction,
                     false,
                     PaymentProvider.LIQ_PAY);
 
             assertSame(transaction, result);
-            verify(liqPayService, times(1)).initiateOutcomingPayment(transaction, false);
-            verify(dataTransService, never()).initiateOutcomingPayment(any(), anyBoolean());
+            verify(liqPayService, times(1))
+                    .initiateOutcomingPayment(transaction, false);
+            verify(dataTransService, never())
+                    .initiateOutcomingPayment(any(), anyBoolean());
         }
 
         @Test
         @DisplayName("initiateOutcomingPayment_fail(transaction: Transaction, settleOnInitiation: boolean, provider: PaymentProvider): throws NotFoundException when provider missing")
         void initiateOutcomingPayment_fail_notFound() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
             Transaction transaction = Transaction.builder().build();
 
             assertThrows(NotFoundException.class, () -> transactionAdapterService.initiateOutcomingPayment(transaction,
                     true,
                     PaymentProvider.GOOGLE_PAY));
-            verify(dataTransService, never()).initiateOutcomingPayment(any(), anyBoolean());
-            verify(liqPayService, never()).initiateOutcomingPaymentAPICall(any());
+            verify(dataTransService, never())
+                    .initiateOutcomingPayment(any(), anyBoolean());
+            verify(liqPayService, never())
+                    .initiateOutcomingPaymentAPICall(any());
         }
     }
 
@@ -124,34 +142,44 @@ class TransactionAdapterServiceIT extends AbstractIT {
         @Test
         @DisplayName("settlePayment_success(transaction: Transaction, provider: PaymentProvider): delegates to matching provider")
         void settlePayment_success_delegates() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
             Transaction transaction = Transaction.builder()
                     .transactionId(RandomStringUtils.secure().nextAlphanumeric(24))
                     .reference(RandomStringUtils.secure().nextAlphanumeric(16))
                     .build();
 
-            when(dataTransService.settlePayment(transaction)).thenReturn(transaction);
+            when(dataTransService.settlePayment(transaction))
+                    .thenReturn(transaction);
 
             Transaction result = transactionAdapterService.settlePayment(transaction, PaymentProvider.DATA_TRANS);
 
             assertSame(transaction, result);
-            verify(dataTransService, times(1)).settlePayment(transaction);
-            verify(liqPayService, never()).settlePayment(any());
+            verify(dataTransService, times(1))
+                    .settlePayment(transaction);
+            verify(liqPayService, never())
+                    .settlePayment(any());
         }
 
         @Test
         @DisplayName("settlePayment_fail(transaction: Transaction, provider: PaymentProvider): throws NotFoundException when provider missing")
         void settlePayment_fail_notFound() {
-            when(dataTransService.provider()).thenReturn(PaymentProvider.DATA_TRANS);
-            when(liqPayService.provider()).thenReturn(PaymentProvider.LIQ_PAY);
+            when(dataTransService.provider())
+                    .thenReturn(PaymentProvider.DATA_TRANS);
+            when(liqPayService.provider())
+                    .thenReturn(PaymentProvider.LIQ_PAY);
 
             Transaction transaction = Transaction.builder().build();
 
-            assertThrows(NotFoundException.class, () -> transactionAdapterService.settlePayment(transaction, PaymentProvider.GOOGLE_PAY));
-            verify(dataTransService, never()).settlePayment(any());
-            verify(liqPayService, never()).settlePayment(any());
+            assertThrows(NotFoundException.class, () -> transactionAdapterService
+                    .settlePayment(transaction, PaymentProvider.GOOGLE_PAY));
+            verify(dataTransService, never())
+                    .settlePayment(any());
+            verify(liqPayService, never())
+                    .settlePayment(any());
         }
     }
 }

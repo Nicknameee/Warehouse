@@ -61,8 +61,8 @@ public class TransactionService {
     public List<Transaction> findBy(String transactionId,
                                     String reference,
                                     String currency,
-                                    BigInteger minAmount,
-                                    BigInteger maxAmount,
+                                    BigInteger amountFrom,
+                                    BigInteger amountTo,
                                     LocalDateTime createdFrom,
                                     LocalDateTime createdTo,
                                     LocalDateTime paidFrom,
@@ -92,12 +92,12 @@ public class TransactionService {
             predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get(Transaction.Fields.currency)), currency.toLowerCase()));
         }
 
-        if (minAmount != null && maxAmount != null) {
-            predicates.add(criteriaBuilder.between(root.get(Transaction.Fields.amount), minAmount, maxAmount));
-        } else if (minAmount != null) {
-            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(Transaction.Fields.amount), minAmount));
-        } else if (maxAmount != null) {
-            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(Transaction.Fields.amount), maxAmount));
+        if (amountFrom != null && amountTo != null) {
+            predicates.add(criteriaBuilder.between(root.get(Transaction.Fields.amount), amountFrom, amountTo));
+        } else if (amountFrom != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(Transaction.Fields.amount), amountFrom));
+        } else if (amountTo != null) {
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(Transaction.Fields.amount), amountTo));
         }
 
         if (createdFrom != null) {
