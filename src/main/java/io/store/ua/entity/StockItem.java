@@ -26,6 +26,10 @@ public class StockItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "batch_version", nullable = false)
+    private Long batchVersion;
+    @Column(name = "code", nullable = false, updatable = false, unique = true)
+    private String code;
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "product_id", nullable = false, insertable = false, updatable = false)
     private Product product;

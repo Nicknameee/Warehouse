@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS stock_items
 (
     id                 BIGSERIAL PRIMARY KEY NOT NULL,
+    batch_version      BIGINT                NOT NULL,
+    code               VARCHAR               NOT NULL UNIQUE,
     product_id         BIGINT                NOT NULL REFERENCES products (id),
     group_id           BIGINT                NOT NULL REFERENCES stock_item_groups (id),
     warehouse_id       BIGINT                NOT NULL REFERENCES warehouses (id),
@@ -9,5 +11,5 @@ CREATE TABLE IF NOT EXISTS stock_items
     status             VARCHAR               NOT NULL,
     is_active          BOOLEAN               NOT NULL,
     storage_section_id BIGINT REFERENCES storage_sections (id),
-    CONSTRAINT uniquity UNIQUE (product_id, warehouse_id)
+    CONSTRAINT stock_item_unique_batch UNIQUE (batch_version, product_id, warehouse_id)
 )

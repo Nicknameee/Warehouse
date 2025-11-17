@@ -1,21 +1,14 @@
 package io.store.ua.utility;
 
 import io.store.ua.enums.PaymentProvider;
-import io.store.ua.models.data.Address;
-import io.store.ua.models.dto.WarehouseDTO;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HexFormat;
-import java.util.StringJoiner;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CodeGenerator {
@@ -56,37 +49,9 @@ public class CodeGenerator {
     }
 
     public static class WarehouseCodeGenerator {
-        private static final String HASH_ALGORITHM = "SHA-256";
 
-        public static String generate(WarehouseDTO warehouseDto) {
-            if (warehouseDto == null || warehouseDto.getAddress() == null) {
-                throw new IllegalArgumentException("WarehouseDTO and Address must not be null");
-            }
-
-            return sha256Hex(buildCanonicalKey(warehouseDto)).toUpperCase();
-        }
-
-        private static String buildCanonicalKey(WarehouseDTO warehouseDto) {
-            Address address = warehouseDto.getAddress();
-
-            return new StringJoiner("_")
-                    .add(checkString(warehouseDto.getName()))
-                    .add(checkString(address.getCity()))
-                    .add(checkString(address.getState()))
-                    .add(checkString(address.getCountry()))
-                    .toString();
-        }
-
-        private static String sha256Hex(String input) {
-            try {
-                return HexFormat.of().formatHex(MessageDigest.getInstance(HASH_ALGORITHM).digest(input.getBytes(StandardCharsets.UTF_8)));
-            } catch (Exception e) {
-                throw new IllegalStateException("%s unavailable".formatted(HASH_ALGORITHM), e);
-            }
-        }
-
-        private static String checkString(String input) {
-            return StringUtils.isBlank(input) ? StringUtils.EMPTY : input;
+        public static String generate() {
+            return "WH-%s".formatted(RandomStringUtils.secure().nextAlphanumeric(8).toUpperCase());
         }
     }
 }

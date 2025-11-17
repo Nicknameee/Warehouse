@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -78,20 +79,21 @@ public class StorageSectionService {
                                  Long sectionId,
                                  Boolean isActive,
                                  @NotBlank(message = "Section code can't be blank") String newCode) {
-        StorageSection existing = storageSectionRepository.findById(sectionId)
+        StorageSection storageSection = storageSectionRepository.findById(sectionId)
                 .orElseThrow(() -> new NotFoundException("StorageSection id '%s' not found".formatted(sectionId)));
 
-        if (storageSectionRepository.existsByWarehouseIdAndCode(existing.getWarehouseId(), newCode)) {
+        if (ObjectUtils.notEqual(storageSection.getCode(), newCode)
+                && storageSectionRepository.existsByWarehouseIdAndCode(storageSection.getWarehouseId(), newCode)) {
             throw new UniqueCheckException("StorageSection with code '%s' already exists in warehouse with ID '%s'"
-                    .formatted(newCode, existing.getWarehouseId()));
+                    .formatted(newCode, storageSection.getWarehouseId()));
         }
 
-        existing.setCode(newCode);
+        storageSection.setCode(newCode);
 
         if (isActive != null) {
-            existing.setIsActive(isActive);
+            storageSection.setIsActive(isActive);
         }
 
-        return storageSectionRepository.save(existing);
+        return storageSectionRepository.save(storageSection);
     }
 }

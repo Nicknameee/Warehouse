@@ -29,7 +29,6 @@ public class UserController {
     }
 
     @GetMapping("/findBy")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<List<User>> findBy(@RequestParam(value = "username", required = false) String usernamePrefix,
                                              @RequestParam(value = "email", required = false) String emailPart,
                                              @RequestParam(value = "role", required = false) List<UserRole> roles,

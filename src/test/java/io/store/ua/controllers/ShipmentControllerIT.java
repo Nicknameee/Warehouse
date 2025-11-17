@@ -5,6 +5,7 @@ import io.store.ua.entity.*;
 import io.store.ua.enums.*;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.ShipmentDTO;
+import io.store.ua.utility.CodeGenerator;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.*;
@@ -66,6 +67,8 @@ class ShipmentControllerIT extends AbstractIT {
         recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
         stockItem = stockItemRepository.save(StockItem.builder()
+                .batchVersion(1L)
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .productId(product.getId())
                 .stockItemGroupId(stockItemGroup.getId())
                 .warehouseId(senderWarehouse.getId())

@@ -158,7 +158,7 @@ class ProductControllerIT extends AbstractIT {
                     .isEqualTo(HttpStatus.OK);
             assertThat(response.getBody())
                     .isNotNull();
-            assertThat(productRepository.findByCode(productDTO.getCode()).isPresent())
+            assertThat(productRepository.findByCode(response.getBody().getCode()).isPresent())
                     .isTrue();
         }
     }
@@ -182,7 +182,7 @@ class ProductControllerIT extends AbstractIT {
 
             List<Tag> tags = generateTags(2);
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(productDTO.getCode())
+                    .code(created.getBody().getCode())
                     .title(GENERATOR.nextAlphanumeric(20))
                     .description(GENERATOR.nextAlphanumeric(30))
                     .price(BigInteger.valueOf(777))

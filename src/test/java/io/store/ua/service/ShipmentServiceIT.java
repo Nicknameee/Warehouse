@@ -11,6 +11,7 @@ import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.ShipmentDTO;
+import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -65,6 +66,8 @@ class ShipmentServiceIT extends AbstractIT {
         warehouse = warehouseRepository.save(generateWarehouse());
 
         stockItem = stockItemRepository.save(StockItem.builder()
+                .code(CodeGenerator.StockCodeGenerator.generate())
+                .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(product.getId(), warehouse.getId()) + 1)
                 .productId(product.getId())
                 .stockItemGroupId(stockItemGroup.getId())
                 .warehouseId(warehouse.getId())
@@ -603,6 +606,8 @@ class ShipmentServiceIT extends AbstractIT {
             Warehouse recipient = warehouseRepository.save(generateWarehouse());
 
             StockItem recipientItem = stockItemRepository.save(StockItem.builder()
+                    .code(CodeGenerator.StockCodeGenerator.generate())
+                    .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), warehouse.getId()) + 1L)
                     .productId(stockItem.getProductId())
                     .stockItemGroupId(stockItem.getStockItemGroupId())
                     .warehouseId(recipient.getId())
@@ -716,7 +721,12 @@ class ShipmentServiceIT extends AbstractIT {
             List<StockItem> preRecipientItems = stockItemService.findBy(
                     List.of(recipient.getId()),
                     List.of(stockItem.getProductId()),
-                    null, null, null, null, null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     1, 1
             );
             assertThat(preRecipientItems).isEmpty();
@@ -736,7 +746,7 @@ class ShipmentServiceIT extends AbstractIT {
             List<StockItem> postRecipientItems = stockItemService.findBy(
                     List.of(recipient.getId()),
                     List.of(stockItem.getProductId()),
-                    null, null, null, null, null,
+                    null, null, null, null, null, null,
                     1, 1
             );
             assertThat(postRecipientItems).isNotEmpty();
@@ -975,6 +985,8 @@ class ShipmentServiceIT extends AbstractIT {
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
             StockItem recipientItem = stockItemRepository.save(StockItem.builder()
+                    .code(CodeGenerator.StockCodeGenerator.generate())
+                    .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), recipientWarehouse.getId()))
                     .productId(stockItem.getProductId())
                     .stockItemGroupId(stockItem.getStockItemGroupId())
                     .warehouseId(recipientWarehouse.getId())

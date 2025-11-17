@@ -6,7 +6,9 @@ import io.store.ua.entity.immutable.StockItemHistory;
 import io.store.ua.enums.StockItemStatus;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
+import io.store.ua.models.data.StockItemVersionGroup;
 import io.store.ua.models.dto.StockItemDTO;
+import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +67,8 @@ class StockItemServiceIT extends AbstractIT {
                                         int availableQuantity,
                                         Long sectionId) {
         return stockItemRepository.save(StockItem.builder()
+                .code(CodeGenerator.StockCodeGenerator.generate())
+                .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(product.getId(), warehouse.getId()) + 1)
                 .productId(product.getId())
                 .stockItemGroupId(group.getId())
                 .warehouseId(warehouse.getId())
@@ -107,12 +111,18 @@ class StockItemServiceIT extends AbstractIT {
                     warehouseA,
                     false,
                     5, null);
+            generateStockItem(productB,
+                    stockItemGroupC,
+                    warehouseA,
+                    true,
+                    5, null);
 
             List<StockItem> stockItems = stockItemService.findBy(List.of(warehouseA.getId()),
                     List.of(productA.getId()),
                     List.of(stockItemGroupA.getId()),
                     List.of(StockItemStatus.AVAILABLE.name()),
                     null,
+                    stockItem.getCode().substring(5, 9),
                     true,
                     true,
                     50,
@@ -144,6 +154,7 @@ class StockItemServiceIT extends AbstractIT {
                     null,
                     null,
                     List.of(StockItemStatus.AVAILABLE.name()),
+                    null,
                     null,
                     null,
                     null,
@@ -179,6 +190,7 @@ class StockItemServiceIT extends AbstractIT {
                     List.of(productA.getId()),
                     List.of(stockItemGroupA.getId()),
                     List.of(StockItemStatus.AVAILABLE.name()),
+                    null,
                     null,
                     true,
                     true,
@@ -217,6 +229,7 @@ class StockItemServiceIT extends AbstractIT {
                     List.of(stockItemGroupA.getId()),
                     List.of(StockItemStatus.AVAILABLE.name()),
                     List.of(section0WarehouseA.getId()),
+                    null,
                     true,
                     true,
                     50,
@@ -239,6 +252,7 @@ class StockItemServiceIT extends AbstractIT {
                     null,
                     null,
                     null,
+                    null,
                     10,
                     1))
                     .isInstanceOf(ValidationException.class);
@@ -254,11 +268,149 @@ class StockItemServiceIT extends AbstractIT {
                     null,
                     null,
                     null,
+                    null,
                     10,
                     1))
                     .isInstanceOf(BusinessException.class);
         }
     }
+
+    @Nested
+    @DisplayName("findVersionBatch(...)")
+    class FindVersionBatchTests {
+        @Test
+        @DisplayName("findVersionBatch_success_groupsByProductAndWarehouse_andBaseIsFirstVersion")
+        void findVersionBatch_success_groupsByProductAndWarehouse() {
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(30))
+                    .availableQuantity(BigInteger.TEN)
+                    .isActive(true)
+                    .build();
+
+            StockItem baseVersion = stockItemService.create(stockItemDTO);
+
+            StockItemDTO otherStockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(25))
+                    .availableQuantity(BigInteger.valueOf(5))
+                    .isActive(true)
+                    .build();
+
+            StockItem otherVersion = stockItemService.create(otherStockItemDTO);
+
+            StockItemDTO anotherStockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseB.getId())
+                    .expiryDate(LocalDate.now().plusDays(20))
+                    .availableQuantity(BigInteger.valueOf(3))
+                    .isActive(true)
+                    .build();
+
+            stockItemService.create(anotherStockItemDTO);
+
+            List<StockItemVersionGroup> groups = stockItemService.findVersionBatch(List.of(warehouseA.getId()),
+                    List.of(productA.getId()),
+                    List.of(stockItemGroupA.getId()),
+                    List.of(StockItemStatus.AVAILABLE.name()),
+                    null,
+                    null,
+                    true,
+                    true,
+                    50,
+                    1);
+
+            assertThat(groups)
+                    .hasSize(1);
+
+            StockItemVersionGroup group = groups.getFirst();
+
+            assertThat(group.baseVersion().getId())
+                    .isEqualTo(baseVersion.getId());
+            assertThat(group.otherVersions())
+                    .extracting(StockItem::getId)
+                    .containsExactly(otherVersion.getId());
+        }
+
+        @Test
+        @DisplayName("findVersionBatch_success_respectsFilters_andSkipsInactiveOrDifferentWarehouse")
+        void findVersionBatch_success_respectsFilters() {
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(20))
+                    .availableQuantity(BigInteger.valueOf(4))
+                    .isActive(true)
+                    .build();
+
+            StockItem baseVersion = stockItemService.create(stockItemDTO);
+
+            StockItemDTO otherStockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(15))
+                    .availableQuantity(BigInteger.valueOf(2))
+                    .isActive(true)
+                    .build();
+
+            StockItem otherVersion = stockItemService.create(otherStockItemDTO);
+
+            StockItemDTO anotherStockItemDTO = StockItemDTO.builder()
+                    .productId(productA.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseB.getId())
+                    .expiryDate(LocalDate.now().plusDays(12))
+                    .availableQuantity(BigInteger.ONE)
+                    .isActive(true)
+                    .build();
+
+            stockItemService.create(anotherStockItemDTO);
+
+            StockItemDTO thirdStockItemDTO = StockItemDTO.builder()
+                    .productId(productB.getId())
+                    .stockItemGroupId(stockItemGroupA.getId())
+                    .warehouseId(warehouseA.getId())
+                    .expiryDate(LocalDate.now().plusDays(10))
+                    .availableQuantity(BigInteger.TEN)
+                    .isActive(true)
+                    .build();
+
+            stockItemService.create(thirdStockItemDTO);
+
+            List<StockItemVersionGroup> groups = stockItemService.findVersionBatch(List.of(warehouseA.getId()),
+                    List.of(productA.getId()),
+                    List.of(stockItemGroupA.getId()),
+                    List.of(StockItemStatus.AVAILABLE.name()),
+                    null,
+                    null,
+                    true,
+                    true,
+                    50,
+                    1);
+
+            assertThat(groups).hasSize(1);
+
+            StockItemVersionGroup group = groups.getFirst();
+
+            assertThat(group.baseVersion().getWarehouseId())
+                    .isEqualTo(warehouseA.getId());
+            assertThat(group.baseVersion().getProductId())
+                    .isEqualTo(productA.getId());
+            assertThat(group.baseVersion().getId())
+                    .isEqualTo(baseVersion.getId());
+            assertThat(group.otherVersions())
+                    .extracting(StockItem::getId)
+                    .containsExactly(otherVersion.getId());
+        }
+    }
+
 
     @Nested
     @DisplayName("findById(id: Long)")

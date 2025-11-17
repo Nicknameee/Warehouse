@@ -76,7 +76,7 @@ public class WarehouseService {
                 WarehouseDTO.Fields.address,
                 WarehouseDTO.Fields.workingHours);
 
-        String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
+        String code = CodeGenerator.WarehouseCodeGenerator.generate();
 
         Optional<Warehouse> warehouseOptional = warehouseRepository.findByCode(code);
 

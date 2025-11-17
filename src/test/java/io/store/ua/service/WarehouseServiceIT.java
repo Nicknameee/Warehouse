@@ -50,18 +50,6 @@ class WarehouseServiceIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("save_idempotence: returns existing Warehouse when duplicate DTO yields same code (idempotent)")
-        void save_idempotence() {
-            var warehouseDTO = buildWarehouseDTO();
-
-            Warehouse first = warehouseService.save(warehouseDTO);
-            Warehouse result = warehouseService.save(warehouseDTO);
-
-            assertThat(result.getId()).isEqualTo(first.getId());
-            assertThat(warehouseRepository.count()).isEqualTo(1);
-        }
-
-        @Test
         @DisplayName("save_fail_whenNameMissing_forNewWarehouse")
         void save_fail_whenNameMissing_forNewWarehouse() {
             var warehouseDTO = buildWarehouseDTO();

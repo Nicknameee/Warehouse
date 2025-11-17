@@ -4,6 +4,7 @@ import io.store.ua.AbstractIT;
 import io.store.ua.entity.*;
 import io.store.ua.enums.StockItemStatus;
 import io.store.ua.models.dto.StockItemDTO;
+import io.store.ua.utility.CodeGenerator;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
@@ -61,6 +62,8 @@ class StockItemControllerIT extends AbstractIT {
                                         int quantity,
                                         Long sectionId) {
         return stockItemRepository.save(StockItem.builder()
+                .code(CodeGenerator.StockCodeGenerator.generate())
+                .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(product.getId(), warehouse.getId()) + 1)
                 .productId(product.getId())
                 .stockItemGroupId(group.getId())
                 .warehouseId(warehouse.getId())

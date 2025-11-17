@@ -205,6 +205,8 @@ public abstract class AbstractIT {
 
     protected StockItem generateStockItem(Long productId, Long stockItemGroupId, Long warehouseId) {
         return stockItemRepository.save(StockItem.builder()
+                .code(CodeGenerator.StockCodeGenerator.generate())
+                .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(productId, warehouseId) + 1)
                 .productId(productId)
                 .stockItemGroupId(stockItemGroupId)
                 .warehouseId(warehouseId)
@@ -253,7 +255,7 @@ public abstract class AbstractIT {
 
     protected Warehouse generateWarehouse() {
         WarehouseDTO warehouseDTO = buildWarehouseDTO();
-        String code = CodeGenerator.WarehouseCodeGenerator.generate(warehouseDTO);
+        String code = CodeGenerator.WarehouseCodeGenerator.generate();
 
         return warehouseRepository.save(Warehouse.builder()
                 .code(code)

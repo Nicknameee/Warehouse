@@ -231,8 +231,7 @@ class AnalyticsServiceIT extends AbstractIT {
                     generateTransaction(beneficiary.getId(), "UAH", BigInteger.valueOf(60), TransactionFlowType.CREDIT)
             );
 
-            var statistic = analyticsService.fetchBeneficiaryFinancialStatistic(
-                    beneficiary.getId(), null, null, 100, 1);
+            var statistic = analyticsService.fetchBeneficiaryFinancialStatistic(beneficiary.getId(), null, null, 100, 1);
 
             assertThat(statistic).isNotNull();
             assertThat(statistic.getBeneficiary()).isNotNull();

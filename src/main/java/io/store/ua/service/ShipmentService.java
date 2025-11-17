@@ -331,6 +331,7 @@ public class ShipmentService {
                     null,
                     null,
                     null,
+                    null,
                     1,
                     1);
 

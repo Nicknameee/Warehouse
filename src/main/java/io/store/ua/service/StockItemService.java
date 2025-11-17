@@ -7,10 +7,13 @@ import io.store.ua.enums.WebSocketTopic;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.ItemOutOfStockMessage;
+import io.store.ua.models.data.StockItemBatchKey;
+import io.store.ua.models.data.StockItemVersionGroup;
 import io.store.ua.models.dto.StockItemDTO;
 import io.store.ua.models.dto.StockItemHistoryDTO;
 import io.store.ua.repository.StockItemRepository;
 import io.store.ua.repository.StorageSectionRepository;
+import io.store.ua.utility.CodeGenerator;
 import io.store.ua.utility.SocketService;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
@@ -19,12 +22,13 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +46,7 @@ public class StockItemService {
                                   List<@NotNull(message = "Stock item group ID can't be null") Long> stockItemGroupIDs,
                                   List<@NotNull(message = "Status can't be null") String> statuses,
                                   List<@NotNull(message = "Storage section ID can't be null") Long> storageSectionIDs,
+                                  String codePart,
                                   Boolean isItemActive,
                                   Boolean isItemGroupActive,
                                   @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
@@ -77,6 +82,10 @@ public class StockItemService {
             predicates.add(root.get(StockItem.Fields.storageSectionId).in(storageSectionIDs));
         }
 
+        if (StringUtils.isNotBlank(codePart)) {
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(StockItem.Fields.code)), "%" + codePart.toLowerCase() + "%"));
+        }
+
         if (isItemActive != null) {
             predicates.add(criteriaBuilder.equal(root.get(StockItem.Fields.isActive), isItemActive));
         }
@@ -98,6 +107,105 @@ public class StockItemService {
                 .getResultList();
     }
 
+    public List<StockItemVersionGroup> findVersionBatch(List<@NotNull(message = "Warehouse ID can't be null") Long> warehouseIDs,
+                                                        List<@NotNull(message = "Product ID can't be null") Long> productIDs,
+                                                        List<@NotNull(message = "Stock item group ID can't be null") Long> stockItemGroupIDs,
+                                                        List<@NotNull(message = "Status can't be null") String> statuses,
+                                                        List<@NotNull(message = "Storage section ID can't be null") Long> storageSectionIDs,
+                                                        String codePart,
+                                                        Boolean isItemActive,
+                                                        Boolean isItemGroupActive,
+                                                        @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
+                                                        @Min(value = 1, message = "A page number can't be less than 1") int page) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<StockItem> criteriaQuery = criteriaBuilder.createQuery(StockItem.class);
+        Root<StockItem> root = criteriaQuery.from(StockItem.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (warehouseIDs != null && !warehouseIDs.isEmpty()) {
+            predicates.add(root.get(StockItem.Fields.warehouseId).in(warehouseIDs));
+        }
+
+        if (productIDs != null && !productIDs.isEmpty()) {
+            predicates.add(root.get(StockItem.Fields.productId).in(productIDs));
+        }
+
+        if (stockItemGroupIDs != null && !stockItemGroupIDs.isEmpty()) {
+            predicates.add(root.get(StockItem.Fields.stockItemGroupId).in(stockItemGroupIDs));
+        }
+
+        if (statuses != null && !statuses.isEmpty()) {
+            try {
+                predicates.add(root.get(StockItem.Fields.status)
+                        .in(statuses.stream()
+                                .map(status -> StockItemStatus.valueOf(status.toUpperCase()))
+                                .toList()));
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException("Invalid stock item status");
+            }
+        }
+
+        if (storageSectionIDs != null && !storageSectionIDs.isEmpty()) {
+            predicates.add(root.get(StockItem.Fields.storageSectionId).in(storageSectionIDs));
+        }
+
+        if (StringUtils.isNotBlank(codePart)) {
+            predicates.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get(StockItem.Fields.code)),
+                    "%" + codePart.toLowerCase() + "%"
+            ));
+        }
+
+        if (isItemActive != null) {
+            predicates.add(criteriaBuilder.equal(root.get(StockItem.Fields.isActive), isItemActive));
+        }
+
+        if (isItemGroupActive != null) {
+            Join<StockItem, StockItemGroup> groupJoin = root.join(StockItem.Fields.stockItemGroup, JoinType.INNER);
+            predicates.add(criteriaBuilder.equal(groupJoin.get(StockItemGroup.Fields.isActive), isItemGroupActive));
+        }
+
+        criteriaQuery.select(root)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(criteriaBuilder.asc(root.get(StockItem.Fields.warehouseId)),
+                        criteriaBuilder.asc(root.get(StockItem.Fields.productId)),
+                        criteriaBuilder.asc(root.get(StockItem.Fields.batchVersion)));
+
+        List<StockItem> flat = entityManager.createQuery(criteriaQuery)
+                .setFirstResult((page - 1) * pageSize)
+                .setMaxResults(pageSize)
+                .getResultList();
+
+        Map<StockItemBatchKey, List<StockItem>> grouped = flat.stream()
+                .collect(Collectors.groupingBy(
+                        si -> new StockItemBatchKey(si.getWarehouseId(), si.getProductId()),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        List<StockItemVersionGroup> result = new ArrayList<>();
+
+        for (List<StockItem> group : grouped.values()) {
+            if (group.isEmpty()) {
+                continue;
+            }
+
+            group.sort(Comparator.comparing(StockItem::getBatchVersion));
+
+            StockItem base = group.getFirst();
+
+            List<StockItem> others = group.size() > 1
+                    ? group.subList(1, group.size())
+                    : List.of();
+
+            result.add(new StockItemVersionGroup(base, List.copyOf(others)));
+        }
+
+        return result;
+    }
+
+
     public StockItem findById(@NotNull(message = "Stock item ID can't be null") Long ID) {
         return stockItemRepository.findById(ID)
                 .orElseThrow(() -> new NotFoundException("StockItem with ID '%s' was not found".formatted(ID)));
@@ -114,7 +222,11 @@ public class StockItemService {
                 StockItemDTO.Fields.isActive,
                 StockItemDTO.Fields.storageSectionId);
 
+        long productVersions = stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItemDTO.getProductId(), stockItemDTO.getWarehouseId());
+
         return stockItemRepository.save(StockItem.builder()
+                .batchVersion(productVersions + 1)
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .productId(stockItemDTO.getProductId())
                 .stockItemGroupId(stockItemDTO.getStockItemGroupId())
                 .warehouseId(stockItemDTO.getWarehouseId())

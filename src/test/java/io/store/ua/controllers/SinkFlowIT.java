@@ -8,6 +8,7 @@ import io.store.ua.models.dto.ShipmentDTO;
 import io.store.ua.models.dto.TransactionDTO;
 import io.store.ua.producers.SinkProducer;
 import io.store.ua.service.ShipmentService;
+import io.store.ua.utility.CodeGenerator;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,7 @@ class SinkFlowIT extends AbstractIT {
     }
 
     @BeforeEach
-    void setupDomain() {
+    void setUp() {
         StockItemGroup group = stockItemGroupRepository.save(StockItemGroup.builder()
                 .code(GENERATOR.nextAlphanumeric(12))
                 .name(GENERATOR.nextAlphabetic(10))
@@ -75,6 +76,8 @@ class SinkFlowIT extends AbstractIT {
         senderWarehouse = warehouseRepository.save(generateWarehouse());
         recipientWarehouse = warehouseRepository.save(generateWarehouse());
         senderStockItem = stockItemRepository.save(StockItem.builder()
+                .code(CodeGenerator.StockCodeGenerator.generate())
+                .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(product.getId(), senderWarehouse.getId()) + 1)
                 .productId(product.getId())
                 .stockItemGroupId(group.getId())
                 .warehouseId(senderWarehouse.getId())
