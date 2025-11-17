@@ -23,6 +23,7 @@ public class ProductController {
                                                 @RequestParam(value = "codePart", required = false) String codePart,
                                                 @RequestParam(value = "minimumPrice", required = false) BigInteger minimumPrice,
                                                 @RequestParam(value = "maximumPrice", required = false) BigInteger maximumPrice,
+                                                @RequestParam(value = "currency", required = false) String currency,
                                                 @RequestParam(value = "tagId", required = false) List<Long> tagIds,
                                                 @RequestParam(value = "from", required = false)
                                                 @DateTimeFormat(pattern = "dd-MM-yyyy'At'HH:mm:ss") LocalDateTime from,
@@ -34,6 +35,7 @@ public class ProductController {
                 codePart,
                 minimumPrice,
                 maximumPrice,
+                currency,
                 tagIds,
                 from,
                 to,

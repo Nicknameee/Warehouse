@@ -102,6 +102,7 @@ class ProductServiceIT extends AbstractIT {
                     product.getCode().substring(3, 9),
                     BigInteger.valueOf(100),
                     BigInteger.valueOf(1_000),
+                    product.getCurrency(),
                     List.of(tagX.getId(), tagY.getId()),
                     from,
                     to,
@@ -119,6 +120,7 @@ class ProductServiceIT extends AbstractIT {
             LocalDateTime to = LocalDateTime.now().minusDays(1);
 
             assertThatThrownBy(() -> productService.findBy("gamma",
+                    null,
                     null,
                     null,
                     null,
@@ -167,6 +169,7 @@ class ProductServiceIT extends AbstractIT {
                     product.getCode().substring(3, 9),
                     minPrice,
                     maxPrice,
+                    null,
                     List.of(tag.getId(), otherTag.getId()),
                     createdFrom,
                     createdTo,
@@ -199,6 +202,7 @@ class ProductServiceIT extends AbstractIT {
                     null,
                     null,
                     null,
+                    null,
                     10,
                     1))
                     .isInstanceOf(ValidationException.class)
@@ -217,6 +221,7 @@ class ProductServiceIT extends AbstractIT {
                     null,
                     null,
                     null,
+                    null,
                     pageSize,
                     1))
                     .isInstanceOf(ConstraintViolationException.class);
@@ -227,6 +232,7 @@ class ProductServiceIT extends AbstractIT {
         @DisplayName("findBy_fail: throws ConstraintViolationException when page invalid")
         void findBy_fail_whenPageInvalid(int page) {
             assertThatThrownBy(() -> productService.findBy(
+                    null,
                     null,
                     null,
                     null,

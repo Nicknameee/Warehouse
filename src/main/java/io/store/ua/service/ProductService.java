@@ -37,6 +37,7 @@ public class ProductService {
                                 String codePart,
                                 BigInteger minimumPrice,
                                 BigInteger maximumPrice,
+                                String currency,
                                 List<@NotNull(message = "Tag ID can't be null")
                                 @Min(value = 1, message = "Tag ID can't be less than 1") Long> tagIds,
                                 LocalDateTime from,
@@ -77,6 +78,10 @@ public class ProductService {
 
         if (maximumPrice != null) {
             predicateList.add(criteriaBuilder.lessThanOrEqualTo(root.get(Product.Fields.price), maximumPrice));
+        }
+
+        if (!StringUtils.isBlank(currency)) {
+            predicateList.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get(Product.Fields.currency)), currency.toLowerCase()));
         }
 
         if (from != null) {
