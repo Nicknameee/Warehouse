@@ -1,0 +1,2554 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Warehouse Management System API Documentation",
+  "version": "1.0.0",
+  "baseUrl": "http://localhost:8080",
+  "authentication": {
+    "type": "Bearer Token",
+    "header": "Authorization",
+    "format": "Bearer {token}",
+    "note": "Token obtained from /login endpoint. Most endpoints require authentication except /login and /vars/*"
+  },
+  "endpoints": {
+    "authentication": {
+      "POST /login": {
+        "description": "Authenticate user and receive JWT token for subsequent API calls",
+        "requestBody": {
+          "type": "object",
+          "required": ["login", "password"],
+          "properties": {
+            "login": {
+              "type": "string",
+              "description": "Username or email for authentication",
+              "example": "admin"
+            },
+            "password": {
+              "type": "string",
+              "description": "User password",
+              "example": "password123"
+            }
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string",
+              "description": "JWT authentication token"
+            },
+            "expirationDateMs": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Token expiration timestamp in milliseconds"
+            },
+            "authenticationType": {
+              "type": "string",
+              "description": "Authentication type identifier"
+            }
+          }
+        }
+      },
+      "POST /logout": {
+        "description": "Invalidate current authentication token (blacklist)",
+        "headers": {
+          "Authorization": {
+            "type": "string",
+            "required": true,
+            "description": "Bearer token to invalidate"
+          }
+        },
+        "response": {
+          "type": "null",
+          "statusCode": 200
+        }
+      }
+    },
+    "resources": {
+      "GET /vars/userRoles": {
+        "description": "Get all available user roles for dropdowns/selects",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["OPERATOR", "MANAGER", "OWNER"]
+          }
+        }
+      },
+      "GET /vars/userStatuses": {
+        "description": "Get all available user statuses",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["ACTIVE", "INACTIVE"]
+          }
+        }
+      },
+      "GET /vars/securityType": {
+        "description": "Get current authentication type",
+        "response": {
+          "type": "string"
+        }
+      },
+      "GET /vars/cardTypes": {
+        "description": "Get all available card types",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["VISA", "MASTERCARD"]
+          }
+        }
+      },
+      "GET /vars/currencies": {
+        "description": "Get all supported currencies",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["USD", "EUR", "CHF", "UAH"]
+          }
+        }
+      },
+      "GET /vars/paymentProviders": {
+        "description": "Get all available payment providers",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+          }
+        }
+      },
+      "GET /vars/shipmentDirections": {
+        "description": "Get all shipment direction types",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["INCOMING", "OUTCOMING"]
+          }
+        }
+      },
+      "GET /vars/shipmentStatuses": {
+        "description": "Get all shipment status values",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"]
+          }
+        }
+      },
+      "GET /vars/stockItemStatuses": {
+        "description": "Get all stock item status values",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"]
+          }
+        }
+      },
+      "GET /vars/transactionFlowTypes": {
+        "description": "Get transaction flow types (DEBIT/CREDIT)",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["DEBIT", "CREDIT"]
+          }
+        }
+      },
+      "GET /vars/transactionPurposes": {
+        "description": "Get all transaction purpose types",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"]
+          }
+        }
+      },
+      "GET /vars/transactionStatuses": {
+        "description": "Get all transaction status values",
+        "response": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"]
+          }
+        }
+      }
+    },
+    "users": {
+      "GET /api/v1/users": {
+        "description": "Get currently authenticated user information",
+        "requiresAuth": true,
+        "response": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "GET /api/v1/users/findBy": {
+        "description": "Search users with filters (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "queryParameters": {
+          "username": {
+            "type": "string",
+            "required": false,
+            "description": "Username prefix filter"
+          },
+          "email": {
+            "type": "string",
+            "required": false,
+            "description": "Email part filter"
+          },
+          "role": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["OPERATOR", "MANAGER", "OWNER"]
+            },
+            "required": false,
+            "description": "Filter by roles"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["ACTIVE", "INACTIVE"]
+            },
+            "required": false,
+            "description": "Filter by statuses"
+          },
+          "isOnline": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by online status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1,
+            "description": "Number of items per page"
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1,
+            "description": "Page number (1-based)"
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          }
+        }
+      },
+      "POST /api/v1/users": {
+        "description": "Create a new user (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "requestBody": {
+          "$ref": "#/definitions/UserDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "POST /api/v1/users/all": {
+        "description": "Create multiple users at once (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "requestBody": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UserDTO"
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          }
+        }
+      },
+      "PUT /api/v1/users": {
+        "description": "Update current user's own information",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/UserDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "PUT /api/v1/users/all": {
+        "description": "Update multiple users (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "requestBody": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UserDTO"
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UserActionResultDTO"
+          }
+        }
+      }
+    },
+    "warehouses": {
+      "GET /api/v1/warehouses/findAll": {
+        "description": "Search warehouses with optional filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "codePrefix": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by warehouse code prefix"
+          },
+          "namePrefix": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by warehouse name prefix"
+          },
+          "managerId": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by manager user ID"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Warehouse"
+          }
+        }
+      },
+      "POST /api/v1/warehouses": {
+        "description": "Create a new warehouse (OWNER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER"],
+        "requestBody": {
+          "$ref": "#/definitions/WarehouseDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Warehouse"
+        }
+      },
+      "PUT /api/v1/warehouses": {
+        "description": "Update warehouse information (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "requestBody": {
+          "$ref": "#/definitions/WarehouseDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Warehouse"
+        }
+      },
+      "PUT /api/v1/warehouses/toggle": {
+        "description": "Toggle warehouse active/inactive state (OWNER/MANAGER only)",
+        "requiresAuth": true,
+        "requiresRole": ["OWNER", "MANAGER"],
+        "queryParameters": {
+          "code": {
+            "type": "string",
+            "required": true,
+            "description": "Warehouse code to toggle"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/Warehouse"
+        }
+      }
+    },
+    "products": {
+      "GET /api/v1/products/findBy": {
+        "description": "Search products with advanced filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "titlePart": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by product title substring"
+          },
+          "codePart": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by product code substring"
+          },
+          "minimumPrice": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Minimum price filter"
+          },
+          "maximumPrice": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Maximum price filter"
+          },
+          "tagId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": false,
+            "description": "Filter by tag IDs (AND logic)"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter products created from this date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter products created until this date"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "pageNumber": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Product"
+          }
+        }
+      },
+      "POST /api/v1/products": {
+        "description": "Create a new product",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/ProductDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Product"
+        }
+      },
+      "PUT /api/v1/products": {
+        "description": "Update product information",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/ProductDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Product"
+        }
+      }
+    },
+    "productPhotos": {
+      "POST /api/v1/productPhotos/saveAll": {
+        "description": "Upload multiple photos for a product",
+        "requiresAuth": true,
+        "contentType": "multipart/form-data",
+        "queryParameters": {
+          "productId": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Product ID to attach photos to"
+          }
+        },
+        "formData": {
+          "photo": {
+            "type": "array",
+            "items": {
+              "type": "file"
+            },
+            "required": true,
+            "description": "Photo files to upload"
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductPhoto"
+          }
+        }
+      },
+      "DELETE /api/v1/productPhotos/removeAll": {
+        "description": "Delete multiple product photos",
+        "requiresAuth": true,
+        "queryParameters": {
+          "photoId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "Photo IDs to delete"
+          }
+        },
+        "response": {
+          "type": "null",
+          "statusCode": 200
+        }
+      }
+    },
+    "tags": {
+      "GET /api/v1/tags/findBy": {
+        "description": "Search tags with filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "name": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by tag name"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        }
+      },
+      "POST /api/v1/tags": {
+        "description": "Create a new tag",
+        "requiresAuth": true,
+        "queryParameters": {
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "Tag name (must be unique)"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/Tag"
+        }
+      },
+      "PUT /api/v1/tags": {
+        "description": "Update tag information",
+        "requiresAuth": true,
+        "queryParameters": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Tag ID to update"
+          },
+          "name": {
+            "type": "string",
+            "required": false,
+            "description": "New tag name"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Active status"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/Tag"
+        }
+      },
+      "PUT /api/v1/tags/clearAll": {
+        "description": "Remove all unused tags (tags not linked to any product)",
+        "requiresAuth": true,
+        "response": {
+          "type": "null",
+          "statusCode": 200
+        }
+      }
+    },
+    "stockItemGroups": {
+      "GET /api/v1/stockItemGroups/findBy": {
+        "description": "Search stock item groups with filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "codePart": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by group code substring"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StockItemGroup"
+          }
+        }
+      },
+      "POST /api/v1/stockItemGroups": {
+        "description": "Create a new stock item group (category)",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/StockItemGroupDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/StockItemGroup"
+        }
+      },
+      "PUT /api/v1/stockItemGroups": {
+        "description": "Update stock item group",
+        "requiresAuth": true,
+        "queryParameters": {
+          "groupId": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Group ID to update"
+          },
+          "name": {
+            "type": "string",
+            "required": false,
+            "description": "New group name"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Active status"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/StockItemGroup"
+        }
+      }
+    },
+    "storageSections": {
+      "GET /api/v1/storage/sections/findBy": {
+        "description": "Search storage sections with filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "warehouseId": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by warehouse ID"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StorageSection"
+          }
+        }
+      },
+      "POST /api/v1/storage/sections": {
+        "description": "Create a new storage section in a warehouse",
+        "requiresAuth": true,
+        "queryParameters": {
+          "warehouseId": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Warehouse ID"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "description": "Section code"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/StorageSection"
+        }
+      },
+      "PUT /api/v1/storage/sections": {
+        "description": "Update storage section",
+        "requiresAuth": true,
+        "queryParameters": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Section ID to update"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Active status"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "description": "New section code"
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/StorageSection"
+        }
+      }
+    },
+    "stockItems": {
+      "GET /api/v1/stockItems/findBy": {
+        "description": "Search stock items with multiple filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "warehouseId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": false,
+            "description": "Filter by warehouse IDs"
+          },
+          "productId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": false,
+            "description": "Filter by product IDs"
+          },
+          "stockItemGroupId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": false,
+            "description": "Filter by stock item group IDs"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"]
+            },
+            "required": false,
+            "description": "Filter by statuses"
+          },
+          "storageSectionId": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": false,
+            "description": "Filter by storage section IDs"
+          },
+          "isItemActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by item active status"
+          },
+          "isItemGroupActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by item group active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StockItem"
+          }
+        }
+      },
+      "POST /api/v1/stockItems": {
+        "description": "Create a new stock item (inventory entry)",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/StockItemDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/StockItem"
+        }
+      },
+      "PUT /api/v1/stockItems": {
+        "description": "Update stock item information",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/StockItemDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/StockItem"
+        }
+      }
+    },
+    "stockItemHistory": {
+      "GET /api/v1/stockItemsHistory/findBy": {
+        "description": "Get stock item change history (audit log)",
+        "requiresAuth": true,
+        "queryParameters": {
+          "stock_item_id": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by stock item ID"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter history from this date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter history until this date"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StockItemHistory"
+          }
+        }
+      }
+    },
+    "shipments": {
+      "GET /api/v1/shipments/findBy": {
+        "description": "Search shipments with filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "warehouseIdSender": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by sender warehouse ID"
+          },
+          "warehouseIdRecipient": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by recipient warehouse ID"
+          },
+          "stockItemId": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by stock item ID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"],
+            "required": false,
+            "description": "Filter by shipment status"
+          },
+          "shipmentDirection": {
+            "type": "string",
+            "enum": ["INCOMING", "OUTCOMING"],
+            "required": false,
+            "description": "Filter by shipment direction"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter shipments created from this date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter shipments created until this date"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
+        }
+      },
+      "POST /api/v1/shipments": {
+        "description": "Create a new shipment",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/ShipmentDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Shipment"
+        }
+      },
+      "PUT /api/v1/shipments": {
+        "description": "Update shipment information",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/ShipmentDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Shipment"
+        }
+      }
+    },
+    "beneficiaries": {
+      "GET /api/v1/beneficiaries/findBy": {
+        "description": "Search beneficiaries (financial accounts) with filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "IBANPrefix": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by IBAN prefix"
+          },
+          "SWIFTPrefix": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by SWIFT prefix"
+          },
+          "cardPrefix": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by card number prefix"
+          },
+          "namePart": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by name substring"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": false,
+            "description": "Filter by active status"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Beneficiary"
+          }
+        }
+      },
+      "POST /api/v1/beneficiaries": {
+        "description": "Create a new beneficiary (financial account)",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/BeneficiaryDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Beneficiary"
+        }
+      },
+      "PUT /api/v1/beneficiaries": {
+        "description": "Update beneficiary information",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/BeneficiaryDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Beneficiary"
+        }
+      },
+      "PUT /api/v1/beneficiaries/changeState": {
+        "description": "Activate or deactivate multiple beneficiaries",
+        "requiresAuth": true,
+        "queryParameters": {
+          "beneficiaryID": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "Beneficiary IDs to update"
+          },
+          "isActive": {
+            "type": "boolean",
+            "required": true,
+            "description": "New active status"
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Beneficiary"
+          }
+        }
+      }
+    },
+    "transactions": {
+      "GET /api/v1/transactions/findBy": {
+        "description": "Search financial transactions with comprehensive filters",
+        "requiresAuth": true,
+        "queryParameters": {
+          "transactionId": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by transaction ID"
+          },
+          "reference": {
+            "type": "string",
+            "required": false,
+            "description": "Filter by reference"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "EUR", "CHF", "UAH"],
+            "required": false,
+            "description": "Filter by currency"
+          },
+          "amountFrom": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Minimum amount filter"
+          },
+          "amountTo": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Maximum amount filter"
+          },
+          "createdFrom": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter transactions created from this date"
+          },
+          "createdTo": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter transactions created until this date"
+          },
+          "paidFrom": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter transactions paid from this date"
+          },
+          "paidTo": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "dd-MM-yyyy'At'HH:mm:ss",
+            "required": false,
+            "description": "Filter transactions paid until this date"
+          },
+          "flowType": {
+            "type": "string",
+            "enum": ["DEBIT", "CREDIT"],
+            "required": false,
+            "description": "Filter by flow type (DEBIT=outgoing, CREDIT=incoming)"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"],
+            "required": false,
+            "description": "Filter by transaction purpose"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"],
+            "required": false,
+            "description": "Filter by transaction status"
+          },
+          "beneficiaryId": {
+            "type": "integer",
+            "format": "int64",
+            "required": false,
+            "description": "Filter by beneficiary ID"
+          },
+          "paymentProvider": {
+            "type": "string",
+            "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"],
+            "required": false,
+            "description": "Filter by payment provider"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
+        }
+      },
+      "POST /api/v1/transactions/incoming/initiate": {
+        "description": "Initiate an incoming payment transaction. Returns checkout information for customer payment form.",
+        "requiresAuth": true,
+        "queryParameters": {
+          "autoSettle": {
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "description": "Automatically settle payment when received"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/definitions/TransactionDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/CheckoutFinancialInformation"
+        }
+      },
+      "POST /api/v1/transactions/outgoing/initiate": {
+        "description": "Initiate an outgoing payment transaction",
+        "requiresAuth": true,
+        "queryParameters": {
+          "autoSettle": {
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "description": "Automatically settle payment when sent"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/definitions/TransactionDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Transaction"
+        }
+      },
+      "POST /api/v1/transactions/settle": {
+        "description": "Settle (complete) a pending transaction",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/TransactionDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Transaction"
+        }
+      },
+      "POST /api/v1/transactions/cancel": {
+        "description": "Cancel a transaction",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/TransactionDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/Transaction"
+        }
+      }
+    },
+    "currencyRates": {
+      "GET /api/v1/currencyRates/findAll": {
+        "description": "Get all current currency exchange rates (cached from external service)",
+        "requiresAuth": true,
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CurrencyRate"
+          }
+        }
+      }
+    },
+    "analytics": {
+      "GET /api/v1/analytics/fetchItemSellingStatistic": {
+        "description": "Get selling statistics for a specific stock item (sales volume and revenue)",
+        "requiresAuth": true,
+        "queryParameters": {
+          "stockItemId": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Stock item ID to get statistics for"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "pattern": "dd-MM-yyyy",
+            "required": false,
+            "description": "Start date for statistics period"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "pattern": "dd-MM-yyyy",
+            "required": false,
+            "description": "End date for statistics period"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ItemSellingStatistic"
+          }
+        }
+      },
+      "GET /api/v1/analytics/fetchBeneficiaryFinancialStatistic": {
+        "description": "Get financial flow statistics for a beneficiary (debits and credits by currency)",
+        "requiresAuth": true,
+        "queryParameters": {
+          "beneficiaryId": {
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "description": "Beneficiary ID to get statistics for"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "pattern": "dd-MM-yyyy",
+            "required": false,
+            "description": "Start date for statistics period"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "pattern": "dd-MM-yyyy",
+            "required": false,
+            "description": "End date for statistics period"
+          },
+          "pageSize": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          },
+          "page": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "response": {
+          "$ref": "#/definitions/BeneficiaryFinancialFlowStatistic"
+        }
+      }
+    },
+    "sink": {
+      "POST /api/v1/sink/shipments": {
+        "description": "Enqueue a shipment for asynchronous processing via Kafka",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/ShipmentDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/QueueResponseDTO",
+          "statusCode": 202,
+          "note": "Returns 202 Accepted - request is queued, not immediately processed"
+        }
+      },
+      "POST /api/v1/sink/transactions": {
+        "description": "Enqueue a transaction for asynchronous processing via Kafka",
+        "requiresAuth": true,
+        "requestBody": {
+          "$ref": "#/definitions/TransactionDTO"
+        },
+        "response": {
+          "$ref": "#/definitions/QueueResponseDTO",
+          "statusCode": 202,
+          "note": "Returns 202 Accepted - request is queued, not immediately processed"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "User ID"
+        },
+        "username": {
+          "type": "string",
+          "description": "Unique username (8-64 characters)"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Unique email address"
+        },
+        "loginTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last login time (ISO 8601 format)"
+        },
+        "logoutTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last logout time (ISO 8601 format)"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["OPERATOR", "MANAGER", "OWNER"],
+          "description": "User role"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "INACTIVE"],
+          "description": "User account status"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone (e.g., 'Europe/Kyiv', 'UTC')"
+        }
+      }
+    },
+    "UserDTO": {
+      "type": "object",
+      "required": ["email", "username", "password", "role", "status"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Valid email address"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "description": "Username (8-64 characters)"
+        },
+        "oldPassword": {
+          "type": "string",
+          "minLength": 8,
+          "description": "Current password (required for updates)"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "description": "New password (minimum 8 characters)"
+        },
+        "timezone": {
+          "type": "string",
+          "pattern": "^(?:[A-Za-z]+(?:/[A-Za-z0-9._+-]+)+|UTC)$",
+          "description": "IANA timezone identifier"
+        },
+        "role": {
+          "type": "string",
+          "pattern": "OPERATOR|MANAGER",
+          "description": "User role (OPERATOR or MANAGER)"
+        },
+        "status": {
+          "type": "string",
+          "pattern": "ACTIVE|INACTIVE",
+          "description": "Account status"
+        }
+      }
+    },
+    "UserActionResultDTO": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation succeeded"
+        },
+        "error": {
+          "type": "object",
+          "description": "Error details if operation failed"
+        }
+      }
+    },
+    "Warehouse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "code": {
+          "type": "string",
+          "description": "Unique warehouse code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique warehouse name"
+        },
+        "address": {
+          "$ref": "#/definitions/Address"
+        },
+        "workingHours": {
+          "$ref": "#/definitions/WorkingHours"
+        },
+        "phones": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\+[0-9]{7,14}$"
+          },
+          "description": "List of phone numbers"
+        },
+        "manager": {
+          "$ref": "#/definitions/Employee"
+        },
+        "managerId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "WarehouseDTO": {
+      "type": "object",
+      "required": ["code", "name", "address", "workingHours", "phones", "isActive"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Unique warehouse code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique warehouse name"
+        },
+        "address": {
+          "$ref": "#/definitions/Address"
+        },
+        "workingHours": {
+          "$ref": "#/definitions/WorkingHours"
+        },
+        "phones": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\+[0-9]{7,14}$",
+            "description": "Phone number starting with + and 8-15 digits"
+          },
+          "minItems": 1
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "managerId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Manager user ID"
+        }
+      }
+    },
+    "Address": {
+      "type": "object",
+      "required": ["building", "street", "city", "state", "country", "postalCode"],
+      "properties": {
+        "building": {
+          "type": "string",
+          "description": "Building number/name"
+        },
+        "street": {
+          "type": "string",
+          "description": "Street name"
+        },
+        "city": {
+          "type": "string",
+          "description": "City name"
+        },
+        "state": {
+          "type": "string",
+          "description": "State/province"
+        },
+        "country": {
+          "type": "string",
+          "description": "Country name"
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "Postal/ZIP code"
+        },
+        "latitude": {
+          "type": "number",
+          "format": "decimal",
+          "description": "Latitude coordinate"
+        },
+        "longitude": {
+          "type": "number",
+          "format": "decimal",
+          "description": "Longitude coordinate"
+        }
+      }
+    },
+    "WorkingHours": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "Timezone for working hours"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": {
+                "type": "string",
+                "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+              },
+              "open": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "format": "time",
+                      "description": "Opening time (HH:mm:ss)"
+                    },
+                    "to": {
+                      "type": "string",
+                      "format": "time",
+                      "description": "Closing time (HH:mm:ss)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Employee": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["OPERATOR", "MANAGER", "OWNER"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "INACTIVE"]
+        },
+        "timezone": {
+          "type": "string"
+        }
+      }
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "code": {
+          "type": "string",
+          "description": "Unique product code"
+        },
+        "title": {
+          "type": "string",
+          "description": "Product title/name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description"
+        },
+        "price": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product price in smallest currency unit"
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "description": "Price currency"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          },
+          "description": "Product tags for categorization"
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductPhoto"
+          },
+          "description": "Product photos"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product weight"
+        },
+        "length": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product length"
+        },
+        "width": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product width"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product height"
+        }
+      }
+    },
+    "ProductDTO": {
+      "type": "object",
+      "required": ["code", "title", "description", "price", "currency", "tags", "weight", "length", "width", "height"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Unique product code"
+        },
+        "title": {
+          "type": "string",
+          "description": "Product title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description"
+        },
+        "price": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "description": "Price in smallest currency unit"
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "CHF", "UAH"]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "minItems": 1,
+          "description": "Array of tag IDs"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "length": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      }
+    },
+    "ProductPhoto": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "productId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL to the photo"
+        },
+        "externalReference": {
+          "type": "string",
+          "description": "External storage reference"
+        },
+        "externalReferences": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Tag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique tag name"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "links": {
+          "type": "array",
+          "description": "Product-tag relationships (read-only)"
+        }
+      }
+    },
+    "StockItemGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "code": {
+          "type": "string",
+          "description": "Unique group code (auto-generated)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Group name/category"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StockItemGroupDTO": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Group name"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Active status (default: true)"
+        }
+      }
+    },
+    "StorageSection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "warehouseId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "code": {
+          "type": "string",
+          "description": "Section code within warehouse"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StockItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "product": {
+          "$ref": "#/definitions/Product",
+          "description": "Associated product (full object)"
+        },
+        "productId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stockItemGroup": {
+          "$ref": "#/definitions/StockItemGroup",
+          "description": "Associated group (full object)"
+        },
+        "stockItemGroupId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "warehouseId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "storageSection": {
+          "$ref": "#/definitions/StorageSection",
+          "description": "Storage section (full object, nullable)"
+        },
+        "storageSectionId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "dd-MM-yyyy",
+          "nullable": true,
+          "description": "Product expiration date"
+        },
+        "availableQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Available stock quantity"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "description": "Stock item status"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "StockItemDTO": {
+      "type": "object",
+      "required": ["stockItemId", "productId", "stockItemGroupId", "warehouseId", "expiryDate", "availableQuantity", "isActive", "storageSectionId"],
+      "properties": {
+        "stockItemId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Stock item ID (0 for new items)"
+        },
+        "productId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stockItemGroupId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "warehouseId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "dd-MM-yyyy",
+          "description": "Expiration date"
+        },
+        "availableQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "storageSectionId": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "nullifyExpiration": {
+          "type": "boolean",
+          "description": "Set expiryDate to null"
+        },
+        "nullifySection": {
+          "type": "boolean",
+          "description": "Set storageSectionId to null"
+        },
+        "switchOff": {
+          "type": "boolean",
+          "description": "Deactivate the item"
+        }
+      }
+    },
+    "StockItemHistory": {
+      "type": "object",
+      "description": "Immutable audit log of stock item changes",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stockItemId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "currentProductPrice": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Product price at time of change"
+        },
+        "loggedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the change occurred"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oldGroupId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "newGroupId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "oldWarehouseId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "newWarehouseId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "quantityBefore": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "quantityAfter": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "oldExpiration": {
+          "type": "string",
+          "format": "date",
+          "nullable": true
+        },
+        "newExpiration": {
+          "type": "string",
+          "format": "date",
+          "nullable": true
+        },
+        "oldStatus": {
+          "type": "string",
+          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "nullable": true
+        },
+        "newStatus": {
+          "type": "string",
+          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "nullable": true
+        },
+        "oldSectionId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "newSectionId": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "oldActivity": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "newActivity": {
+          "type": "boolean",
+          "nullable": true
+        }
+      }
+    },
+    "Shipment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "code": {
+          "type": "string",
+          "description": "Unique shipment code (auto-generated)"
+        },
+        "warehouseIdSender": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true,
+          "description": "Sender warehouse ID (null for external shipments)"
+        },
+        "warehouseIdRecipient": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true,
+          "description": "Recipient warehouse ID (null for external shipments)"
+        },
+        "address": {
+          "$ref": "#/definitions/Address",
+          "description": "Delivery address (for external shipments)"
+        },
+        "stockItemId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Stock item being shipped"
+        },
+        "stockItemQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Quantity being shipped"
+        },
+        "initiatorId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "User ID who created the shipment"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"],
+          "description": "Current shipment status"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "shipmentDirection": {
+          "type": "string",
+          "enum": ["INCOMING", "OUTCOMING"],
+          "description": "Direction of shipment"
+        }
+      }
+    },
+    "ShipmentDTO": {
+      "type": "object",
+      "required": ["id", "senderCode", "recipientCode", "address", "stockItemId", "stockItemQuantity", "status", "shipmentDirection"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "description": "Shipment ID (0 for new shipments)"
+        },
+        "senderCode": {
+          "type": "string",
+          "description": "Sender warehouse code (empty for external)"
+        },
+        "recipientCode": {
+          "type": "string",
+          "description": "Recipient warehouse code (empty for external)"
+        },
+        "address": {
+          "$ref": "#/definitions/Address",
+          "description": "Delivery address"
+        },
+        "stockItemId": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "stockItemQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"]
+        },
+        "shipmentDirection": {
+          "type": "string",
+          "enum": ["INCOMING", "OUTCOMING"]
+        }
+      }
+    },
+    "Beneficiary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "iban": {
+          "type": "string",
+          "description": "IBAN (International Bank Account Number)"
+        },
+        "swift": {
+          "type": "string",
+          "description": "SWIFT/BIC code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Beneficiary name"
+        },
+        "card": {
+          "type": "string",
+          "description": "Card number"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "BeneficiaryDTO": {
+      "type": "object",
+      "required": ["id", "iban", "swift", "name", "card"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Beneficiary ID (0 for new)"
+        },
+        "iban": {
+          "type": "string",
+          "description": "IBAN"
+        },
+        "swift": {
+          "type": "string",
+          "description": "SWIFT code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Beneficiary name"
+        },
+        "card": {
+          "type": "string",
+          "description": "Card number"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Active status"
+        }
+      }
+    },
+    "Transaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "Unique transaction identifier"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Unique reference number"
+        },
+        "flowType": {
+          "type": "string",
+          "enum": ["DEBIT", "CREDIT"],
+          "description": "DEBIT = outgoing payment, CREDIT = incoming payment"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"],
+          "description": "Transaction purpose/category"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"],
+          "description": "Current transaction status"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Transaction amount in smallest currency unit"
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "description": "Transaction currency"
+        },
+        "beneficiaryId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Beneficiary account ID"
+        },
+        "externalReferences": {
+          "$ref": "#/definitions/ExternalReferences",
+          "description": "External payment provider references"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Transaction creation timestamp"
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true,
+          "description": "Payment completion timestamp"
+        },
+        "paymentProvider": {
+          "type": "string",
+          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"],
+          "description": "Payment provider used"
+        }
+      }
+    },
+    "TransactionDTO": {
+      "type": "object",
+      "required": ["transactionId", "reference", "purpose", "flow", "amount", "currency", "receiverFinancialAccountId", "paymentProvider"],
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "description": "Unique transaction identifier"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Unique reference number"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"]
+        },
+        "flow": {
+          "type": "string",
+          "enum": ["DEBIT", "CREDIT"],
+          "description": "DEBIT = outgoing, CREDIT = incoming"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "description": "3-letter uppercase currency code"
+        },
+        "receiverFinancialAccountId": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "description": "Beneficiary ID receiving the payment"
+        },
+        "paymentProvider": {
+          "type": "string",
+          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+        }
+      }
+    },
+    "ExternalReferences": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "merchantId": {
+          "type": "string"
+        },
+        "merchantName": {
+          "type": "string"
+        },
+        "authenticationCode": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "pan": {
+          "type": "string",
+          "description": "Primary Account Number"
+        },
+        "reference": {
+          "type": "string"
+        }
+      }
+    },
+    "CheckoutFinancialInformation": {
+      "type": "object",
+      "description": "Information required to build customer checkout form for incoming payments",
+      "properties": {
+        "checkoutUrl": {
+          "type": "string",
+          "description": "URL for payment checkout page"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Payment signature for verification"
+        },
+        "encodedContent": {
+          "type": "string",
+          "description": "Encoded payment data"
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "Transaction ID"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Transaction reference"
+        },
+        "paymentProvider": {
+          "type": "string",
+          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+        }
+      }
+    },
+    "CurrencyRate": {
+      "type": "object",
+      "description": "Cached currency exchange rate",
+      "properties": {
+        "currencyCode": {
+          "type": "string",
+          "description": "Currency code (e.g., USD, EUR)"
+        },
+        "baseCurrencyCode": {
+          "type": "string",
+          "description": "Base currency for rate calculation"
+        },
+        "rate": {
+          "type": "number",
+          "format": "decimal",
+          "description": "Exchange rate"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When rate was fetched"
+        },
+        "expiryTime": {
+          "type": "integer",
+          "format": "int64",
+          "description": "TTL in seconds"
+        }
+      }
+    },
+    "ItemSellingStatistic": {
+      "type": "object",
+      "description": "Sales statistics for a stock item",
+      "properties": {
+        "stockItemId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Start date of statistics period"
+        },
+        "soldQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total quantity sold"
+        },
+        "totalRevenueAmount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total revenue in smallest currency unit"
+        }
+      }
+    },
+    "FinancialStatistic": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "CHF", "UAH"]
+        },
+        "totalDebit": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total outgoing payments (DEBIT)"
+        },
+        "totalCredit": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total incoming payments (CREDIT)"
+        }
+      }
+    },
+    "BeneficiaryFinancialFlowStatistic": {
+      "type": "object",
+      "description": "Financial flow statistics for a beneficiary",
+      "properties": {
+        "beneficiary": {
+          "$ref": "#/definitions/Beneficiary"
+        },
+        "financialStatistic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FinancialStatistic"
+          },
+          "description": "Statistics grouped by currency"
+        }
+      }
+    },
+    "QueueResponseDTO": {
+      "type": "object",
+      "description": "Response from async queue operations",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Message key in queue"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Kafka topic name"
+        },
+        "isEnqueued": {
+          "type": "boolean",
+          "description": "Whether message was successfully queued"
+        }
+      }
+    }
+  },
+  "notes": {
+    "authentication": "Most endpoints require Bearer token authentication. Obtain token from /login endpoint.",
+    "pagination": "All search endpoints use page-based pagination. pageSize and page parameters are required. Page numbers start at 1.",
+    "dateFormats": {
+      "date": "dd-MM-yyyy",
+      "dateTime": "dd-MM-yyyy'At'HH:mm:ss",
+      "example": "25-12-2024At14:30:00"
+    },
+    "amounts": "All monetary amounts are stored as integers in the smallest currency unit (e.g., cents for USD, kopiykas for UAH).",
+    "asyncOperations": "Endpoints under /api/v1/sink/* return 202 Accepted and process requests asynchronously via Kafka.",
+    "roleBasedAccess": "Some endpoints require specific roles: OWNER (highest), MANAGER, OPERATOR (lowest). Check requiresRole field.",
+    "shipmentStatusTransitions": "Shipment statuses can only transition in specific order: PLANNED -> INITIATED -> SENT -> DELIVERED. ROLLBACK can be applied from any status.",
+    "stockItemHistory": "Stock item history is immutable and automatically created when stock items are modified."
+  }
+}
+
