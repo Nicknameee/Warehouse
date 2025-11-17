@@ -340,7 +340,7 @@ The script will:
 
 4. **Access the application**
    - API: http://localhost:9009
-   - Kafka UI: http://localhost:8081 (admin/admin123)
+   - Kafka UI: http://localhost:8081
    - Kibana: http://localhost:5601
    - Elasticsearch: http://localhost:9200
 
@@ -365,6 +365,13 @@ The script will:
    export SPRING_REDIS_HOST=localhost
    export SPRING_REDIS_PORT=6379
    export SPRING_REDIS_PASSWORD=1904
+   export CLOUDINARY_API_KEY=YOUR_API_KEY
+   export CLOUDINARY_API_SECRET=YOUR_API_SECRET
+   export CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+   export EXCHANGE_APP_ID=YOUR_APP_ID
+   export SERVER_PORT=9009
+   export SPRING_APPLICATION_NAME=warehouse
+   export SPRING_PROFILES_ACTIVE=actuator,database,users,redis,kafka,external
    ```
 
 4. **Run database migrations**
@@ -580,7 +587,6 @@ The `docker-compose.yml` includes:
 
 ## 📚 Additional Resources
 
-- **Front-End Plan**: See `front-end-plan.md` for Next.js front-end development plan
 - **API Documentation**: Complete API reference in `api-documentation.json`
 
 ## 🤝 Contributing
@@ -597,7 +603,7 @@ The `docker-compose.yml` includes:
 
 ## 👥 Authors
 
-[Specify authors here]
+Jabro, Steve Rambo, Van Holes
 
 ## 🙏 Acknowledgments
 
@@ -606,5 +612,4 @@ Built with Spring Boot and modern Java technologies.
 ---
 
 For detailed API documentation, see `api-documentation.json`.
-For front-end development plan, see `front-end-plan.md`.
 

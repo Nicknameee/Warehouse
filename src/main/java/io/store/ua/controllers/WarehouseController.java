@@ -17,15 +17,15 @@ import java.util.List;
 public class WarehouseController {
     private final WarehouseService warehouseService;
 
-    @GetMapping("/findAll")
-    public ResponseEntity<List<Warehouse>> findAllWarehouses(@RequestParam(name = "codePrefix", required = false) String codePrefix,
-                                                             @RequestParam(name = "namePrefix", required = false) String namePrefix,
-                                                             @RequestParam(name = "managerId", required = false) Long managerId,
-                                                             @RequestParam(name = "isActive", required = false) Boolean isActive,
-                                                             @RequestParam(name = "pageSize")
-                                                             @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
-                                                             @RequestParam(name = "page")
-                                                             @Min(value = 1, message = "A number of page can't be less than one") int page) {
+    @GetMapping("/findBy")
+    public ResponseEntity<List<Warehouse>> findBy(@RequestParam(name = "codePrefix", required = false) String codePrefix,
+                                                  @RequestParam(name = "namePrefix", required = false) String namePrefix,
+                                                  @RequestParam(name = "managerId", required = false) Long managerId,
+                                                  @RequestParam(name = "isActive", required = false) Boolean isActive,
+                                                  @RequestParam(name = "pageSize")
+                                                  @Min(value = 1, message = "A size of page can't be less than one") int pageSize,
+                                                  @RequestParam(name = "page")
+                                                  @Min(value = 1, message = "A number of page can't be less than one") int page) {
 
         return ResponseEntity.ok(warehouseService.findBy(codePrefix,
                 namePrefix,

@@ -304,7 +304,7 @@
       }
     },
     "warehouses": {
-      "GET /api/v1/warehouses/findAll": {
+      "GET /api/v1/warehouses/findBy": {
         "description": "Search warehouses with optional filters",
         "requiresAuth": true,
         "queryParameters": {

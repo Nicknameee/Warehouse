@@ -54,11 +54,11 @@ class WarehouseControllerIT extends AbstractIT {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/warehouses/findAll")
-    class FindAllWarehousesTests {
+    @DisplayName("GET /api/v1/warehouses/findBy")
+    class FindByWarehousesTests {
         @Test
-        @DisplayName("findAll_success_appliesAllFilters")
-        void findAll_success_appliesAllFilters() {
+        @DisplayName("findBy_success_appliesAllFilters")
+        void findBy_success_appliesAllFilters() {
             Warehouse target = generateWarehouse();
             target.setCode("ALPHA-" + target.getCode());
             target.setName("Alpha " + target.getName());
@@ -93,7 +93,7 @@ class WarehouseControllerIT extends AbstractIT {
             inactive.setIsActive(false);
             warehouseRepository.save(inactive);
 
-            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
+            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findBy")
                     .queryParam("codePrefix", "ALPHA-")
                     .queryParam("namePrefix", "Alpha")
                     .queryParam("managerId", manager.getId())
@@ -127,9 +127,9 @@ class WarehouseControllerIT extends AbstractIT {
         }
 
         @Test
-        @DisplayName("findAll_fail_invalidPagination_returns4xx")
-        void findAll_fail_invalidPagination_returns4xx() {
-            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findAll")
+        @DisplayName("findBy_fail_invalidPagination_returns4xx")
+        void findBy_fail_invalidPagination_returns4xx() {
+            String url = UriComponentsBuilder.fromPath("/api/v1/warehouses/findBy")
                     .queryParam("pageSize", 0)
                     .queryParam("page", 0)
                     .build(true)
