@@ -7,6 +7,7 @@ import io.store.ua.entity.Tag;
 import io.store.ua.enums.Currency;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ProductDTO;
+import io.store.ua.utility.CodeGenerator;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.RandomUtils;
@@ -43,7 +44,7 @@ class ProductServiceIT extends AbstractIT {
 
     private ProductDTO buildProductDTOWithTags(List<Long> tagIds) {
         return ProductDTO.builder()
-                .code(GENERATOR.nextAlphanumeric(33))
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .title(GENERATOR.nextAlphanumeric(30))
                 .description(GENERATOR.nextAlphanumeric(100))
                 .price(BigInteger.valueOf(1_000))
@@ -62,7 +63,7 @@ class ProductServiceIT extends AbstractIT {
 
     private Product saveProduct(ProductDTO productDTO) {
         return productRepository.save(Product.builder()
-                .code(productDTO.getCode())
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .title(productDTO.getTitle())
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
@@ -250,7 +251,7 @@ class ProductServiceIT extends AbstractIT {
             Product product = productService.save(productDTO);
 
             assertThat(product.getId()).isNotNull();
-            assertThat(product.getCode()).isEqualTo(productDTO.getCode());
+            assertThat(product.getCode()).isNotNull();
             assertThat(product.getTitle()).isEqualTo(productDTO.getTitle());
             assertThat(product.getDescription()).isEqualTo(productDTO.getDescription());
             assertThat(product.getPrice()).isEqualByComparingTo(productDTO.getPrice());
@@ -272,17 +273,6 @@ class ProductServiceIT extends AbstractIT {
             assertThat(product.getTags())
                     .extracting(Tag::getId)
                     .containsExactlyInAnyOrderElementsOf(tagIds);
-        }
-
-        @Test
-        @DisplayName("save_idempotent: returns existing Product when code already exists")
-        void save_idempotent_existingCode() {
-            ProductDTO productDTO = buildProductDTO();
-            Product initialProduct = saveProduct(productDTO);
-
-            Product product = productService.save(productDTO);
-
-            assertThat(product.getId()).isEqualTo(initialProduct.getId());
         }
 
         @Test
@@ -311,7 +301,7 @@ class ProductServiceIT extends AbstractIT {
             Product product = saveProduct(productDTO);
 
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(productDTO.getCode())
+                    .code(product.getCode())
                     .title(GENERATOR.nextAlphanumeric(100))
                     .description(GENERATOR.nextAlphanumeric(100))
                     .price(BigInteger.valueOf(RandomUtils.secure().randomInt(1, 10_000)))
@@ -364,7 +354,7 @@ class ProductServiceIT extends AbstractIT {
                     .toList();
 
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(productDTO.getCode())
+                    .code(product.getCode())
                     .tags(new HashSet<>(newTagIds))
                     .build();
 
@@ -390,7 +380,7 @@ class ProductServiceIT extends AbstractIT {
             productRepository.save(product);
 
             ProductDTO updateDTO = ProductDTO.builder()
-                    .code(productDTO.getCode())
+                    .code(product.getCode())
                     .tags(new HashSet<>())
                     .build();
 

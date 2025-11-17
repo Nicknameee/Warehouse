@@ -6,6 +6,7 @@ import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.dto.ProductDTO;
 import io.store.ua.repository.ProductRepository;
 import io.store.ua.repository.TagRepository;
+import io.store.ua.utility.CodeGenerator;
 import io.store.ua.validations.FieldValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.*;
@@ -22,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -111,7 +111,6 @@ public class ProductService {
 
     public Product save(@NotNull(message = "Product can't be null") ProductDTO productDTO) {
         fieldValidator.validate(productDTO, true,
-                ProductDTO.Fields.code,
                 ProductDTO.Fields.title,
                 ProductDTO.Fields.description,
                 ProductDTO.Fields.price,
@@ -121,14 +120,8 @@ public class ProductService {
                 ProductDTO.Fields.width,
                 ProductDTO.Fields.height);
 
-        Optional<Product> optionalProduct = productRepository.findByCode(productDTO.getCode());
-
-        if (optionalProduct.isPresent()) {
-            return optionalProduct.get();
-        }
-
         Product product = Product.builder()
-                .code(productDTO.getCode())
+                .code(CodeGenerator.StockCodeGenerator.generate())
                 .title(productDTO.getTitle())
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
