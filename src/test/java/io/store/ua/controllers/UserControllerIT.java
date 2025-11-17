@@ -306,9 +306,9 @@ class UserControllerIT extends AbstractIT {
             UserDTO userDTO = UserDTO.builder()
                     .username(actualUser.getUsername())
                     .email("%s@%s.%s".formatted(
-                            GENERATOR.nextAlphanumeric(13),
-                            GENERATOR.nextAlphanumeric(5),
-                            GENERATOR.nextAlphanumeric(3)))
+                            GENERATOR.nextAlphabetic(13),
+                            GENERATOR.nextAlphabetic(5),
+                            GENERATOR.nextAlphabetic(3)))
                     .role(UserRole.MANAGER.name())
                     .status(UserStatus.ACTIVE.name())
                     .timezone("Europe/Kyiv")

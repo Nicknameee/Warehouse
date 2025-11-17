@@ -3,6 +3,7 @@ package io.store.ua.handlers;
 import io.store.ua.exceptions.ApplicationException;
 import io.store.ua.exceptions.AuthenticationException;
 import jakarta.validation.ValidationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,12 @@ import java.nio.file.AccessDeniedException;
 import java.util.Objects;
 
 @RestControllerAdvice
+@Slf4j
 public class ExceptionHandlerController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleApplicationExceptions(Exception e) {
+        log.error("Exception {} {}", e.getClass().getSimpleName(), e.getMessage(), e);
+
         if (e instanceof ApplicationException exception) {
             return ResponseEntity.status(exception.getStatus()).body(exception);
         } else if (e instanceof MethodArgumentNotValidException exception) {
