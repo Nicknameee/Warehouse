@@ -121,6 +121,7 @@ public class AnalyticsService {
         if (from != null) {
             predicates.add(criteriaBuilder.greaterThanOrEqualTo(createdAtPath, from.atStartOfDay()));
         }
+
         if (to != null) {
             predicates.add(criteriaBuilder.lessThan(createdAtPath, to.plusDays(1).atStartOfDay()));
         }
