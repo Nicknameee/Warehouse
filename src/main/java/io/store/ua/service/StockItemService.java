@@ -224,6 +224,12 @@ public class StockItemService {
 
         long productVersions = stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItemDTO.getProductId(), stockItemDTO.getWarehouseId());
 
+        if (stockItemDTO.getStorageSectionId() != null
+                && !storageSectionRepository.existsByIdAndWarehouseId(stockItemDTO.getStorageSectionId(), stockItemDTO.getWarehouseId())) {
+            throw new BusinessException("Storage section with ID '%s' does not belong to warehouse with ID '%s'"
+                    .formatted(stockItemDTO.getStorageSectionId(), stockItemDTO.getWarehouseId()));
+        }
+
         return stockItemRepository.save(StockItem.builder()
                 .batchVersion(productVersions + 1)
                 .code(CodeGenerator.StockCodeGenerator.generate())

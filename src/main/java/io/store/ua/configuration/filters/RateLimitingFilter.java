@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentMap;
 @Order(1)
 public class RateLimitingFilter extends OncePerRequestFilter {
     private static final long WINDOW_MS = 5_000L;
-    private static final int MAX_REQUESTS = 5;
+    private static final int MAX_REQUESTS = 10;
     private final ConcurrentMap<String, RequestBucket> buckets = new ConcurrentHashMap<>();
 
     @Override
