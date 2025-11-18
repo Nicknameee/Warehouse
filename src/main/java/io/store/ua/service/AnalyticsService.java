@@ -29,19 +29,19 @@ import java.util.List;
 public class AnalyticsService {
     private final EntityManager entityManager;
 
-    public List<ItemSellingStatistic> fetchItemSellingStatistic(@NotNull(message = "Stock item ID can't be null")
-                                                                @Min(value = 1, message = "Stock item ID can't be less than 1")
-                                                                Long stockItemId,
-                                                                LocalDate from,
-                                                                LocalDate to,
-                                                                @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
-                                                                @Min(value = 1, message = "A page number can't be less than 1") int page) {
+    public ItemSellingStatistic fetchItemSellingStatistic(@NotNull(message = "Stock item ID can't be null")
+                                                          @Min(value = 1, message = "Stock item ID can't be less than 1")
+                                                          Long stockItemId,
+                                                          LocalDate from,
+                                                          LocalDate to,
+                                                          @Min(value = 1, message = "Size of page can't be less than 1") int pageSize,
+                                                          @Min(value = 1, message = "A page number can't be less than 1") int page) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new IllegalArgumentException("A 'from' must not be after 'to'");
         }
 
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-        CriteriaQuery<ItemSellingStatistic> criteriaQuery = criteriaBuilder.createQuery(ItemSellingStatistic.class);
+        CriteriaQuery<ItemSellingStatistic.Statistic> criteriaQuery = criteriaBuilder.createQuery(ItemSellingStatistic.Statistic.class);
         Root<StockItemHistory> root = criteriaQuery.from(StockItemHistory.class);
 
         Expression<BigInteger> quantityBefore = criteriaBuilder.<BigInteger>coalesce()
@@ -52,43 +52,53 @@ public class AnalyticsService {
         Expression<BigInteger> delta = criteriaBuilder.diff(quantityBefore, quantityAfter);
         Expression<BigInteger> zero = criteriaBuilder.literal(BigInteger.ZERO);
 
-        Path<Long> itemIdPath = root.get(StockItemHistory.Fields.stockItemId);
-        Path<LocalDateTime> loggedAt = root.get(StockItemHistory.Fields.loggedAt);
-        Expression<LocalDate> startDate = criteriaBuilder.function("DATE", LocalDate.class, loggedAt);
+        Path<Long> stockItemIdPath = root.get(StockItemHistory.Fields.stockItemId);
+        Path<LocalDateTime> loggedAtPath = root.get(StockItemHistory.Fields.loggedAt);
+        Path<String> currencyPath = root.get(StockItemHistory.Fields.currency);
+
+        Expression<LocalDate> startDateExpression = criteriaBuilder.function("DATE", LocalDate.class, loggedAtPath);
 
         List<Predicate> predicates = new ArrayList<>();
-        predicates.add(criteriaBuilder.equal(itemIdPath, stockItemId));
+        predicates.add(criteriaBuilder.equal(stockItemIdPath, stockItemId));
 
         if (from != null) {
-            predicates.add(criteriaBuilder.greaterThanOrEqualTo(loggedAt, from.atStartOfDay()));
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(loggedAtPath, from.atStartOfDay()));
         }
         if (to != null) {
-            predicates.add(criteriaBuilder.lessThan(loggedAt, to.plusDays(1).atStartOfDay()));
+            predicates.add(criteriaBuilder.lessThan(loggedAtPath, to.plusDays(1).atStartOfDay()));
         }
 
-        predicates.add(criteriaBuilder.greaterThan(root.get(StockItemHistory.Fields.quantityBefore),
+        predicates.add(criteriaBuilder.greaterThan(
+                root.get(StockItemHistory.Fields.quantityBefore),
                 root.get(StockItemHistory.Fields.quantityAfter)));
 
-        Expression<BigInteger> quantity = criteriaBuilder.<BigInteger>selectCase()
+        Expression<BigInteger> soldQuantityExpression = criteriaBuilder.<BigInteger>selectCase()
                 .when(criteriaBuilder.greaterThan(delta, zero), delta)
                 .otherwise(zero);
 
-        Path<BigInteger> currentProductPrice = root.get(StockItemHistory.Fields.currentProductPrice);
-        Expression<BigInteger> revenue = criteriaBuilder.prod(currentProductPrice, quantity);
+        Path<BigInteger> currentProductPricePath = root.get(StockItemHistory.Fields.currentProductPrice);
+        Expression<BigInteger> totalRevenueAmountExpression = criteriaBuilder.prod(currentProductPricePath, soldQuantityExpression);
 
-        criteriaQuery.select(criteriaBuilder.construct(ItemSellingStatistic.class,
-                        criteriaBuilder.literal(stockItemId),
-                        startDate,
-                        criteriaBuilder.sum(quantity),
-                        criteriaBuilder.sum(revenue)))
+        criteriaQuery.select(criteriaBuilder.construct(
+                        ItemSellingStatistic.Statistic.class,
+                        startDateExpression,
+                        criteriaBuilder.sum(soldQuantityExpression),
+                        criteriaBuilder.sum(totalRevenueAmountExpression),
+                        currencyPath
+                ))
                 .where(predicates.toArray(Predicate[]::new))
-                .groupBy(startDate)
-                .orderBy(criteriaBuilder.desc(startDate));
+                .groupBy(startDateExpression, currencyPath)
+                .orderBy(criteriaBuilder.desc(startDateExpression), criteriaBuilder.asc(currencyPath));
 
-        return entityManager.createQuery(criteriaQuery)
+        List<ItemSellingStatistic.Statistic> statistics = entityManager.createQuery(criteriaQuery)
                 .setMaxResults(pageSize)
                 .setFirstResult((page - 1) * pageSize)
                 .getResultList();
+
+        return ItemSellingStatistic.builder()
+                .stockItemId(stockItemId)
+                .statistics(statistics)
+                .build();
     }
 
     public BeneficiaryFinancialFlowStatistic fetchBeneficiaryFinancialStatistic(@NotNull(message = "Beneficiary ID can't be null")

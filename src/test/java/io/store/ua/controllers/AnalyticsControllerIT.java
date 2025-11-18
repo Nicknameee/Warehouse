@@ -11,14 +11,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -104,16 +102,20 @@ class AnalyticsControllerIT extends AbstractIT {
                     .build(true)
                     .toUriString();
 
-            ResponseEntity<List<ItemSellingStatistic>> response = restClient.exchange(
+            ResponseEntity<ItemSellingStatistic> response = restClient.exchange(
                     url,
                     HttpMethod.GET,
                     new HttpEntity<>(authenticationHeaders),
-                    new ParameterizedTypeReference<>() {
-                    }
+                    ItemSellingStatistic.class
             );
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody())
+                    .isNotNull();
+
+            ItemSellingStatistic body = response.getBody();
+            assertThat(body.getStockItemId()).isEqualTo(item.getId());
+            assertThat(body.getStatistics())
                     .isNotNull()
                     .isNotEmpty();
 
@@ -124,21 +126,23 @@ class AnalyticsControllerIT extends AbstractIT {
                     .add(calculateRevenue(historyForYesterday))
                     .add(calculateRevenue(historyForToday));
 
-            assertThat(response.getBody()
+            assertThat(body.getStatistics()
                     .stream()
-                    .map(ItemSellingStatistic::getStartDate))
+                    .map(ItemSellingStatistic.Statistic::getStartDate))
                     .contains(dateInPast, yesterday, today);
 
-            assertThat(response.getBody()
+            BigInteger actualTotalQuantity = body.getStatistics()
                     .stream()
-                    .map(ItemSellingStatistic::getSoldQuantity)
-                    .reduce(BigInteger.ZERO, BigInteger::add))
-                    .isEqualTo(expectedTotalQuantity);
-            assertThat(response.getBody()
+                    .map(ItemSellingStatistic.Statistic::getSoldQuantity)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            BigInteger actualTotalRevenue = body.getStatistics()
                     .stream()
-                    .map(ItemSellingStatistic::getTotalRevenueAmount)
-                    .reduce(BigInteger.ZERO, BigInteger::add))
-                    .isEqualTo(expectedTotalRevenue);
+                    .map(ItemSellingStatistic.Statistic::getTotalRevenueAmount)
+                    .reduce(BigInteger.ZERO, BigInteger::add);
+
+            assertThat(actualTotalQuantity).isEqualTo(expectedTotalQuantity);
+            assertThat(actualTotalRevenue).isEqualTo(expectedTotalRevenue);
         }
     }
 

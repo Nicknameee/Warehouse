@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/analytics")
@@ -21,13 +20,13 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     @GetMapping("/fetchItemSellingStatistic")
-    public ResponseEntity<List<ItemSellingStatistic>> fetchItemSellingStatistic(@RequestParam(name = "stockItemId") Long stockItemId,
-                                                                                @RequestParam(name = "from", required = false)
-                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
-                                                                                @RequestParam(name = "to", required = false)
-                                                                                @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
-                                                                                @RequestParam(name = "pageSize") int pageSize,
-                                                                                @RequestParam(name = "page") int page) {
+    public ResponseEntity<ItemSellingStatistic> fetchItemSellingStatistic(@RequestParam(name = "stockItemId") Long stockItemId,
+                                                                          @RequestParam(name = "from", required = false)
+                                                                          @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate from,
+                                                                          @RequestParam(name = "to", required = false)
+                                                                          @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate to,
+                                                                          @RequestParam(name = "pageSize") int pageSize,
+                                                                          @RequestParam(name = "page") int page) {
         return ResponseEntity.ok(analyticsService.fetchItemSellingStatistic(stockItemId,
                 from,
                 to,

@@ -36,15 +36,23 @@ class AnalyticsServiceIT extends AbstractIT {
     private StockItem otherStockItem;
     private Beneficiary beneficiary;
 
-    private static BigInteger calculateQuantity(List<ItemSellingStatistic> statistics) {
-        return statistics.stream()
-                .map(ItemSellingStatistic::getSoldQuantity)
+    private static BigInteger calculateQuantity(ItemSellingStatistic statistic) {
+        if (statistic == null || statistic.getStatistics() == null) {
+            return BigInteger.ZERO;
+        }
+
+        return statistic.getStatistics().stream()
+                .map(ItemSellingStatistic.Statistic::getSoldQuantity)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
-    private static BigInteger calculateRevenue(List<ItemSellingStatistic> statistics) {
-        return statistics.stream()
-                .map(ItemSellingStatistic::getTotalRevenueAmount)
+    private static BigInteger calculateRevenue(ItemSellingStatistic statistic) {
+        if (statistic == null || statistic.getStatistics() == null) {
+            return BigInteger.ZERO;
+        }
+
+        return statistic.getStatistics().stream()
+                .map(ItemSellingStatistic.Statistic::getTotalRevenueAmount)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
@@ -82,7 +90,6 @@ class AnalyticsServiceIT extends AbstractIT {
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }
 
-
     private static FinancialStatistic findByCurrency(BeneficiaryFinancialFlowStatistic statistic, String currency) {
         return statistic.getFinancialStatistic().stream()
                 .filter(financialStatistic -> currency.equals(financialStatistic.getCurrency()))
@@ -118,16 +125,24 @@ class AnalyticsServiceIT extends AbstractIT {
             StockItemHistory thirdEntry = insertHistoryRow(
                     stockItem.getId(), BigInteger.valueOf(20), BigInteger.valueOf(25), BigInteger.ONE, LocalDate.now());
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(
+            ItemSellingStatistic statistic = analyticsService.fetchItemSellingStatistic(
                     stockItem.getId(), null, null, 100, 1);
 
-            assertThat(statistics).isNotEmpty();
-            assertThat(calculateQuantity(statistics))
+            assertThat(statistic).isNotNull();
+            assertThat(statistic.getStockItemId()).isEqualTo(stockItem.getId());
+            assertThat(statistic.getStatistics()).isNotEmpty();
+
+            assertThat(calculateQuantity(statistic))
                     .isEqualTo(expectedQuantity(Stream.of(firstEntry, extraEntry, thirdEntry)));
-            assertThat(calculateRevenue(statistics))
+            assertThat(calculateRevenue(statistic))
                     .isEqualTo(expectedRevenue(Stream.of(firstEntry, extraEntry, thirdEntry)));
-            assertThat(statistics.stream().map(ItemSellingStatistic::getStartDate).distinct().count())
-                    .isGreaterThanOrEqualTo(1);
+
+            long distinctDates = statistic.getStatistics().stream()
+                    .map(ItemSellingStatistic.Statistic::getStartDate)
+                    .distinct()
+                    .count();
+
+            assertThat(distinctDates).isGreaterThanOrEqualTo(1);
         }
 
         @Test
@@ -138,12 +153,15 @@ class AnalyticsServiceIT extends AbstractIT {
             insertHistoryRow(
                     otherStockItem.getId(), BigInteger.TEN, BigInteger.valueOf(5), BigInteger.ONE, LocalDate.now());
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(
+            ItemSellingStatistic statistic = analyticsService.fetchItemSellingStatistic(
                     stockItem.getId(), null, null, 50, 1);
 
-            assertThat(calculateQuantity(statistics))
+            assertThat(statistic).isNotNull();
+            assertThat(statistic.getStockItemId()).isEqualTo(stockItem.getId());
+
+            assertThat(calculateQuantity(statistic))
                     .isEqualTo(expectedQuantity(Stream.of(stockItemHistory)));
-            assertThat(calculateRevenue(statistics))
+            assertThat(calculateRevenue(statistic))
                     .isEqualTo(expectedRevenue(Stream.of(stockItemHistory)));
         }
 
@@ -154,14 +172,18 @@ class AnalyticsServiceIT extends AbstractIT {
             StockItemHistory stockItemHistory = insertHistoryRow(
                     stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9), BigInteger.ONE, today);
 
-            List<ItemSellingStatistic> statistics = analyticsService.fetchItemSellingStatistic(
+            ItemSellingStatistic statistic = analyticsService.fetchItemSellingStatistic(
                     stockItem.getId(), today, today.plusDays(1), 100, 1);
 
-            assertThat(calculateQuantity(statistics))
+            assertThat(statistic).isNotNull();
+            assertThat(statistic.getStockItemId()).isEqualTo(stockItem.getId());
+
+            assertThat(calculateQuantity(statistic))
                     .isEqualTo(expectedQuantity(Stream.of(stockItemHistory)));
-            assertThat(calculateRevenue(statistics))
+            assertThat(calculateRevenue(statistic))
                     .isEqualTo(expectedRevenue(Stream.of(stockItemHistory)));
-            assertThat(statistics).allSatisfy(s ->
+
+            assertThat(statistic.getStatistics()).allSatisfy(s ->
                     assertThat(s.getStartDate()).isEqualTo(today));
         }
 
@@ -174,12 +196,21 @@ class AnalyticsServiceIT extends AbstractIT {
             insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9), BigInteger.ONE, yesterday);
             insertHistoryRow(stockItem.getId(), BigInteger.TEN, BigInteger.valueOf(9), BigInteger.ONE, today);
 
-            var firstPage = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 1, 1);
-            var otherPage = analyticsService.fetchItemSellingStatistic(stockItem.getId(), null, null, 1, 2);
+            ItemSellingStatistic firstPage = analyticsService.fetchItemSellingStatistic(
+                    stockItem.getId(), null, null, 1, 1);
+            ItemSellingStatistic otherPage = analyticsService.fetchItemSellingStatistic(
+                    stockItem.getId(), null, null, 1, 2);
 
-            assertThat(firstPage).hasSize(1);
-            assertThat(otherPage).hasSize(1);
-            assertThat(otherPage.getFirst().getStartDate()).isNotEqualTo(firstPage.getFirst().getStartDate());
+            assertThat(firstPage).isNotNull();
+            assertThat(otherPage).isNotNull();
+
+            assertThat(firstPage.getStatistics()).hasSize(1);
+            assertThat(otherPage.getStatistics()).hasSize(1);
+
+            LocalDate firstDate = firstPage.getStatistics().getFirst().getStartDate();
+            LocalDate otherDate = otherPage.getStatistics().getFirst().getStartDate();
+
+            assertThat(otherDate).isNotEqualTo(firstDate);
         }
 
         @ParameterizedTest(name = "fail_invalid_pageSize={0}")
