@@ -68,11 +68,11 @@ public class StockItemHistoryService {
         }
 
         if (from != null) {
-            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(StockItemHistory.Fields.oldExpiration), from.toLocalDate()));
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), from.toLocalDate()));
         }
 
         if (to != null) {
-            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(StockItemHistory.Fields.newExpiration), to.toLocalDate()));
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), to.toLocalDate()));
         }
 
         criteriaQuery

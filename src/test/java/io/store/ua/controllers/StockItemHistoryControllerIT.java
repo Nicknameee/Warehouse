@@ -6,6 +6,7 @@ import io.store.ua.entity.StockItem;
 import io.store.ua.entity.StockItemGroup;
 import io.store.ua.entity.Warehouse;
 import io.store.ua.entity.immutable.StockItemHistory;
+import io.store.ua.enums.Currency;
 import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -57,6 +58,7 @@ class StockItemHistoryControllerIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .currency(Currency.EUR.name())
                             .oldExpiration(d5)
                             .newExpiration(d10)
                             .loggedAt(LocalDateTime.now(Clock.systemUTC()))
@@ -64,6 +66,7 @@ class StockItemHistoryControllerIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .currency(Currency.EUR.name())
                             .oldExpiration(d10)
                             .newExpiration(d30)
                             .loggedAt(LocalDateTime.now(Clock.systemUTC()))
@@ -71,6 +74,7 @@ class StockItemHistoryControllerIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(generateStockItem(product.getId(), groupA.getId(), warehouseB.getId()).getId())
                             .currentProductPrice(product.getPrice())
+                            .currency(Currency.EUR.name())
                             .oldExpiration(d10)
                             .newExpiration(d30)
                             .loggedAt(LocalDateTime.now(Clock.systemUTC()))
@@ -138,6 +142,7 @@ class StockItemHistoryControllerIT extends AbstractIT {
                     StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
+                            .currency(Currency.EUR.name())
                             .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                             .build()
             );

@@ -275,7 +275,9 @@ public class StockItemService {
             stockItemHistoryDTOBuilder.changeExpiration(true);
 
             current.setExpiryDate(stockItemDTO.getExpiryDate());
-        } else if (stockItemDTO.isNullifyExpiration()) {
+        }
+
+        if (stockItemDTO.isNullifyExpiration()) {
             stockItemHistoryDTOBuilder.oldExpiration(current.getExpiryDate());
             stockItemHistoryDTOBuilder.newExpiration(null);
             stockItemHistoryDTOBuilder.changeExpiration(true);
