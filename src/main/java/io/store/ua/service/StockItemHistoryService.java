@@ -95,6 +95,7 @@ public class StockItemHistoryService {
         StockItemHistory.StockItemHistoryBuilder stockItemHistoryBuilder = StockItemHistory.builder();
         stockItemHistoryBuilder.stockItemId(stockItemHistoryDTO.getStockItemId());
         stockItemHistoryBuilder.currentProductPrice(stockItem.getProduct().getPrice());
+        stockItemHistoryBuilder.currency(stockItem.getProduct().getCurrency());
 
         if (stockItemHistoryDTO.getOldStockItemGroupId() != null && stockItemHistoryDTO.getNewStockItemGroupId() != null) {
             fieldValidator.validate(stockItemHistoryDTO, true, StockItemHistoryDTO.Fields.oldStockItemGroupId, StockItemHistoryDTO.Fields.newStockItemGroupId);

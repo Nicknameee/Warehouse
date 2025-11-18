@@ -322,7 +322,9 @@ public class StockItemService {
             stockItemHistoryDTOBuilder.changeSection(true);
 
             current.setStorageSectionId(stockItemDTO.getStorageSectionId());
-        } else if (stockItemDTO.isNullifySection()) {
+        }
+
+        if (stockItemDTO.isNullifySection()) {
             stockItemHistoryDTOBuilder.oldSectionId(current.getStorageSectionId());
             stockItemHistoryDTOBuilder.newSectionId(null);
             stockItemHistoryDTOBuilder.changeSection(true);

@@ -324,6 +324,7 @@ public abstract class AbstractIT {
         return stockItemHistoryRepository.save(StockItemHistory.builder()
                 .stockItemId(stockItemId)
                 .currentProductPrice(price)
+                .currency(Currency.EUR.name())
                 .quantityBefore(quantityBefore)
                 .quantityAfter(quantityAfter)
                 .loggedAt(date.atTime(12, 0))
