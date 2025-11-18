@@ -65,12 +65,12 @@ public class StockItemController {
     }
 
     @PostMapping
-    public ResponseEntity<StockItem> create(@RequestBody StockItemDTO dto) {
-        return ResponseEntity.ok(stockItemService.create(dto));
+    public ResponseEntity<StockItem> create(@RequestBody StockItemDTO stockItemDTO) {
+        return ResponseEntity.ok(stockItemService.create(stockItemDTO));
     }
 
     @PutMapping
-    public ResponseEntity<StockItem> update(@RequestBody StockItemDTO dto) {
-        return ResponseEntity.ok(stockItemService.update(dto));
+    public ResponseEntity<StockItem> update(@RequestBody StockItemDTO stockItemDTO) {
+        return ResponseEntity.ok(stockItemService.update(stockItemDTO));
     }
 }

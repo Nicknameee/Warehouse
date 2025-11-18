@@ -1,6 +1,6 @@
 management:
   server:
-    port: 8000
+    port: 9991
   endpoints:
     web:
       exposure:
