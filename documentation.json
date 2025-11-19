@@ -15,7 +15,10 @@
         "description": "Authenticate user and receive JWT token for subsequent API calls",
         "requestBody": {
           "type": "object",
-          "required": ["login", "password"],
+          "required": [
+            "login",
+            "password"
+          ],
           "properties": {
             "login": {
               "type": "string",
@@ -70,7 +73,11 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["OPERATOR", "MANAGER", "OWNER"]
+            "enum": [
+              "OPERATOR",
+              "MANAGER",
+              "OWNER"
+            ]
           }
         }
       },
@@ -80,7 +87,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["ACTIVE", "INACTIVE"]
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
           }
         }
       },
@@ -96,7 +106,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["VISA", "MASTERCARD"]
+            "enum": [
+              "VISA",
+              "MASTERCARD"
+            ]
           }
         }
       },
@@ -106,7 +119,12 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["USD", "EUR", "CHF", "UAH"]
+            "enum": [
+              "USD",
+              "EUR",
+              "CHF",
+              "UAH"
+            ]
           }
         }
       },
@@ -116,7 +134,12 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+            "enum": [
+              "GOOGLE_PAY",
+              "DATA_TRANS",
+              "LIQ_PAY",
+              "CASH"
+            ]
           }
         }
       },
@@ -126,7 +149,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["INCOMING", "OUTCOMING"]
+            "enum": [
+              "INCOMING",
+              "OUTCOMING"
+            ]
           }
         }
       },
@@ -136,7 +162,13 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"]
+            "enum": [
+              "PLANNED",
+              "INITIATED",
+              "SENT",
+              "DELIVERED",
+              "ROLLBACK"
+            ]
           }
         }
       },
@@ -146,7 +178,11 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"]
+            "enum": [
+              "OUT_OF_STOCK",
+              "AVAILABLE",
+              "OUT_OF_SERVICE"
+            ]
           }
         }
       },
@@ -156,7 +192,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["DEBIT", "CREDIT"]
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ]
           }
         }
       },
@@ -166,7 +205,18 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"]
+            "enum": [
+              "STOCK_INBOUND_COST",
+              "STOCK_OUTBOUND_REVENUE",
+              "SALARY",
+              "UTILITIES",
+              "RENT",
+              "TAX",
+              "SHIPPING",
+              "FEE",
+              "REFUND",
+              "OTHER"
+            ]
           }
         }
       },
@@ -176,7 +226,12 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"]
+            "enum": [
+              "INITIATED",
+              "SETTLED",
+              "FAILED",
+              "CANCELLED"
+            ]
           }
         }
       }
@@ -192,7 +247,10 @@
       "GET /api/v1/users/findBy": {
         "description": "Search users with filters (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "queryParameters": {
           "username": {
             "type": "string",
@@ -208,7 +266,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["OPERATOR", "MANAGER", "OWNER"]
+              "enum": [
+                "OPERATOR",
+                "MANAGER",
+                "OWNER"
+              ]
             },
             "required": false,
             "description": "Filter by roles"
@@ -217,7 +279,10 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["ACTIVE", "INACTIVE"]
+              "enum": [
+                "ACTIVE",
+                "INACTIVE"
+              ]
             },
             "required": false,
             "description": "Filter by statuses"
@@ -250,7 +315,10 @@
       "POST /api/v1/users": {
         "description": "Create a new user (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "requestBody": {
           "$ref": "#/definitions/UserDTO"
         },
@@ -261,7 +329,10 @@
       "POST /api/v1/users/all": {
         "description": "Create multiple users at once (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "requestBody": {
           "type": "array",
           "items": {
@@ -288,7 +359,10 @@
       "PUT /api/v1/users/all": {
         "description": "Update multiple users (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "requestBody": {
           "type": "array",
           "items": {
@@ -350,7 +424,9 @@
       "POST /api/v1/warehouses": {
         "description": "Create a new warehouse (OWNER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER"],
+        "requiresRole": [
+          "OWNER"
+        ],
         "requestBody": {
           "$ref": "#/definitions/WarehouseDTO"
         },
@@ -361,7 +437,10 @@
       "PUT /api/v1/warehouses": {
         "description": "Update warehouse information (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "requestBody": {
           "$ref": "#/definitions/WarehouseDTO"
         },
@@ -372,7 +451,10 @@
       "PUT /api/v1/warehouses/toggle": {
         "description": "Toggle warehouse active/inactive state (OWNER/MANAGER only)",
         "requiresAuth": true,
-        "requiresRole": ["OWNER", "MANAGER"],
+        "requiresRole": [
+          "OWNER",
+          "MANAGER"
+        ],
         "queryParameters": {
           "code": {
             "type": "string",
@@ -790,7 +872,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"]
+              "enum": [
+                "OUT_OF_STOCK",
+                "AVAILABLE",
+                "OUT_OF_SERVICE"
+              ]
             },
             "required": false,
             "description": "Filter by statuses"
@@ -922,13 +1008,22 @@
           },
           "status": {
             "type": "string",
-            "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"],
+            "enum": [
+              "PLANNED",
+              "INITIATED",
+              "SENT",
+              "DELIVERED",
+              "ROLLBACK"
+            ],
             "required": false,
             "description": "Filter by shipment status"
           },
           "shipmentDirection": {
             "type": "string",
-            "enum": ["INCOMING", "OUTCOMING"],
+            "enum": [
+              "INCOMING",
+              "OUTCOMING"
+            ],
             "required": false,
             "description": "Filter by shipment direction"
           },
@@ -1097,7 +1192,12 @@
           },
           "currency": {
             "type": "string",
-            "enum": ["USD", "EUR", "CHF", "UAH"],
+            "enum": [
+              "USD",
+              "EUR",
+              "CHF",
+              "UAH"
+            ],
             "required": false,
             "description": "Filter by currency"
           },
@@ -1143,19 +1243,38 @@
           },
           "flowType": {
             "type": "string",
-            "enum": ["DEBIT", "CREDIT"],
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ],
             "required": false,
             "description": "Filter by flow type (DEBIT=outgoing, CREDIT=incoming)"
           },
           "purpose": {
             "type": "string",
-            "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"],
+            "enum": [
+              "STOCK_INBOUND_COST",
+              "STOCK_OUTBOUND_REVENUE",
+              "SALARY",
+              "UTILITIES",
+              "RENT",
+              "TAX",
+              "SHIPPING",
+              "FEE",
+              "REFUND",
+              "OTHER"
+            ],
             "required": false,
             "description": "Filter by transaction purpose"
           },
           "status": {
             "type": "string",
-            "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"],
+            "enum": [
+              "INITIATED",
+              "SETTLED",
+              "FAILED",
+              "CANCELLED"
+            ],
             "required": false,
             "description": "Filter by transaction status"
           },
@@ -1167,7 +1286,12 @@
           },
           "paymentProvider": {
             "type": "string",
-            "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"],
+            "enum": [
+              "GOOGLE_PAY",
+              "DATA_TRANS",
+              "LIQ_PAY",
+              "CASH"
+            ],
             "required": false,
             "description": "Filter by payment provider"
           },
@@ -1366,6 +1490,14 @@
           "note": "Returns 202 Accepted - request is queued, not immediately processed"
         }
       }
+    },
+    "health": {
+      "GET /actuator/health": {
+        "description": "Check application health",
+        "response": {
+          "type": "object"
+        }
+      }
     }
   },
   "definitions": {
@@ -1398,12 +1530,19 @@
         },
         "role": {
           "type": "string",
-          "enum": ["OPERATOR", "MANAGER", "OWNER"],
+          "enum": [
+            "OPERATOR",
+            "MANAGER",
+            "OWNER"
+          ],
           "description": "User role"
         },
         "status": {
           "type": "string",
-          "enum": ["ACTIVE", "INACTIVE"],
+          "enum": [
+            "ACTIVE",
+            "INACTIVE"
+          ],
           "description": "User account status"
         },
         "timezone": {
@@ -1414,7 +1553,13 @@
     },
     "UserDTO": {
       "type": "object",
-      "required": ["email", "username", "password", "role", "status"],
+      "required": [
+        "email",
+        "username",
+        "password",
+        "role",
+        "status"
+      ],
       "properties": {
         "email": {
           "type": "string",
@@ -1513,7 +1658,14 @@
     },
     "WarehouseDTO": {
       "type": "object",
-      "required": ["code", "name", "address", "workingHours", "phones", "isActive"],
+      "required": [
+        "code",
+        "name",
+        "address",
+        "workingHours",
+        "phones",
+        "isActive"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -1550,7 +1702,14 @@
     },
     "Address": {
       "type": "object",
-      "required": ["building", "street", "city", "state", "country", "postalCode"],
+      "required": [
+        "building",
+        "street",
+        "city",
+        "state",
+        "country",
+        "postalCode"
+      ],
       "properties": {
         "building": {
           "type": "string",
@@ -1602,7 +1761,15 @@
             "properties": {
               "day": {
                 "type": "string",
-                "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+                "enum": [
+                  "MONDAY",
+                  "TUESDAY",
+                  "WEDNESDAY",
+                  "THURSDAY",
+                  "FRIDAY",
+                  "SATURDAY",
+                  "SUNDAY"
+                ]
               },
               "open": {
                 "type": "array",
@@ -1642,11 +1809,18 @@
         },
         "role": {
           "type": "string",
-          "enum": ["OPERATOR", "MANAGER", "OWNER"]
+          "enum": [
+            "OPERATOR",
+            "MANAGER",
+            "OWNER"
+          ]
         },
         "status": {
           "type": "string",
-          "enum": ["ACTIVE", "INACTIVE"]
+          "enum": [
+            "ACTIVE",
+            "INACTIVE"
+          ]
         },
         "timezone": {
           "type": "string"
@@ -1679,7 +1853,12 @@
         },
         "currency": {
           "type": "string",
-          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "enum": [
+            "USD",
+            "EUR",
+            "CHF",
+            "UAH"
+          ],
           "description": "Price currency"
         },
         "tags": {
@@ -1728,7 +1907,18 @@
     },
     "ProductDTO": {
       "type": "object",
-      "required": ["code", "title", "description", "price", "currency", "tags", "weight", "length", "width", "height"],
+      "required": [
+        "code",
+        "title",
+        "description",
+        "price",
+        "currency",
+        "tags",
+        "weight",
+        "length",
+        "width",
+        "height"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -1750,7 +1940,12 @@
         },
         "currency": {
           "type": "string",
-          "enum": ["USD", "EUR", "CHF", "UAH"]
+          "enum": [
+            "USD",
+            "EUR",
+            "CHF",
+            "UAH"
+          ]
         },
         "tags": {
           "type": "array",
@@ -1852,7 +2047,9 @@
     },
     "StockItemGroupDTO": {
       "type": "object",
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -1934,7 +2131,11 @@
         },
         "status": {
           "type": "string",
-          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "enum": [
+            "OUT_OF_STOCK",
+            "AVAILABLE",
+            "OUT_OF_SERVICE"
+          ],
           "description": "Stock item status"
         },
         "isActive": {
@@ -1944,7 +2145,16 @@
     },
     "StockItemDTO": {
       "type": "object",
-      "required": ["stockItemId", "productId", "stockItemGroupId", "warehouseId", "expiryDate", "availableQuantity", "isActive", "storageSectionId"],
+      "required": [
+        "stockItemId",
+        "productId",
+        "stockItemGroupId",
+        "warehouseId",
+        "expiryDate",
+        "availableQuantity",
+        "isActive",
+        "storageSectionId"
+      ],
       "properties": {
         "stockItemId": {
           "type": "integer",
@@ -2064,12 +2274,20 @@
         },
         "oldStatus": {
           "type": "string",
-          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "enum": [
+            "OUT_OF_STOCK",
+            "AVAILABLE",
+            "OUT_OF_SERVICE"
+          ],
           "nullable": true
         },
         "newStatus": {
           "type": "string",
-          "enum": ["OUT_OF_STOCK", "AVAILABLE", "OUT_OF_SERVICE"],
+          "enum": [
+            "OUT_OF_STOCK",
+            "AVAILABLE",
+            "OUT_OF_SERVICE"
+          ],
           "nullable": true
         },
         "oldSectionId": {
@@ -2136,7 +2354,13 @@
         },
         "status": {
           "type": "string",
-          "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"],
+          "enum": [
+            "PLANNED",
+            "INITIATED",
+            "SENT",
+            "DELIVERED",
+            "ROLLBACK"
+          ],
           "description": "Current shipment status"
         },
         "createdAt": {
@@ -2145,14 +2369,26 @@
         },
         "shipmentDirection": {
           "type": "string",
-          "enum": ["INCOMING", "OUTCOMING"],
+          "enum": [
+            "INCOMING",
+            "OUTCOMING"
+          ],
           "description": "Direction of shipment"
         }
       }
     },
     "ShipmentDTO": {
       "type": "object",
-      "required": ["id", "senderCode", "recipientCode", "address", "stockItemId", "stockItemQuantity", "status", "shipmentDirection"],
+      "required": [
+        "id",
+        "senderCode",
+        "recipientCode",
+        "address",
+        "stockItemId",
+        "stockItemQuantity",
+        "status",
+        "shipmentDirection"
+      ],
       "properties": {
         "id": {
           "type": "integer",
@@ -2184,11 +2420,20 @@
         },
         "status": {
           "type": "string",
-          "enum": ["PLANNED", "INITIATED", "SENT", "DELIVERED", "ROLLBACK"]
+          "enum": [
+            "PLANNED",
+            "INITIATED",
+            "SENT",
+            "DELIVERED",
+            "ROLLBACK"
+          ]
         },
         "shipmentDirection": {
           "type": "string",
-          "enum": ["INCOMING", "OUTCOMING"]
+          "enum": [
+            "INCOMING",
+            "OUTCOMING"
+          ]
         }
       }
     },
@@ -2222,7 +2467,13 @@
     },
     "BeneficiaryDTO": {
       "type": "object",
-      "required": ["id", "iban", "swift", "name", "card"],
+      "required": [
+        "id",
+        "iban",
+        "swift",
+        "name",
+        "card"
+      ],
       "properties": {
         "id": {
           "type": "integer",
@@ -2268,17 +2519,36 @@
         },
         "flowType": {
           "type": "string",
-          "enum": ["DEBIT", "CREDIT"],
+          "enum": [
+            "DEBIT",
+            "CREDIT"
+          ],
           "description": "DEBIT = outgoing payment, CREDIT = incoming payment"
         },
         "purpose": {
           "type": "string",
-          "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"],
+          "enum": [
+            "STOCK_INBOUND_COST",
+            "STOCK_OUTBOUND_REVENUE",
+            "SALARY",
+            "UTILITIES",
+            "RENT",
+            "TAX",
+            "SHIPPING",
+            "FEE",
+            "REFUND",
+            "OTHER"
+          ],
           "description": "Transaction purpose/category"
         },
         "status": {
           "type": "string",
-          "enum": ["INITIATED", "SETTLED", "FAILED", "CANCELLED"],
+          "enum": [
+            "INITIATED",
+            "SETTLED",
+            "FAILED",
+            "CANCELLED"
+          ],
           "description": "Current transaction status"
         },
         "amount": {
@@ -2288,7 +2558,12 @@
         },
         "currency": {
           "type": "string",
-          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "enum": [
+            "USD",
+            "EUR",
+            "CHF",
+            "UAH"
+          ],
           "description": "Transaction currency"
         },
         "beneficiaryId": {
@@ -2313,14 +2588,28 @@
         },
         "paymentProvider": {
           "type": "string",
-          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"],
+          "enum": [
+            "GOOGLE_PAY",
+            "DATA_TRANS",
+            "LIQ_PAY",
+            "CASH"
+          ],
           "description": "Payment provider used"
         }
       }
     },
     "TransactionDTO": {
       "type": "object",
-      "required": ["transactionId", "reference", "purpose", "flow", "amount", "currency", "receiverFinancialAccountId", "paymentProvider"],
+      "required": [
+        "transactionId",
+        "reference",
+        "purpose",
+        "flow",
+        "amount",
+        "currency",
+        "receiverFinancialAccountId",
+        "paymentProvider"
+      ],
       "properties": {
         "transactionId": {
           "type": "string",
@@ -2332,11 +2621,25 @@
         },
         "purpose": {
           "type": "string",
-          "enum": ["STOCK_INBOUND_COST", "STOCK_OUTBOUND_REVENUE", "SALARY", "UTILITIES", "RENT", "TAX", "SHIPPING", "FEE", "REFUND", "OTHER"]
+          "enum": [
+            "STOCK_INBOUND_COST",
+            "STOCK_OUTBOUND_REVENUE",
+            "SALARY",
+            "UTILITIES",
+            "RENT",
+            "TAX",
+            "SHIPPING",
+            "FEE",
+            "REFUND",
+            "OTHER"
+          ]
         },
         "flow": {
           "type": "string",
-          "enum": ["DEBIT", "CREDIT"],
+          "enum": [
+            "DEBIT",
+            "CREDIT"
+          ],
           "description": "DEBIT = outgoing, CREDIT = incoming"
         },
         "amount": {
@@ -2347,7 +2650,12 @@
         "currency": {
           "type": "string",
           "pattern": "^[A-Z]{3}$",
-          "enum": ["USD", "EUR", "CHF", "UAH"],
+          "enum": [
+            "USD",
+            "EUR",
+            "CHF",
+            "UAH"
+          ],
           "description": "3-letter uppercase currency code"
         },
         "receiverFinancialAccountId": {
@@ -2358,7 +2666,12 @@
         },
         "paymentProvider": {
           "type": "string",
-          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+          "enum": [
+            "GOOGLE_PAY",
+            "DATA_TRANS",
+            "LIQ_PAY",
+            "CASH"
+          ]
         }
       }
     },
@@ -2424,7 +2737,12 @@
         },
         "paymentProvider": {
           "type": "string",
-          "enum": ["GOOGLE_PAY", "DATA_TRANS", "LIQ_PAY", "CASH"]
+          "enum": [
+            "GOOGLE_PAY",
+            "DATA_TRANS",
+            "LIQ_PAY",
+            "CASH"
+          ]
         }
       }
     },
@@ -2465,21 +2783,34 @@
           "type": "integer",
           "format": "int64"
         },
-        "startDate": {
-          "type": "string",
-          "format": "date",
-          "description": "Start date of statistics period"
-        },
-        "soldQuantity": {
-          "type": "integer",
-          "format": "int64",
-          "description": "Total quantity sold"
-        },
-        "totalRevenueAmount": {
-          "type": "integer",
-          "format": "int64",
-          "description": "Total revenue in smallest currency unit"
+        "statistics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Statistic"
+          }
         }
+      }
+    },
+    "Statistic": {
+      "startDate": {
+        "type": "string",
+        "format": "date",
+        "description": "Start date of statistics period"
+      },
+      "soldQuantity": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Total quantity sold"
+      },
+      "totalRevenueAmount": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Total revenue in smallest currency unit"
+      },
+      "currency": {
+        "type": "string",
+        "format": "stringō",
+        "description": "Currency code"
       }
     },
     "FinancialStatistic": {
@@ -2487,7 +2818,12 @@
       "properties": {
         "currency": {
           "type": "string",
-          "enum": ["USD", "EUR", "CHF", "UAH"]
+          "enum": [
+            "USD",
+            "EUR",
+            "CHF",
+            "UAH"
+          ]
         },
         "totalDebit": {
           "type": "integer",
