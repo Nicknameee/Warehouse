@@ -98,6 +98,8 @@ class ShipmentControllerIT extends AbstractIT {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.putAll(baseHeaders);
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
+
         return httpHeaders;
     }
 
@@ -123,17 +125,19 @@ class ShipmentControllerIT extends AbstractIT {
     }
 
     private Shipment postShipment(ShipmentDTO shipmentDTO, HttpHeaders authenticationHeaders) {
-        ResponseEntity<Shipment> responseEntity = restClient.exchange(
-                "/api/v1/shipments",
+        ResponseEntity<Shipment> responseEntity = restClient.exchange("/api/v1/shipments",
                 HttpMethod.POST,
                 new HttpEntity<>(shipmentDTO, allHeaders(authenticationHeaders)),
                 Shipment.class
         );
+        Shipment shipment = responseEntity.getBody();
+
         assertThat(responseEntity.getStatusCode())
                 .isEqualTo(HttpStatus.OK);
-        assertThat(responseEntity.getBody())
+        assertThat(shipment)
                 .isNotNull();
-        return responseEntity.getBody();
+
+        return shipment;
     }
 
     @Nested
@@ -195,7 +199,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -243,7 +247,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -284,7 +288,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -317,7 +321,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> insideResponse = restClient.exchange(
                     insideUrl,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -341,7 +345,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> futureResponse = restClient.exchange(
                     futureUrl,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -376,7 +380,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> page1 = restClient.exchange(
                     page1Url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -384,7 +388,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<List<Shipment>> page2 = restClient.exchange(
                     page2Url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -413,7 +417,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -434,7 +438,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 
@@ -455,7 +459,7 @@ class ShipmentControllerIT extends AbstractIT {
             ResponseEntity<String> responseEntity = restClient.exchange(
                     url,
                     HttpMethod.GET,
-                    new HttpEntity<>(ownerAuthenticationHeaders),
+                    new HttpEntity<>(allHeaders(ownerAuthenticationHeaders)),
                     String.class
             );
 

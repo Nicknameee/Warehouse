@@ -30,7 +30,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default"})
+@ActiveProfiles({"actuator", "database", "external", "kafka", "redis", "default", "test"})
 class SinkFlowIT extends AbstractIT {
     @ServiceConnection
     static final KafkaContainer kafka =

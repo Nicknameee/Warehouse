@@ -1,9 +1,12 @@
 package io.store.ua.configuration.filters;
 
+import io.store.ua.exceptions.ApplicationException;
+import io.store.ua.utility.RegularObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -16,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 
 @Component
 @Order(1)
+@Profile("!test")
 public class RateLimitingFilter extends OncePerRequestFilter {
     private static final long WINDOW_MS = 5_000L;
     private static final int MAX_REQUESTS = 10;
@@ -38,8 +42,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         if (bucket.count > MAX_REQUESTS) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setContentType("text/plain");
-            response.getWriter().write("Too many requests. Try again later.");
+            response.setContentType("application/json");
+            response.getWriter().write(RegularObjectMapper.writeToString(new ApplicationException("Too many requests", HttpStatus.TOO_MANY_REQUESTS)));
+
             return;
         }
 

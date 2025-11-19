@@ -47,7 +47,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"actuator", "database", "external", "redis", "default"})
+@ActiveProfiles({"actuator", "database", "external", "redis", "default", "test"})
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnableRetry
