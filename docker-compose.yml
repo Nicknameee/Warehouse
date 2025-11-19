@@ -30,27 +30,6 @@ services:
       timeout: 5s
       retries: 10
     networks: [ backend ]
-  #
-  #  rabbitmq:
-  #    image: rabbitmq:3.13-management
-  #    container_name: rabbitmq
-  #    ports:
-  #      - "5672:5672"
-  #      - "15672:15672"
-  #      - "61613:61613"
-  #    environment:
-  #      - RABBITMQ_DEFAULT_USER=admin
-  #      - RABBITMQ_DEFAULT_PASS=admin
-  #    command: >
-  #      bash -c "rabbitmq-plugins enable --offline rabbitmq_stomp &&
-  #               rabbitmq-server"
-  #    healthcheck:
-  #      test: [ "CMD", "rabbitmq-diagnostics", "check_running", "--quiet" ]
-  #      interval: 10s
-  #      timeout: 5s
-  #      retries: 10
-  #      start_period: 20s
-  #    networks: [ backend ]
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -178,6 +157,7 @@ services:
 
   warehouse:
     image: warehouse:latest
+    mem_limit: 450m
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
