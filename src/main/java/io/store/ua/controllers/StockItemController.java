@@ -27,7 +27,6 @@ public class StockItemController {
                                                   @RequestParam(name = "isItemGroupActive", required = false) Boolean isItemGroupActive,
                                                   @RequestParam(name = "pageSize") int pageSize,
                                                   @RequestParam(name = "page") int page) {
-
         return ResponseEntity.ok(stockItemService.findBy(warehouseIds,
                 productIds,
                 stockItemGroupIds,
