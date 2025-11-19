@@ -73,7 +73,7 @@ class TransactionServiceIT extends AbstractIT {
                 .purpose(purpose)
                 .amount(amount)
                 .currency(currencyCode)
-                .receiverFinancialAccountId(beneficiaryId)
+                .beneficiaryId(beneficiaryId)
                 .paymentProvider(paymentProvider.name())
                 .build();
     }
@@ -218,7 +218,7 @@ class TransactionServiceIT extends AbstractIT {
                         return transactionDTO;
                     },
                     transactionDTO -> {
-                        transactionDTO.setReceiverFinancialAccountId(null);
+                        transactionDTO.setBeneficiaryId(null);
                         return transactionDTO;
                     },
                     transactionDTO -> {
@@ -420,7 +420,7 @@ class TransactionServiceIT extends AbstractIT {
                         return transactionDTO;
                     },
                     transactionDTO -> {
-                        transactionDTO.setReceiverFinancialAccountId(null);
+                        transactionDTO.setBeneficiaryId(null);
                         return transactionDTO;
                     }
             );

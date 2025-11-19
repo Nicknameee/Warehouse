@@ -67,7 +67,7 @@ class TransactionControllerIT extends AbstractIT {
                 .purpose(purpose)
                 .amount(amount)
                 .currency(currency)
-                .receiverFinancialAccountId(beneficiaryId)
+                .beneficiaryId(beneficiaryId)
                 .paymentProvider(provider.name())
                 .build();
     }

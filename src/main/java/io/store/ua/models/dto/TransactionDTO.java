@@ -34,7 +34,7 @@ public class TransactionDTO {
     private String currency;
     @NotNull(message = "Sender financial account ID can't be null")
     @Min(value = 1, message = "Sender financial account ID must be >= 1")
-    private Long receiverFinancialAccountId;
+    private Long beneficiaryId;
     @NotNull(message = "Payment provider can't be null")
     private String paymentProvider;
 }

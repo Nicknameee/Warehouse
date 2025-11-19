@@ -40,7 +40,7 @@ public class SinkProducer {
                 TransactionDTO.Fields.flow,
                 TransactionDTO.Fields.amount,
                 TransactionDTO.Fields.currency,
-                TransactionDTO.Fields.receiverFinancialAccountId,
+                TransactionDTO.Fields.beneficiaryId,
                 TransactionDTO.Fields.paymentProvider);
         var key = CodeGenerator.KafkaCodeGenerator.generate(UUID.randomUUID().toString());
 

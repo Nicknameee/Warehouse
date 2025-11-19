@@ -165,7 +165,7 @@ class SinkFlowIT extends AbstractIT {
                 .flow(TransactionFlowType.CREDIT.name())
                 .amount(BigInteger.valueOf(100_000))
                 .currency(Currency.UAH.name())
-                .receiverFinancialAccountId(generateBeneficiary().getId())
+                .beneficiaryId(generateBeneficiary().getId())
                 .paymentProvider(PaymentProvider.CASH.name())
                 .build();
 
@@ -207,7 +207,7 @@ class SinkFlowIT extends AbstractIT {
                 .flow(TransactionFlowType.CREDIT.name())
                 .amount(BigInteger.valueOf(100_000))
                 .currency(Currency.UAH.name())
-                .receiverFinancialAccountId(generateBeneficiary().getId())
+                .beneficiaryId(generateBeneficiary().getId())
                 .paymentProvider(PaymentProvider.LIQ_PAY.name())
                 .build();
 

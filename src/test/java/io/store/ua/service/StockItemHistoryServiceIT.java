@@ -127,7 +127,7 @@ class StockItemHistoryServiceIT extends AbstractIT {
             var saved = stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
                     .stockItemId(stockItem.getId())
                     .currentProductPrice(product.getPrice())
-                            .currency(product.getCurrency())
+                    .currency(product.getCurrency())
                     .loggedAt(LocalDateTime.now(Clock.systemUTC()))
                     .build()));
 
@@ -146,7 +146,7 @@ class StockItemHistoryServiceIT extends AbstractIT {
             stockItemHistoryRepository.saveAll(List.of(StockItemHistory.builder()
                             .stockItemId(stockItem.getId())
                             .currentProductPrice(product.getPrice())
-                                    .currency(product.getCurrency())
+                            .currency(product.getCurrency())
                             .oldExpiration(future5Days)
                             .newExpiration(future10Days)
                             .loggedAt(LocalDateTime.now(Clock.systemUTC()))
@@ -169,7 +169,7 @@ class StockItemHistoryServiceIT extends AbstractIT {
                             .build()
             ));
 
-            var from = future10Days.atStartOfDay();
+            var from = LocalDateTime.now(Clock.systemUTC()).minusHours(1L);
             var to = future30Days.atTime(23, 59);
 
             var result = stockItemHistoryService.findBy(stockItem.getId(), from, to, 50, 1);

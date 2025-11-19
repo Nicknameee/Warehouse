@@ -605,9 +605,9 @@ class ShipmentServiceIT extends AbstractIT {
         void synchronise_then_update_DELIVERED_increments_existing_recipient_stock() {
             Warehouse recipient = warehouseRepository.save(generateWarehouse());
 
-            StockItem recipientItem = stockItemRepository.save(StockItem.builder()
+            StockItem item = stockItemRepository.save(StockItem.builder()
                     .code(CodeGenerator.StockCodeGenerator.generate())
-                    .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), warehouse.getId()) + 1L)
+                    .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), recipient.getId()) + 1L)
                     .productId(stockItem.getProductId())
                     .stockItemGroupId(stockItem.getStockItemGroupId())
                     .warehouseId(recipient.getId())
@@ -616,37 +616,30 @@ class ShipmentServiceIT extends AbstractIT {
                     .isActive(true)
                     .build());
 
-            long qty = 4L;
+            long initialVersion = item.getBatchVersion();
 
-            Shipment created = shipmentService.save(ShipmentDTO.builder()
+            Shipment shipment = shipmentService.save(ShipmentDTO.builder()
                     .senderCode(warehouse.getCode())
                     .recipientCode(recipient.getCode())
                     .stockItemId(stockItem.getId())
-                    .stockItemQuantity(qty)
+                    .stockItemQuantity(4L)
                     .shipmentDirection(ShipmentDirection.OUTCOMING.name())
                     .build());
 
-            BigInteger recipientBefore = stockItemRepository.findById(recipientItem.getId())
-                    .orElseThrow()
-                    .getAvailableQuantity();
-
             Shipment afterSent = shipmentService.synchroniseShipment(ShipmentDTO.builder()
-                    .id(created.getId())
+                    .id(shipment.getId())
                     .status(ShipmentStatus.SENT.name())
                     .build());
             assertThat(afterSent.getStatus()).isEqualTo(ShipmentStatus.SENT);
 
             Shipment afterDelivered = shipmentService.update(ShipmentDTO.builder()
-                    .id(created.getId())
+                    .id(shipment.getId())
                     .status(ShipmentStatus.DELIVERED.name())
                     .build());
             assertThat(afterDelivered.getStatus()).isEqualTo(ShipmentStatus.DELIVERED);
 
-            BigInteger recipientAfter = stockItemRepository.findById(recipientItem.getId())
-                    .orElseThrow()
-                    .getAvailableQuantity();
-
-            assertThat(recipientAfter).isEqualTo(recipientBefore.add(BigInteger.valueOf(qty)));
+            assertThat(stockItemRepository.countStockItemByProductIdAndWarehouseId(item.getProductId(), item.getWarehouseId()))
+                    .isEqualTo(initialVersion + 1L);
         }
 
 
@@ -984,7 +977,7 @@ class ShipmentServiceIT extends AbstractIT {
         void update_success_toDelivered_incrementsExistingRecipientItem() {
             Warehouse recipientWarehouse = warehouseRepository.save(generateWarehouse());
 
-            StockItem recipientItem = stockItemRepository.save(StockItem.builder()
+            stockItemRepository.save(StockItem.builder()
                     .code(CodeGenerator.StockCodeGenerator.generate())
                     .batchVersion(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), recipientWarehouse.getId()))
                     .productId(stockItem.getProductId())
@@ -995,6 +988,8 @@ class ShipmentServiceIT extends AbstractIT {
                     .status(StockItemStatus.AVAILABLE)
                     .isActive(true)
                     .build());
+
+            long version = stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), recipientWarehouse.getId());
 
             ShipmentDTO createShipmentDTO = ShipmentDTO.builder()
                     .senderCode(warehouse.getCode())
@@ -1018,9 +1013,8 @@ class ShipmentServiceIT extends AbstractIT {
                     .build();
             shipmentService.update(toDelivered);
 
-            StockItem updatedRecipient = stockItemRepository.findById(recipientItem.getId()).orElseThrow();
-            assertThat(updatedRecipient.getAvailableQuantity())
-                    .isEqualTo(BigInteger.valueOf(10).add(BigInteger.valueOf(4)));
+            assertThat(stockItemRepository.countStockItemByProductIdAndWarehouseId(stockItem.getProductId(), recipientWarehouse.getId()))
+                    .isEqualTo(version + 1);
         }
 
         @Test

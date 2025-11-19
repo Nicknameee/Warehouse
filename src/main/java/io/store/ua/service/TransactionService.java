@@ -182,11 +182,11 @@ public class TransactionService {
                 TransactionDTO.Fields.purpose,
                 TransactionDTO.Fields.amount,
                 TransactionDTO.Fields.currency,
-                TransactionDTO.Fields.receiverFinancialAccountId,
+                TransactionDTO.Fields.beneficiaryId,
                 TransactionDTO.Fields.paymentProvider);
 
-        if (!beneficiaryRepository.existsById(transactionDTO.getReceiverFinancialAccountId())) {
-            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getReceiverFinancialAccountId()));
+        if (!beneficiaryRepository.existsById(transactionDTO.getBeneficiaryId())) {
+            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getBeneficiaryId()));
         }
 
         PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
@@ -197,7 +197,7 @@ public class TransactionService {
                 .purpose(purpose)
                 .amount(transactionDTO.getAmount())
                 .currency(transactionDTO.getCurrency())
-                .beneficiaryId(transactionDTO.getReceiverFinancialAccountId())
+                .beneficiaryId(transactionDTO.getBeneficiaryId())
                 .paymentProvider(paymentProvider)
                 .build();
 
@@ -213,11 +213,11 @@ public class TransactionService {
                 TransactionDTO.Fields.purpose,
                 TransactionDTO.Fields.amount,
                 TransactionDTO.Fields.currency,
-                TransactionDTO.Fields.receiverFinancialAccountId,
+                TransactionDTO.Fields.beneficiaryId,
                 TransactionDTO.Fields.paymentProvider);
 
-        if (!beneficiaryRepository.existsById(transactionDTO.getReceiverFinancialAccountId())) {
-            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getReceiverFinancialAccountId()));
+        if (!beneficiaryRepository.existsById(transactionDTO.getBeneficiaryId())) {
+            throw new NotFoundException("Beneficiary with ID '%s' was not found".formatted(transactionDTO.getBeneficiaryId()));
         }
 
         PaymentProvider paymentProvider = parseEnumOrThrow(transactionDTO.getPaymentProvider(), PaymentProvider.class, TransactionDTO.Fields.paymentProvider);
@@ -228,7 +228,7 @@ public class TransactionService {
                 .purpose(purpose)
                 .amount(transactionDTO.getAmount())
                 .currency(transactionDTO.getCurrency())
-                .beneficiaryId(transactionDTO.getReceiverFinancialAccountId())
+                .beneficiaryId(transactionDTO.getBeneficiaryId())
                 .paymentProvider(paymentProvider)
                 .build();
 

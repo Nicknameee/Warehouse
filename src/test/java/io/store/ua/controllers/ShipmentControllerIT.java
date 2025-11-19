@@ -6,6 +6,7 @@ import io.store.ua.enums.*;
 import io.store.ua.models.data.Address;
 import io.store.ua.models.dto.ShipmentDTO;
 import io.store.ua.utility.CodeGenerator;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.*;
@@ -20,6 +21,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Slf4j
 class ShipmentControllerIT extends AbstractIT {
     private static final String MANAGER = "manager";
     private HttpHeaders ownerAuthenticationHeaders;
@@ -198,20 +200,22 @@ class ShipmentControllerIT extends AbstractIT {
                     }
             );
 
+            List<Shipment> vars = responseEntity.getBody();
+
             assertThat(responseEntity.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .isNotNull();
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .extracting(Shipment::getId)
                     .contains(matched.getId());
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .allSatisfy(s -> assertThat(s.getShipmentDirection())
                             .isEqualTo(ShipmentDirection.OUTCOMING));
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .allSatisfy(s -> assertThat(s.getStatus())
                             .isEqualTo(ShipmentStatus.INITIATED));
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .allSatisfy(s -> assertThat(s.getWarehouseIdRecipient())
                             .isEqualTo(recipientWarehouse.getId()));
         }
@@ -244,14 +248,16 @@ class ShipmentControllerIT extends AbstractIT {
                     }
             );
 
+            List<Shipment> vars = responseEntity.getBody();
+
             assertThat(responseEntity.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
             assertThat(responseEntity.getBody())
                     .isNotNull();
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .extracting(Shipment::getStatus)
                     .containsOnly(ShipmentStatus.PLANNED);
-            assertThat(responseEntity.getBody())
+            assertThat(vars)
                     .extracting(Shipment::getId)
                     .contains(planned.getId());
         }
@@ -499,15 +505,17 @@ class ShipmentControllerIT extends AbstractIT {
                     Shipment.class
             );
 
+            Shipment shipment = responseEntity.getBody();
+
             assertThat(responseEntity.getStatusCode())
                     .isEqualTo(HttpStatus.OK);
-            assertThat(responseEntity.getBody())
+            assertThat(shipment)
                     .isNotNull();
-            assertThat(responseEntity.getBody().getWarehouseIdSender())
+            assertThat(shipment.getWarehouseIdSender())
                     .isEqualTo(senderWarehouse.getId());
-            assertThat(responseEntity.getBody().getWarehouseIdRecipient())
+            assertThat(shipment.getWarehouseIdRecipient())
                     .isNull();
-            assertThat(responseEntity.getBody().getStatus())
+            assertThat(shipment.getStatus())
                     .isEqualTo(ShipmentStatus.PLANNED);
         }
 

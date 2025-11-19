@@ -70,7 +70,7 @@ class SinkControllerIT {
                 .flow(TransactionFlowType.CREDIT.name())
                 .amount(BigInteger.valueOf(100_000))
                 .currency(Currency.UAH.name())
-                .receiverFinancialAccountId(Long.MAX_VALUE)
+                .beneficiaryId(Long.MAX_VALUE)
                 .paymentProvider(PaymentProvider.CASH.name())
                 .build();
 

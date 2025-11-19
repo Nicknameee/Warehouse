@@ -209,7 +209,7 @@ public class ShipmentService {
                 .orElseThrow(() -> new NotFoundException("Shipment with ID '%s' was not found".formatted(shipmentDTO.getId())));
 
         if (entity.getStatus() != ShipmentStatus.PLANNED || shipmentStatus == ShipmentStatus.PLANNED) {
-            throw new BusinessException("Only planned shipment can be synchronised after reconnecting");
+            throw new BusinessException("Only planned shipment can be synchronised after reconnecting, new status can't be the same as initial");
         }
 
         return update(shipmentDTO);
@@ -324,36 +324,15 @@ public class ShipmentService {
 
             stockItemService.update(updateSender);
         } else if (shipment.getStatus() == ShipmentStatus.DELIVERED && shipment.getWarehouseIdRecipient() != null) {
-            List<StockItem> recipientItems = stockItemService.findBy(List.of(shipment.getWarehouseIdRecipient()),
-                    List.of(stockItem.getProductId()),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    1,
-                    1);
+            StockItemDTO stockItemDTO = StockItemDTO.builder()
+                    .productId(stockItem.getProductId())
+                    .stockItemGroupId(stockItem.getStockItemGroupId())
+                    .warehouseId(shipment.getWarehouseIdRecipient())
+                    .availableQuantity(shipmentQuantity)
+                    .isActive(true)
+                    .build();
 
-            if (recipientItems.isEmpty()) {
-                StockItemDTO createRecipient = StockItemDTO.builder()
-                        .productId(stockItem.getProductId())
-                        .stockItemGroupId(stockItem.getStockItemGroupId())
-                        .warehouseId(shipment.getWarehouseIdRecipient())
-                        .availableQuantity(shipmentQuantity)
-                        .isActive(true)
-                        .build();
-
-                stockItemService.create(createRecipient);
-            } else {
-                StockItem item = recipientItems.getFirst();
-                StockItemDTO stockItemDTO = StockItemDTO.builder()
-                        .stockItemId(item.getId())
-                        .availableQuantity(item.getAvailableQuantity().add(shipmentQuantity))
-                        .build();
-
-                stockItemService.update(stockItemDTO);
-            }
+            stockItemService.create(stockItemDTO);
         }
     }
 }
