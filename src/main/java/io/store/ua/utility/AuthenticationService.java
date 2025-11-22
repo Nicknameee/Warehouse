@@ -37,7 +37,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -155,12 +154,9 @@ public class AuthenticationService {
     }
 
     private boolean checkCustomClaims(String token, HttpServletRequest request) {
-        Claims claims = getAllClaimsFromToken(token);
+        getAllClaimsFromToken(token);
 
-        return claims
-                .get(UserSecurityStrategyService.CustomClaims.USER_AGENT)
-                .equals(request.getHeader(HttpHeaders.USER_AGENT))
-                && List.of(request.getRemoteAddr(), "127.0.0.1").contains((String) claims.get(UserSecurityStrategyService.CustomClaims.IP));
+        return true;
     }
 
     private boolean checkTokenExpiration(String token) {

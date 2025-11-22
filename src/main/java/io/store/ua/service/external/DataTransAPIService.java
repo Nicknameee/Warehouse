@@ -31,8 +31,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -63,11 +61,6 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
     @Value("${transaction.incoming.reference.length}")
     private int referenceLength;
 
-    @Retryable(
-            maxAttempts = 10,
-            backoff = @Backoff(delay = 10_000, multiplier = 1.0),
-            retryFor = Exception.class
-    )
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES, initialDelay = 0)
     public void healthCheck() {
         httpRequestService.queryAsync(new Request.Builder()
@@ -76,7 +69,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                         .get()
                         .build()
                 )
-                .orTimeout(10, TimeUnit.SECONDS)
+                .orTimeout(15, TimeUnit.SECONDS)
                 .thenApply(response -> {
                     IS_HEALTHY.set(true);
                     response.close();

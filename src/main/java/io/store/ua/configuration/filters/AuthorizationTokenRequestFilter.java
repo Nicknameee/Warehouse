@@ -36,6 +36,7 @@ public class AuthorizationTokenRequestFilter extends OncePerRequestFilter {
         if (authorizationHeaderValue != null
                 && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE))) {
             String authorizationToken = authorizationHeaderValue.substring(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE.length() + 1);
+
             try {
                 String username = authenticationService.getUsernameFromToken(authorizationToken);
 
