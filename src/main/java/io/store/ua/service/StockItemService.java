@@ -291,12 +291,6 @@ public class StockItemService {
             current.setExpiryDate(null);
         }
 
-        if (current.getStorageSectionId() != null
-                && !storageSectionRepository.existsByIdAndWarehouseId(current.getStorageSectionId(), current.getWarehouseId())) {
-            throw new BusinessException("Storage section with ID '%s' does not belong to warehouse with ID '%s'"
-                    .formatted(current.getStorageSectionId(), current.getWarehouseId()));
-        }
-
         if (stockItemDTO.getAvailableQuantity() != null) {
             fieldValidator.validate(stockItemDTO, StockItemDTO.Fields.availableQuantity, true);
 
@@ -338,6 +332,12 @@ public class StockItemService {
             stockItemHistoryDTOBuilder.changeSection(true);
 
             current.setStorageSectionId(null);
+        }
+
+        if (current.getStorageSectionId() != null
+                && !storageSectionRepository.existsByIdAndWarehouseId(current.getStorageSectionId(), current.getWarehouseId())) {
+            throw new BusinessException("Storage section with ID '%s' does not belong to warehouse with ID '%s'"
+                    .formatted(current.getStorageSectionId(), current.getWarehouseId()));
         }
 
         if (stockItemDTO.isSwitchOff() && current.getStatus() != StockItemStatus.OUT_OF_SERVICE) {
