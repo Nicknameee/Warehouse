@@ -43,7 +43,7 @@ public class AuthorizationTokenRequestFilter extends OncePerRequestFilter {
                 if (!username.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = authenticationService.loadUserByUsername(username);
 
-                    if (authenticationService.validateToken(authorizationToken, userDetails, request)) {
+                    if (authenticationService.validateToken(authorizationToken, userDetails)) {
                         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
                                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

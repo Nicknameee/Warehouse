@@ -1,8 +1,9 @@
 package io.store.ua.configuration.filters;
 
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import io.store.ua.utility.AuthenticationService;
 import io.store.ua.utility.RegularObjectMapper;
+import io.store.ua.utility.UserSecurityStrategyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -32,12 +33,13 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
         if (request.getRequestURI().equals("/logout")) {
             String authorizationHeaderValue = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-            if (authorizationHeaderValue != null && authorizationHeaderValue.startsWith("Bearer ")) {
+            if (authorizationHeaderValue != null
+                    && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.USER_AUTHENTICATION_TYPE))) {
                 String authorizationToken = authorizationHeaderValue.substring(7);
                 String username = authenticationService.getUsernameFromToken(authorizationToken);
                 UserDetails userDetails = authenticationService.loadUserByUsername(username);
 
-                if (authorizationToken.isEmpty() || !authenticationService.validateToken(authorizationToken, userDetails, request)) {
+                if (authorizationToken.isEmpty() || !authenticationService.validateToken(authorizationToken, userDetails)) {
                     processNonAuthenticatedExceptionResponse((HttpServletResponse) servletResponse);
                 }
             } else {
@@ -52,11 +54,8 @@ public class PreLogoutTokenBasedFilter extends GenericFilterBean {
         servletResponse.setContentType("application/json");
         servletResponse.setCharacterEncoding(StandardCharsets.UTF_8.name());
         servletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
-        servletResponse
-                .getWriter()
-                .write(
-                        RegularObjectMapper.writeToString(
-                                new AuthenticationException("Unauthorized, logout failed")));
+        servletResponse.getWriter().write(RegularObjectMapper
+                                .writeToString(new ApplicationAuthenticationException("Unauthorized, logout failed")));
         servletResponse.getWriter().flush();
     }
 }

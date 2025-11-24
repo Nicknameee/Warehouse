@@ -6,7 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.store.ua.entity.cache.BlacklistedToken;
 import io.store.ua.events.LoginEvent;
 import io.store.ua.events.publishers.GenericEventPublisher;
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import io.store.ua.models.dto.LoginDTO;
 import io.store.ua.repository.cache.BlacklistedTokenRepository;
 import io.store.ua.service.security.UserDetailsSecurityService;
@@ -110,7 +110,7 @@ public class AuthenticationService {
 
             return token;
         } else {
-            throw new AuthenticationException("Could not authenticate given credentials");
+            throw new ApplicationAuthenticationException("Could not authenticate given credentials");
         }
     }
 
@@ -119,10 +119,9 @@ public class AuthenticationService {
     }
 
     public boolean validateToken(@NotBlank(message = "Token can't be blank") String token,
-                                 @NotNull(message = "User details can't be null") UserDetails userDetails, HttpServletRequest request) {
+                                 @NotNull(message = "User details can't be null") UserDetails userDetails) {
         return getClaimFromToken(token, Claims::getSubject).equals(userDetails.getUsername())
                 && checkTokenExpiration(token)
-                && checkCustomClaims(token, request)
                 && !checkTokenBlacklist(token);
     }
 
@@ -151,12 +150,6 @@ public class AuthenticationService {
 
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
-    }
-
-    private boolean checkCustomClaims(String token, HttpServletRequest request) {
-        getAllClaimsFromToken(token);
-
-        return true;
     }
 
     private boolean checkTokenExpiration(String token) {

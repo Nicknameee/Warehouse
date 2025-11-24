@@ -6,7 +6,7 @@ import io.store.ua.enums.Currency;
 import io.store.ua.enums.ShipmentDirection;
 import io.store.ua.enums.ShipmentStatus;
 import io.store.ua.enums.StockItemStatus;
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import io.store.ua.exceptions.BusinessException;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.models.data.Address;
@@ -521,7 +521,7 @@ class ShipmentServiceIT extends AbstractIT {
                     .build();
 
             assertThatThrownBy(() -> shipmentService.save(shipmentDTO))
-                    .isInstanceOf(AuthenticationException.class);
+                    .isInstanceOf(ApplicationAuthenticationException.class);
         }
 
         @ParameterizedTest(name = "save_fail_invalidStatus: status=''{0}'' is invalid")

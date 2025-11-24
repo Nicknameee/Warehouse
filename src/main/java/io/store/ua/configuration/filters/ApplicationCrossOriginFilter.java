@@ -22,8 +22,6 @@ public class ApplicationCrossOriginFilter extends OncePerRequestFilter {
     public void doFilterInternal(@NonNull HttpServletRequest request,
                                  @NonNull HttpServletResponse response,
                                  @NonNull FilterChain chain) throws IOException, ServletException {
-        String originHeader = request.getHeader(HttpHeaders.ORIGIN);
-
         response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
                 "%s, %s, %s, %s, %s"
                         .formatted(
@@ -35,13 +33,8 @@ public class ApplicationCrossOriginFilter extends OncePerRequestFilter {
         response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
                 "%s, %s".formatted(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE));
         response.setHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, String.valueOf(Duration.ofHours(1L).toSeconds()));
+        response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 
-        if (originHeader != null) {
-            response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, originHeader);
-            response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-        } else {
-            response.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        }
 
         if (HttpMethod.OPTIONS.name().equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);

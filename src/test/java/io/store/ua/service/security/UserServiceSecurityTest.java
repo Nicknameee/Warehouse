@@ -3,7 +3,7 @@ package io.store.ua.service.security;
 import io.store.ua.entity.User;
 import io.store.ua.enums.UserRole;
 import io.store.ua.enums.UserStatus;
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import io.store.ua.service.UserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -120,7 +120,7 @@ class UserServiceSecurityTest {
 
             assertThatThrownBy(() ->
                     UserService.assertAuthenticatedUserRoles(List.of(UserRole.MANAGER, UserRole.OWNER))
-            ).isInstanceOf(AuthenticationException.class)
+            ).isInstanceOf(ApplicationAuthenticationException.class)
                     .hasMessageContaining("User role has to be one of");
         }
 
@@ -131,7 +131,7 @@ class UserServiceSecurityTest {
 
             assertThatThrownBy(() ->
                     UserService.assertAuthenticatedUserRoles(List.of(UserRole.MANAGER))
-            ).isInstanceOf(AuthenticationException.class)
+            ).isInstanceOf(ApplicationAuthenticationException.class)
                     .hasMessageContaining("User role has to be one of");
         }
     }

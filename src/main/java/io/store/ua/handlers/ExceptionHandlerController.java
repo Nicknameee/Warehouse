@@ -1,7 +1,7 @@
 package io.store.ua.handlers;
 
 import io.store.ua.exceptions.ApplicationException;
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -37,7 +37,7 @@ public class ExceptionHandlerController {
                             .toList()
                             .toString(), HttpStatus.BAD_REQUEST));
         } else if (e instanceof BadCredentialsException) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthenticationException(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApplicationAuthenticationException(e.getMessage()));
         } else if (e instanceof ValidationException
                 || e instanceof MissingServletRequestParameterException
                 || e instanceof MissingServletRequestPartException

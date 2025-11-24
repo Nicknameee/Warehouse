@@ -49,7 +49,7 @@ class AuthenticationServiceIT extends AbstractIT {
         HttpServletRequest request = generateRequest("JUnit-UA", "127.0.0.1");
         String token = authenticationService.authenticate(new LoginDTO(OWNER, OWNER), request);
         var userDetails = userDetailsSecurityService.loadUserByUsername(OWNER);
-        boolean valid = authenticationService.validateToken(token, userDetails, request);
+        boolean valid = authenticationService.validateToken(token, userDetails);
 
         assertThat(valid).isTrue();
     }
@@ -66,24 +66,10 @@ class AuthenticationServiceIT extends AbstractIT {
         assertThat(blacklistedTokenRepository.count())
                 .isGreaterThan(0);
 
-        boolean valid = authenticationService.validateToken(token, userDetails, request);
+        boolean valid = authenticationService.validateToken(token, userDetails);
 
         assertThat(valid)
                 .isFalse();
-    }
-
-    @Test
-    @DisplayName("validateToken: false when UA/IP mismatch")
-    void validateToken_mismatchClaims() {
-        HttpServletRequest good = generateRequest("JUnit-UA", "127.0.0.1");
-        String token = authenticationService.authenticate(new LoginDTO(OWNER, OWNER), good);
-        var userDetails = userDetailsSecurityService.loadUserByUsername(OWNER);
-
-        HttpServletRequest badUA = generateRequest("Other-UA", "127.0.0.1");
-        assertThat(authenticationService.validateToken(token, userDetails, badUA)).isFalse();
-
-        HttpServletRequest badIP = generateRequest("JUnit-UA", "10.0.0.5");
-        assertThat(authenticationService.validateToken(token, userDetails, badIP)).isFalse();
     }
 
     @Test

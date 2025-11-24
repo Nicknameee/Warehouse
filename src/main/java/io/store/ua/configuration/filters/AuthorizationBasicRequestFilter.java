@@ -1,7 +1,8 @@
 package io.store.ua.configuration.filters;
 
-import io.store.ua.exceptions.AuthenticationException;
+import io.store.ua.exceptions.ApplicationAuthenticationException;
 import io.store.ua.utility.RegularObjectMapper;
+import io.store.ua.utility.UserSecurityStrategyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,8 +34,10 @@ public class AuthorizationBasicRequestFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain chain) throws ServletException, IOException {
         String authorizationHeaderValue = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (authorizationHeaderValue != null && authorizationHeaderValue.startsWith("Basic ")) {
+        if (authorizationHeaderValue != null
+                && authorizationHeaderValue.startsWith("%s ".formatted(UserSecurityStrategyService.BASIC_AUTHENTICATION_TYPE))) {
             String authorizationToken = authorizationHeaderValue.substring(6);
+
             try {
                 String[] credentials = extractAndDecodeHeader(authorizationToken);
 
@@ -50,7 +53,7 @@ public class AuthorizationBasicRequestFilter extends OncePerRequestFilter {
                         response.setContentType("application/json");
                         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.getWriter().write(RegularObjectMapper.writeToString(new AuthenticationException("Invalid credentials")));
+                        response.getWriter().write(RegularObjectMapper.writeToString(new ApplicationAuthenticationException("Invalid credentials")));
                         response.getWriter().flush();
                     }
                 }
@@ -69,8 +72,6 @@ public class AuthorizationBasicRequestFilter extends OncePerRequestFilter {
 
         int indexOfSplit = decodedString.indexOf(":");
 
-        return new String[]{
-                decodedString.substring(0, indexOfSplit), decodedString.substring(indexOfSplit + 1)
-        };
+        return new String[]{decodedString.substring(0, indexOfSplit), decodedString.substring(indexOfSplit + 1)};
     }
 }

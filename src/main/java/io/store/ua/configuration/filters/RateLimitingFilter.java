@@ -21,26 +21,26 @@ import java.util.concurrent.ConcurrentMap;
 @Order(1)
 @Profile("!test")
 public class RateLimitingFilter extends OncePerRequestFilter {
-    private static final long WINDOW_MS = 5_000L;
+    private static final long INTERVAL_MS = 5_000L;
     private static final int MAX_REQUESTS = 10;
-    private final ConcurrentMap<String, RequestBucket> buckets = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, RequestCounter> buckets = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        long now = System.currentTimeMillis();
+        long requestTime = System.currentTimeMillis();
 
-        RequestBucket bucket = buckets.compute("%s:%s".formatted(getClientIp(request), request.getRequestURI()),
-                (ignore, existing) -> {
-                    if (existing == null || (now - existing.windowStart) > WINDOW_MS) {
-                        return new RequestBucket(1, now);
+        RequestCounter requestCounter = buckets.compute("%s:%s".formatted(getClientIp(request), request.getRequestURI()),
+                (ignore, counter) -> {
+                    if (counter == null || (requestTime - counter.initialRequestTiming) > INTERVAL_MS) {
+                        return new RequestCounter(1, requestTime);
                     } else {
-                        return new RequestBucket(existing.count + 1, existing.windowStart);
+                        return new RequestCounter(counter.count + 1, counter.initialRequestTiming);
                     }
                 });
 
-        if (bucket.count > MAX_REQUESTS) {
+        if (requestCounter.count > MAX_REQUESTS) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
             response.getWriter().write(RegularObjectMapper.writeToString(new ApplicationException("Too many requests", HttpStatus.TOO_MANY_REQUESTS)));
@@ -53,12 +53,14 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private String getClientIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
+
         if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }
+
         return request.getRemoteAddr();
     }
 
-    private record RequestBucket(int count, long windowStart) {
+    private record RequestCounter(int count, long initialRequestTiming) {
     }
 }
