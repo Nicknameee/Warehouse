@@ -117,9 +117,10 @@ public class ProductService {
     public Product save(@NotNull(message = "Product can't be null") ProductDTO productDTO) {
         fieldValidator.validate(productDTO, true,
                 ProductDTO.Fields.title,
-                ProductDTO.Fields.description,
                 ProductDTO.Fields.price,
-                ProductDTO.Fields.currency,
+                ProductDTO.Fields.currency);
+        fieldValidator.validate(productDTO, false,
+                ProductDTO.Fields.description,
                 ProductDTO.Fields.weight,
                 ProductDTO.Fields.length,
                 ProductDTO.Fields.width,

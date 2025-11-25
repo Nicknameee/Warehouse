@@ -1,9 +1,11 @@
 package io.store.ua.service;
 
 import io.store.ua.entity.StorageSection;
+import io.store.ua.entity.Warehouse;
 import io.store.ua.exceptions.NotFoundException;
 import io.store.ua.exceptions.UniqueCheckException;
 import io.store.ua.repository.StorageSectionRepository;
+import io.store.ua.repository.WarehouseRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -25,6 +27,7 @@ import java.util.List;
 @Validated
 public class StorageSectionService {
     private final StorageSectionRepository storageSectionRepository;
+    private final WarehouseRepository warehouseRepository;
     private final EntityManager entityManager;
 
     public List<StorageSection> findBy(@Min(value = 1, message = "Warehouse ID can't be less than 1")
@@ -67,10 +70,13 @@ public class StorageSectionService {
                     .formatted(code, warehouseId));
         }
 
+        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+                .orElseThrow(() -> new NotFoundException("Warehouse with ID '%s' was not found".formatted(warehouseId)));
+
         return storageSectionRepository.save(StorageSection.builder()
                 .warehouseId(warehouseId)
                 .code(code)
-                .isActive(true)
+                .isActive(warehouse.getIsActive() == null || warehouse.getIsActive())
                 .build());
     }
 
