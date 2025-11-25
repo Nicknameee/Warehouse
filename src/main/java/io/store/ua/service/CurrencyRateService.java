@@ -68,8 +68,8 @@ public class CurrencyRateService {
 
         return new BigDecimal(amount)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
-                .multiply(baseRate)
-                .divide(targetRate, 2, RoundingMode.HALF_UP)
+                .multiply(targetRate)
+                .divide(baseRate, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(0, RoundingMode.HALF_UP)
                 .toBigIntegerExact();

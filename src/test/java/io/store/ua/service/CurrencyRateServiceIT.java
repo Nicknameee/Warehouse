@@ -57,8 +57,8 @@ class CurrencyRateServiceIT extends AbstractIT {
         BigDecimal targetRate = currencyRateRepository.findById(target).orElseThrow().getRate();
 
         return new BigDecimal(amountCents).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
-                .multiply(baseRate)
-                .divide(targetRate, 2, RoundingMode.HALF_UP)
+                .multiply(targetRate)
+                .divide(baseRate, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(0, RoundingMode.HALF_UP)
                 .toBigIntegerExact();
@@ -191,7 +191,7 @@ class CurrencyRateServiceIT extends AbstractIT {
             BigInteger amount = BigInteger.ONE;
             BigInteger actual = currencyRateService.convert("USD", "EUR", amount);
 
-            assertEquals(BigInteger.ZERO, actual);
+            assertEquals(expectedCents("USD", "EUR", amount), actual);
         }
 
         @Test

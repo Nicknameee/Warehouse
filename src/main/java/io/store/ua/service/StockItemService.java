@@ -253,6 +253,7 @@ public class StockItemService {
 
         StockItemHistoryDTO.StockItemHistoryDTOBuilder stockItemHistoryDTOBuilder = StockItemHistoryDTO.builder();
         stockItemHistoryDTOBuilder.stockItemId(stockItemDTO.getStockItemId());
+        stockItemHistoryDTOBuilder.title(current.getProduct().getTitle());
         boolean outOfStock = false;
 
         if (stockItemDTO.getStockItemGroupId() != null) {

@@ -323,11 +323,12 @@ public abstract class AbstractIT {
                                                 LocalDate date) {
         return stockItemHistoryRepository.save(StockItemHistory.builder()
                 .stockItemId(stockItemId)
+                .title(GENERATOR.nextAlphanumeric(1999))
                 .currentProductPrice(price)
                 .currency(Currency.EUR.name())
                 .quantityBefore(quantityBefore)
                 .quantityAfter(quantityAfter)
-                .loggedAt(date.atTime(12, 0))
+                .loggedAt(date.atTime(19, 0))
                 .build());
     }
 

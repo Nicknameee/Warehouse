@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS stock_item_history
 (
     id                    BIGSERIAL PRIMARY KEY,
     stock_item_id         BIGINT    NOT NULL REFERENCES stock_items (id),
+    title VARCHAR NOT NULL,
     current_product_price BIGINT    NOT NULL,
     currency              VARCHAR   NOT NULL,
     logged_at             TIMESTAMP NOT NULL DEFAULT NOW(),

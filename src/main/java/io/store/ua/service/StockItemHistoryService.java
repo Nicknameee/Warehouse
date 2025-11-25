@@ -68,11 +68,11 @@ public class StockItemHistoryService {
         }
 
         if (from != null) {
-            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), from.toLocalDate()));
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), from));
         }
 
         if (to != null) {
-            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), to.toLocalDate()));
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(StockItemHistory.Fields.loggedAt), to));
         }
 
         criteriaQuery
@@ -94,6 +94,7 @@ public class StockItemHistoryService {
 
         StockItemHistory.StockItemHistoryBuilder stockItemHistoryBuilder = StockItemHistory.builder();
         stockItemHistoryBuilder.stockItemId(stockItemHistoryDTO.getStockItemId());
+        stockItemHistoryBuilder.title(stockItem.getProduct().getTitle());
         stockItemHistoryBuilder.currentProductPrice(stockItem.getProduct().getPrice());
         stockItemHistoryBuilder.currency(stockItem.getProduct().getCurrency());
 

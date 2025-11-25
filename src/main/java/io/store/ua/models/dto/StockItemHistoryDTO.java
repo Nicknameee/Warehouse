@@ -22,6 +22,8 @@ public class StockItemHistoryDTO {
     @NotNull(message = "Stock item history ID can't be null")
     @Min(value = 1, message = "Stock item history ID can't be less than 1")
     private Long stockItemId;
+    @NotBlank(message = "Stock item title can't be blank")
+    private String title;
     @NotNull(message = "Stock item group ID can't be null")
     @Min(value = 1, message = "Stock item group ID can't be less than 1")
     private Long oldStockItemGroupId;

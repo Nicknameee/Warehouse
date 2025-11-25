@@ -573,18 +573,18 @@ class ShipmentControllerIT extends AbstractIT {
         @Test
         @DisplayName("update_success_quantityAndStatus")
         void update_success_quantityAndStatus() {
-            Shipment createdShipment = postShipment(outgoingWithRecipient(), ownerAuthenticationHeaders);
+            Shipment shipment = postShipment(outgoingWithRecipient(), ownerAuthenticationHeaders);
 
-            ShipmentDTO updateShipmentDTO = ShipmentDTO.builder()
-                    .id(createdShipment.getId())
-                    .stockItemQuantity(10L)
+            ShipmentDTO shipmentDTO = ShipmentDTO.builder()
+                    .id(shipment.getId())
+                    .stockItemQuantity(shipment.getStockItemQuantity())
                     .status(ShipmentStatus.SENT.name())
                     .build();
 
             ResponseEntity<Shipment> responseEntity = restClient.exchange(
                     "/api/v1/shipments",
                     HttpMethod.PUT,
-                    new HttpEntity<>(updateShipmentDTO, allHeaders(ownerAuthenticationHeaders)),
+                    new HttpEntity<>(shipmentDTO, allHeaders(ownerAuthenticationHeaders)),
                     Shipment.class
             );
 
@@ -593,9 +593,9 @@ class ShipmentControllerIT extends AbstractIT {
             assertThat(responseEntity.getBody())
                     .isNotNull();
             assertThat(responseEntity.getBody().getId())
-                    .isEqualTo(createdShipment.getId());
+                    .isEqualTo(shipment.getId());
             assertThat(responseEntity.getBody().getStockItemQuantity())
-                    .isEqualTo(10L);
+                    .isEqualTo(shipment.getStockItemQuantity());
             assertThat(responseEntity.getBody().getStatus())
                     .isEqualTo(ShipmentStatus.SENT);
         }
