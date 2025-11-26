@@ -233,7 +233,7 @@ public class DataTransAPIService implements ExternalAPIService, FinancialAPIServ
                 throw new HealthCheckException();
             }
 
-            String reference = CodeGenerator.generate(referenceLength);
+            String reference = CodeGenerator.TransactionCodeGenerator.generate(PaymentProvider.DATA_TRANS);
 
             var request = DTPaymentInitiationRequest.builder()
                     .currency(Constants.Currency.USD)

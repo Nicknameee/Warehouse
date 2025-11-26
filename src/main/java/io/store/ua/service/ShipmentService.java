@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -122,9 +123,17 @@ public class ShipmentService {
             throw new BusinessException("Sender, recipient code and address can't be null at the same time, unknown where to or where from to send shipment");
         }
 
+        var stockItem = stockItemService.findById(shipmentDTO.getStockItemId());
+
         Shipment.ShipmentBuilder shipmentBuilder = Shipment.builder();
         shipmentBuilder.code(CodeGenerator.ShipmentCodeGenerator.generate());
         shipmentBuilder.initiatorId(UserService.getCurrentlyAuthenticatedUserID());
+
+        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemId, true);
+        shipmentBuilder.stockItemId(shipmentDTO.getStockItemId());
+
+        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemQuantity, true);
+        shipmentBuilder.stockItemQuantity(shipmentDTO.getStockItemQuantity());
 
         if (StringUtils.isNoneBlank(shipmentDTO.getSenderCode(), shipmentDTO.getRecipientCode())) {
             fieldValidator.validate(shipmentDTO, true, ShipmentDTO.Fields.senderCode, ShipmentDTO.Fields.recipientCode);
@@ -139,6 +148,10 @@ public class ShipmentService {
             var warehouse = warehouseRepository.findByCode(shipmentDTO.getSenderCode())
                     .orElseThrow(() -> new NotFoundException("Warehouse with code '%s' was not found".formatted(shipmentDTO.getSenderCode())));
             shipmentBuilder.warehouseIdSender(warehouse.getId());
+
+            if (!Objects.equals(stockItem.getWarehouseId(), warehouse.getId())) {
+                throw new BusinessException("Stock item '%s' does not belong to the sender warehouse '%s'".formatted(stockItem.getCode(), warehouse.getCode()));
+            }
         }
 
         if (shipmentDTO.getRecipientCode() != null) {
@@ -152,12 +165,6 @@ public class ShipmentService {
             fieldValidator.validateObject(shipmentDTO, ShipmentDTO.Fields.address, true);
             shipmentBuilder.address(shipmentDTO.getAddress());
         }
-
-        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemId, true);
-        shipmentBuilder.stockItemId(shipmentDTO.getStockItemId());
-
-        fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.stockItemQuantity, true);
-        shipmentBuilder.stockItemQuantity(shipmentDTO.getStockItemQuantity());
 
         if (!StringUtils.isBlank(shipmentDTO.getStatus())) {
             fieldValidator.validate(shipmentDTO, ShipmentDTO.Fields.status, true);
