@@ -83,7 +83,7 @@ public class TagService {
         return tagRepository.save(tag);
     }
 
-    public void clearUnusedTags() {
-        jdbcTemplate.execute(SqlResourceReader.getSQL("removeOrphanTags"));
+    public List<Long> clearUnusedTags() {
+        return jdbcTemplate.query(SqlResourceReader.getSQL("removeOrphanTags"), (resultSet, ignore) -> resultSet.getLong(1));
     }
 }

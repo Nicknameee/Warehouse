@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS products
 (
     id          BIGSERIAL PRIMARY KEY NOT NULL,
     code        VARCHAR UNIQUE        NOT NULL,
-    title       VARCHAR               NOT NULL,
+    title  VARCHAR UNIQUE NOT NULL,
     description VARCHAR,
     price       BIGINT                NOT NULL,
     currency    VARCHAR               NOT NULL,

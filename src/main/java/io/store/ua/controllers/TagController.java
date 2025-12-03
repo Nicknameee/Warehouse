@@ -35,9 +35,7 @@ public class TagController {
     }
 
     @PutMapping("/clearAll")
-    public ResponseEntity<Void> clearUnusedTags() {
-        tagService.clearUnusedTags();
-
-        return ResponseEntity.ok().build();
+    public ResponseEntity<List<Long>> clearUnusedTags() {
+        return ResponseEntity.ok(tagService.clearUnusedTags());
     }
 }
