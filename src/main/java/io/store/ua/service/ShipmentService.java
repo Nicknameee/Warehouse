@@ -319,7 +319,7 @@ public class ShipmentService {
         StockItem stockItem = stockItemService.findById(shipment.getStockItemId());
         BigInteger shipmentQuantity = BigInteger.valueOf(shipment.getStockItemQuantity());
 
-        if (shipment.getStatus() == ShipmentStatus.SENT) {
+        if (shipment.getStatus() == ShipmentStatus.SENT && shipment.getShipmentDirection() == ShipmentDirection.OUTCOMING) {
             if (stockItem.getAvailableQuantity().compareTo(shipmentQuantity) < 0) {
                 throw new BusinessException("Shipment quantity can't be greater than available quantity");
             }
@@ -330,16 +330,25 @@ public class ShipmentService {
                     .build();
 
             stockItemService.update(updateSender);
-        } else if (shipment.getStatus() == ShipmentStatus.DELIVERED && shipment.getWarehouseIdRecipient() != null) {
-            StockItemDTO stockItemDTO = StockItemDTO.builder()
-                    .productId(stockItem.getProductId())
-                    .stockItemGroupId(stockItem.getStockItemGroupId())
-                    .warehouseId(shipment.getWarehouseIdRecipient())
-                    .availableQuantity(shipmentQuantity)
-                    .isActive(true)
+        } else if (shipment.getStatus() == ShipmentStatus.DELIVERED) {
+            if (shipment.getWarehouseIdRecipient() != null) {
+                StockItemDTO stockItemDTO = StockItemDTO.builder()
+                        .productId(stockItem.getProductId())
+                        .stockItemGroupId(stockItem.getStockItemGroupId())
+                        .warehouseId(shipment.getWarehouseIdRecipient())
+                        .availableQuantity(shipmentQuantity)
+                        .isActive(true)
+                        .build();
+
+                stockItemService.create(stockItemDTO);
+            }
+        } else if (shipment.getStatus() == ShipmentStatus.ROLLBACK && shipment.getShipmentDirection() == ShipmentDirection.OUTCOMING) {
+            StockItemDTO updateSender = StockItemDTO.builder()
+                    .stockItemId(stockItem.getId())
+                    .availableQuantity(stockItem.getAvailableQuantity().add(shipmentQuantity))
                     .build();
 
-            stockItemService.create(stockItemDTO);
+            stockItemService.update(updateSender);
         }
     }
 }
